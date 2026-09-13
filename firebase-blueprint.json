@@ -1,0 +1,100 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "Application user profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "password": { "type": "string", "description": "User password (stored for user request)" },
+        "role": { "type": "string" },
+        "clinicName": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "contactNumber": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "clinics": {
+      "title": "Clinic",
+      "description": "Registered clinic details",
+      "type": "object",
+      "properties": {
+        "adminId": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "personOfContact": { "type": "string" },
+        "phone": { "type": "string" }
+      },
+      "required": ["adminId", "name", "email"]
+    },
+    "activity": {
+      "title": "Activity",
+      "description": "User activity log",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["login", "update", "action"] },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "timestamp"]
+    },
+    "patients": {
+      "title": "Patient",
+      "description": "Healthcare patient records",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "age": { "type": "string" },
+        "queueNumber": { "type": "number" },
+        "status": { "type": "string", "enum": ["Waiting", "Called", "Completed"] },
+        "clinicId": { "type": "string" },
+        "addedBy": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "phone", "queueNumber", "status", "clinicId", "addedBy", "timestamp"]
+    },
+    "consultations": {
+      "title": "Consultation",
+      "description": "Patient consultation history",
+      "type": "object",
+      "properties": {
+        "patientPhone": { "type": "string" },
+        "patientName": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "notes": { "type": "string" },
+        "prescription": { "type": "string", "description": "JSON string of prescription items" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["patientPhone", "clinicId", "doctorId", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User profiles"
+    },
+    "/clinics/{clinicId}": {
+      "schema": "clinics",
+      "description": "Clinic details"
+    },
+    "/activity/{activityId}": {
+      "schema": "activity",
+      "description": "Global activity log"
+    },
+    "/patients/{patientId}": {
+      "schema": "patients",
+      "description": "Patient records"
+    },
+    "/consultations/{consultationId}": {
+      "schema": "consultations",
+      "description": "Consultation history records"
+    }
+  }
+}

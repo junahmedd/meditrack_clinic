@@ -1,0 +1,6 @@
+{
+  "name": "MediTrack",
+  "description": "Clinic management simplified. A professional healthcare administration dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

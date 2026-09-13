@@ -1,0 +1,18 @@
+{
+  "short_name": "MediTrack",
+  "name": "MediTrack SaaS — Clinic & Pharmacy Management Platform",
+  "icons": [
+    {
+      "src": "/clinic_reception.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#070d18",
+  "theme_color": "#070d18",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["medical", "health", "business", "productivity"]
+}

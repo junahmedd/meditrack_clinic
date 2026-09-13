@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Global Safety & Identity Helpers
+    // ===============================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.get('email_verified', false) == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      // Hardcoded admin email + verified status OR role == 'admin' in user doc
+      return isSignedIn() && (
+        (request.auth.token.email == "junaidudupi@gmail.com" && request.auth.token.get('email_verified', false) == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin')
+      );
+    }
+
+    function getUserClinicId() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(userPath) ? get(userPath).data.get('clinicId', '') : '';
+    }
+
+    // ===============================================================
+    // Default Deny
+    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Collection: clinics
+    // ===============================================================
+    match /clinics/{clinicId} {
+      // Publicly viewable for JOIN functionality
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (resource.data.adminId == request.auth.uid || isAdmin());
+    }
+
+    // ===============================================================
+    // Collection: users
+    // ===============================================================
+    match /users/{userId} {
+      // Users can read their own profile or any profile if they are admin
+      allow get: if isSignedIn() && (userId == request.auth.uid || isAdmin());
+      // For JOIN searching, we might need list, but restricted
+      allow list: if isAdmin();
+      
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.get('role', '') != 'admin' || isAdmin());
+      
+      allow update: if isOwner(userId) && 
+                    (request.resource.data.get('role', '') == resource.data.get('role', '') || isAdmin()) &&
+                    (request.resource.data.get('email', '') == resource.data.get('email', '')) &&
+                    isValidUser(request.resource.data);
+      
+      allow delete: if isAdmin();
+    }
+
+    function isValidUser(data) {
+      let allowedFields = ['uid', 'email', 'password', 'displayName', 'photoURL', 'role', 'clinicName', 'clinicId', 'clinicAddress', 'contactNumber', 'createdAt', 'updatedAt'];
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.uid == request.auth.uid &&
+             data.email is string && data.email.size() < 256;
+    }
+
+    // ===============================================================
+    // Collection: patients
+    // ===============================================================
+    match /patients/{patientId} {
+      // CRITICAL: The list operation MUST handle evaluated data (resource.data)
+      // We compare the record's clinicId with the user's clinicId from their profile.
+      allow list: if isSignedIn() && (
+        resource.data.clinicId == getUserClinicId() || 
+        resource.data.addedBy == request.auth.uid || 
+        isAdmin()
+      );
+      
+      allow get: if isSignedIn() && (
+        resource.data.clinicId == getUserClinicId() || 
+        resource.data.addedBy == request.auth.uid || 
+        isAdmin()
+      );
+
+      allow create: if isSignedIn() && isValidPatient(request.resource.data) &&
+                    request.resource.data.addedBy == request.auth.uid &&
+                    (request.resource.data.clinicId == getUserClinicId() || isAdmin());
+      
+      allow update: if isSignedIn() && (
+        // Simple update (status/notes) doesn't need full validation if structural fields match
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'notes', 'prescription', 'calledAt']) && 
+         request.resource.data.clinicId == resource.data.clinicId) ||
+        isValidPatient(request.resource.data)
+      ) && (resource.data.clinicId == getUserClinicId() || isAdmin());
+
+      allow delete: if isSignedIn() && (resource.data.clinicId == getUserClinicId() || isAdmin());
+    }
+
+    function isValidPatient(data) {
+      let fields = ['name', 'phone', 'age', 'queueNumber', 'status', 'clinicId', 'addedBy', 'timestamp', 'calledAt', 'prescription', 'notes'];
+      return data.keys().hasAll(['name', 'phone', 'queueNumber', 'status', 'clinicId', 'addedBy', 'timestamp']) &&
+             data.keys().hasOnly(fields) &&
+             data.name is string && data.name.size() > 0 &&
+             data.phone is string &&
+             data.clinicId is string &&
+             data.addedBy == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Collection: consultations
+    // ===============================================================
+    match /consultations/{consultationId} {
+      allow list, get: if isSignedIn() && (resource.data.clinicId == getUserClinicId() || isAdmin());
+      allow create: if isSignedIn() && isValidConsultation(request.resource.data) &&
+                    (request.resource.data.clinicId == getUserClinicId() || isAdmin());
+    }
+
+    function isValidConsultation(data) {
+      return data.keys().hasAll(['patientPhone', 'clinicId', 'doctorId', 'timestamp']) &&
+             data.doctorId == request.auth.uid &&
+             data.clinicId is string;
+    }
+
+    // ===============================================================
+    // Collection: activity
+    // ===============================================================
+    match /activity/{activityId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // System Helpers
+    // ===============================================================
+    match /system/connection-check {
+      allow read: if true;
+    }
+  }
+}

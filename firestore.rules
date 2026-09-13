@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Global Safety & Identity Helpers
+    // ===============================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isHardcodedAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email != null && (
+          request.auth.token.email.lower() == "coolmzaid@gmail.com" ||
+          request.auth.token.email.lower() == "mohammedzaidd13@gmail.com" ||
+          request.auth.token.email.lower() == "mohammedzaid1321@gmail.com" ||
+          request.auth.token.email.lower() == "junaidudupi@gmail.com" ||
+          request.auth.token.email.lower() == "admin@meditrack.live"
+        )) ||
+        request.auth.uid == "oimM3IL3qnaN3cBYngVjJogfy3C2"
+      );
+    }
+
+    function isAdmin() {
+      return isHardcodedAdmin() || (
+        isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == "admin"
+      );
+    }
+
+    // ===============================================================
+    // Collection: clinics
+    // ===============================================================
+    match /clinics/{clinicId} {
+      allow read: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if isSignedIn() && (resource.data.adminId == request.auth.uid || isAdmin());
+    }
+
+    // ===============================================================
+    // Collection: users
+    // ===============================================================
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+    }
+
+    // ===============================================================
+    // Collection: patients
+    // ===============================================================
+    match /patients/{patientId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // ===============================================================
+    // Collection: consultations
+    // ===============================================================
+    match /consultations/{consultationId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // ===============================================================
+    // Collection: inventory
+    // ===============================================================
+    match /inventory/{itemId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // ===============================================================
+    // Collection: invoices
+    // ===============================================================
+    match /invoices/{invoiceId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // ===============================================================
+    // Collection: payments
+    // ===============================================================
+    match /payments/{paymentId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // ===============================================================
+    // Collection: audit_logs
+    // ===============================================================
+    match /audit_logs/{logId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // ===============================================================
+    // Collection: messages
+    // ===============================================================
+    match /messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // ===============================================================
+    // Collection: activity
+    // ===============================================================
+    match /activity/{activityId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // ===============================================================
+    // Collection: medicines
+    // ===============================================================
+    match /medicines/{medicineId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // ===============================================================
+    // System Helpers
+    // ===============================================================
+    match /system/{document} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+  }
+}
