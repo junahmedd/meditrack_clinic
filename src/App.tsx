@@ -3214,35 +3214,9 @@ export default function App() {
         }
 
         if (!profile) {
-          const chosenRole = (selectedRole || "doctor").trim().toLowerCase();
-          const isDocRole = chosenRole === "doctor";
-          const isRecRole = chosenRole === "receptionist";
-          const computedRole = isDocRole ? "doctor" : isRecRole ? "receptionist" : "admin";
-          const targetClinicId = "MT0001";
-          const targetClinicName = "MedPlus HealthCare";
-          
-          const defaultName = cleanEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
-          const newProfile: any = {
-            uid: cred.user.uid,
-            email: cleanEmail,
-            displayName: cred.user.displayName || defaultName,
-            photoURL: cred.user.photoURL || `/assets/admin_doctor_avatar.png`,
-            role: computedRole,
-            status: "active",
-            category: "GP",
-            specialty: isDocRole ? "General Practitioner" : "",
-            clinicId: targetClinicId,
-            clinicName: targetClinicName,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          };
-          if (isDocRole) {
-            newProfile.doctorId = `DOC-${targetClinicId}-${cred.user.uid.slice(0, 4).toUpperCase()}`;
-          } else if (isRecRole) {
-            newProfile.receptionistId = `REC-${targetClinicId}-${cred.user.uid.slice(0, 4).toUpperCase()}`;
-          }
-          await setDoc(userDocRef, newProfile).catch(console.error);
-          profile = newProfile;
+          await signOut(auth);
+          setError("ACCESS DENIED: No account found for this email. Please contact your clinic administrator to get registered.");
+          return;
         }
 
         // Section 28: Inactive account check
@@ -3269,25 +3243,7 @@ export default function App() {
 
         const isRec = !isAdm && !isDoc;
 
-        // Strict Role Authorization: Reject unauthorized portal login attempts
-        if (selectedRole === "admin" && !isAdm) {
-          await signOut(auth);
-          setError(`ACCESS DENIED: The Admin Portal is restricted to Clinic Administrators only. This account (${cleanEmail}) is registered as a ${isDoc ? "Doctor" : "Receptionist"}.`);
-          return;
-        }
-
-        if (selectedRole === "doctor" && !isDoc) {
-          await signOut(auth);
-          setError(`ACCESS DENIED: The Doctor Portal is restricted to Doctors only. This account (${cleanEmail}) is registered as ${isAdm ? "an Administrator" : "a Receptionist"}.`);
-          return;
-        }
-
-        if (selectedRole === "receptionist" && !isRec) {
-          await signOut(auth);
-          setError(`ACCESS DENIED: The Receptionist Portal is restricted to Receptionists only. This account (${cleanEmail}) is registered as ${isAdm ? "an Administrator" : "a Doctor"}.`);
-          return;
-        }
-
+        // Auto-route to correct portal based on Firestore role
         setCurrentUserProfile(profile);
         setHasRedirected(true);
 
@@ -3468,8 +3424,6 @@ export default function App() {
         onSignupSubmit={handleSignupSubmit}
         signupSuccess={signupSuccess}
         onDismissSignupSuccess={() => setSignupSuccess(false)}
-        selectedRole={selectedRole}
-        setSelectedRole={setSelectedRole}
       />
     );
   }

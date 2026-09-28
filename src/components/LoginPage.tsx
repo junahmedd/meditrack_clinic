@@ -8,8 +8,6 @@ import {
   CheckCircle2,
   Building2,
   User as UserIcon,
-  ShieldCheck,
-  ChevronDown,
 } from "lucide-react";
 
 interface LoginPageProps {
@@ -34,8 +32,6 @@ interface LoginPageProps {
   onSignupSubmit: (e: React.FormEvent) => Promise<void>;
   signupSuccess?: boolean;
   onDismissSignupSuccess?: () => void;
-  selectedRole?: string;
-  setSelectedRole?: (role: string) => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({
@@ -55,8 +51,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onSignupSubmit,
   signupSuccess = false,
   onDismissSignupSuccess,
-  selectedRole = "",
-  setSelectedRole,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -152,24 +146,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           ) : authMode === "login" ? (
             /* ── LOGIN FORM ── */
             <form onSubmit={onLoginSubmit} className="space-y-3.5">
-
-              {/* Role */}
-              <div className="space-y-1">
-                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wide">Portal</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><ShieldCheck size={16} /></div>
-                  <select
-                    value={selectedRole}
-                    onChange={(e) => setSelectedRole && setSelectedRole(e.target.value)}
-                    className={inputCls + " pr-8 cursor-pointer appearance-none"}
-                  >
-                    <option value="doctor">Doctor</option>
-                    <option value="receptionist">Receptionist</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400"><ChevronDown size={14} /></div>
-                </div>
-              </div>
 
               {/* Email */}
               <div className="space-y-1">
