@@ -6,7 +6,7 @@ interface MediTrackLogoProps {
   showSubtitle?: boolean;
   showBadge?: boolean;
   className?: string;
-  theme?: "light" | "dark";
+  theme?: "light" | "dark" | "white";
 }
 
 export const MediTrackLogo: React.FC<MediTrackLogoProps> = ({
@@ -49,7 +49,7 @@ export const MediTrackLogo: React.FC<MediTrackLogoProps> = ({
           viewBox="0 0 100 100"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full drop-shadow-[0_4px_12px_rgba(14,165,233,0.3)]"
+          className="w-full h-full drop-shadow-[0_4px_12px_rgba(16,185,129,0.35)]"
         >
           {/* Heart Outline & Base */}
           <path
@@ -70,13 +70,13 @@ export const MediTrackLogo: React.FC<MediTrackLogoProps> = ({
           {/* Gradients */}
           <defs>
             <linearGradient id="heartBaseGradient" x1="12" y1="10" x2="88" y2="88" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#0284c7" />
-              <stop offset="0.5" stopColor="#0ea5e9" />
-              <stop offset="1" stopColor="#14b8a6" />
+              <stop stopColor="#064e3b" />
+              <stop offset="0.5" stopColor="#059669" />
+              <stop offset="1" stopColor="#10b981" />
             </linearGradient>
             <linearGradient id="heartInnerGradient" x1="50" y1="15" x2="50" y2="82" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#0369a1" stopOpacity="0.8" />
-              <stop offset="1" stopColor="#0f766e" stopOpacity="0.9" />
+              <stop stopColor="#043d2e" stopOpacity="0.85" />
+              <stop offset="1" stopColor="#10b981" stopOpacity="0.95" />
             </linearGradient>
           </defs>
         </svg>
@@ -87,16 +87,16 @@ export const MediTrackLogo: React.FC<MediTrackLogoProps> = ({
         <div className="flex flex-col">
           <div className="flex items-center gap-2.5">
             <div className={`font-black tracking-tight leading-none ${titleSize}`}>
-              <span className={theme === "dark" ? "text-white" : "text-[#0f2942]"}>
+              <span className={theme === "light" ? "text-[#0f2942]" : "text-white"}>
                 Medi
               </span>
-              <span className="text-[#0ea5e9] font-black">
+              <span className={theme === "white" ? "text-emerald-300" : "text-[#059669]"} style={{ fontWeight: 900 }}>
                 Track
               </span>
             </div>
 
             {showBadge && (
-              <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wider uppercase border border-teal-500/30 text-teal-400 bg-teal-500/10">
+              <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wider uppercase border border-teal-500/30 text-teal-300 bg-teal-500/10">
                 CLINIC MANAGEMENT OS
               </span>
             )}
@@ -104,7 +104,7 @@ export const MediTrackLogo: React.FC<MediTrackLogoProps> = ({
 
           {showSubtitle && (
             <p className={`font-bold tracking-widest uppercase mt-1 ${subtitleSize} ${
-              theme === "dark" ? "text-slate-400" : "text-slate-500"
+              theme === "white" ? "text-teal-100/70" : theme === "dark" ? "text-slate-400" : "text-slate-500"
             }`}>
               CLINIC MANAGEMENT SYSTEM
             </p>

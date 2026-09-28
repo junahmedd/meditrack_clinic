@@ -1,5 +1,5 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import { doc, getDocFromServer } from 'firebase/firestore';
@@ -60,5 +60,16 @@ async function testConnection() {
   }
 }
 testConnection();
+
+export { firebaseConfig };
+
+export async function createSecondaryAuthUser(email: string, pass: string) {
+  const existingApp = getApps().find(a => a.name === 'SecondaryStaffCreator');
+  const secondaryApp = existingApp || initializeApp(firebaseConfig, 'SecondaryStaffCreator');
+  const secondaryAuth = getAuth(secondaryApp);
+  const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+  await signOut(secondaryAuth);
+  return cred.user;
+}
 
 export default app;

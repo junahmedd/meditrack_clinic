@@ -86,18 +86,30 @@ export function generateInvoicePDF(data: InvoicePDFData): { pdfDataUri: string; 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-  doc.text(data.clinic.name || "Meditrack GP & Family Health Center", margin, y);
+  doc.text(data.clinic.name || "Clinic", margin, y);
 
-  y += 4.5;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-  doc.text(data.clinic.address || "Suite 101, Medical Block A", margin, y);
+  if (data.clinic.address) {
+    y += 4.5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+    doc.text(data.clinic.address, margin, y);
+  }
 
-  y += 4;
-  const clinicPhone = data.clinic.phone || "+91 98765 43210";
-  const clinicGst = data.clinic.gstNumber || "33ABCDE1234F1Z5";
-  doc.text(`Phone: ${clinicPhone}  •  GSTIN: ${clinicGst}`, margin, y);
+  const clinicPhone = data.clinic.phone || "";
+  const clinicGst = data.clinic.gstNumber || "";
+  const clinicContactLine = [
+    clinicPhone ? `Phone: ${clinicPhone}` : "",
+    clinicGst ? `GSTIN: ${clinicGst}` : "",
+  ].filter(Boolean).join("  •  ");
+
+  if (clinicContactLine) {
+    y += 4;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+    doc.text(clinicContactLine, margin, y);
+  }
 
   // Header Right: Paid Badge + TAX INVOICE Title + Invoice No
   const rightX = pageWidth - margin;
@@ -317,7 +329,7 @@ export function generateInvoicePDF(data: InvoicePDFData): { pdfDataUri: string; 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-  doc.text(`${data.clinic.name || "Meditrack GP & Family Health Center"} Desk`, rightX, y + 3.8, { align: "right" });
+  doc.text(`${data.clinic.name || "Clinic"} Desk`, rightX, y + 3.8, { align: "right" });
 
   const pdfDataUri = doc.output("datauristring");
   const pdfArrayBuffer = doc.output("arraybuffer");

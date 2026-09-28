@@ -3,6 +3,7 @@
     "rules": "firestore.rules"
   },
   "hosting": {
+    "site": "meditrack-d03cb",
     "public": "dist",
     "ignore": [
       "firebase.json",

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { generateInvoicePDF } from "../utils/pdfGenerator";
 import { sendWhatsApp } from "../utils/whatsappService";
 import { MediTrackLogo } from "./MediTrackLogo";
+import { detectGenderFromName } from "./DoctorPortal";
 import { AnalogClockPicker } from "./AnalogClockPicker";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { NetworkStatusBanner } from "./NetworkStatusBanner";
@@ -60,6 +61,7 @@ import {
   CheckSquare,
   Square,
   IndianRupee,
+  Menu,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -111,8 +113,11 @@ export interface Patient {
   followUpDate?: string;
   followUpNotes?: string;
   doctorId?: string;
+  doctorEmail?: string;
   doctorName?: string;
   doctorCategory?: "GP" | "PEDIATRICIAN" | "DENTIST" | string;
+  receptionistEmail?: string;
+  receptionistName?: string;
   appointmentTime?: string;
   appointmentType?: string;
   appointmentDate?: string;
@@ -132,8 +137,10 @@ interface UserProfile {
   contactNumber?: string;
   phone?: string;
   assignedDoctorId?: string;
+  assignedDoctorEmail?: string;
   assignedDoctorName?: string;
   assignedDoctorCategory?: string;
+  assignedReceptionistEmail?: string;
   category?: string;
 }
 
@@ -143,6 +150,7 @@ interface ReceptionistPortalProps {
   clinicInfo: { name: string; address: string; id?: string } | null;
   patients: Patient[];
   onLogout: () => void;
+  clinicDoctors?: any[];
   isAdmin?: boolean;
   onBackToAdmin?: () => void;
   onSwitchToDoctorPortal?: () => void;
@@ -267,12 +275,14 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   onSendReceiptWhatsApp,
   onSwitchToDoctorPortal,
   isProcessing = false,
+  clinicDoctors = [],
   onSelectDemoAccount,
 }) => {
   // Navigation tab state (Strictly: Dashboard, Appointments, Billing, Profile)
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "appointments" | "billing" | "profile" | "queue" | "patients"
   >("dashboard");
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
@@ -325,10 +335,43 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   const [isProcessingWhatsAppPdf, setIsProcessingWhatsAppPdf] = useState<boolean>(false);
   const [paymentPdfError, setPaymentPdfError] = useState<string | null>(null);
 
-  // Assigned Doctor Mapping Info (Strict Doctor Mapping)
-  const assignedDoctorCategory = (currentUserProfile?.assignedDoctorCategory || currentUserProfile?.category || "GP").toUpperCase();
-  const assignedDoctorId = currentUserProfile?.assignedDoctorId || (assignedDoctorCategory === "PEDIATRICIAN" ? "DOC-PED-001" : assignedDoctorCategory === "DENTIST" ? "DOC-DENT-001" : "DOC-GP-001");
-  const assignedDoctorName = currentUserProfile?.assignedDoctorName || (assignedDoctorCategory === "PEDIATRICIAN" ? "Dr. Priya Nair" : assignedDoctorCategory === "DENTIST" ? "Dr. Ahmed Khan" : "Dr. Rahul Sharma");
+  // List of doctors available for this clinic
+  const availableDoctors = useMemo(() => {
+    if (clinicDoctors && clinicDoctors.length > 0) return clinicDoctors;
+    return [
+      {
+        email: currentUserProfile?.assignedDoctorEmail || "doctor@clinic.com",
+        displayName: currentUserProfile?.assignedDoctorName || "Clinic Doctor",
+        category: (currentUserProfile?.assignedDoctorCategory || currentUserProfile?.category || "GP").toUpperCase(),
+      },
+    ];
+  }, [clinicDoctors, currentUserProfile]);
+
+  // Resolved Assigned Doctor (from receptionist profile or first clinic doctor)
+  const activeDoctor = useMemo(() => {
+    const userAssignedEmail = (currentUserProfile?.assignedDoctorEmail || "").toLowerCase().trim();
+    if (userAssignedEmail && clinicDoctors && clinicDoctors.length > 0) {
+      const match = clinicDoctors.find(
+        (d) => (d.email || "").toLowerCase().trim() === userAssignedEmail
+      );
+      if (match) return match;
+    }
+    if (clinicDoctors && clinicDoctors.length > 0) {
+      return clinicDoctors[0];
+    }
+    return {
+      email: currentUserProfile?.assignedDoctorEmail || "doctor@clinic.com",
+      displayName: currentUserProfile?.assignedDoctorName || "Clinic Doctor",
+      category: (currentUserProfile?.assignedDoctorCategory || currentUserProfile?.category || "GP").toUpperCase(),
+      doctorId: currentUserProfile?.assignedDoctorId || "DOC-GP",
+    };
+  }, [currentUserProfile, clinicDoctors]);
+
+  const assignedDoctorEmail = activeDoctor?.email || currentUserProfile?.assignedDoctorEmail || "";
+  const assignedDoctorName = activeDoctor?.displayName || currentUserProfile?.assignedDoctorName || "Clinic Doctor";
+  const assignedDoctorCategory = (activeDoctor?.category || currentUserProfile?.assignedDoctorCategory || "GP").toUpperCase();
+  const assignedDoctorId = activeDoctor?.doctorId || activeDoctor?.id || currentUserProfile?.assignedDoctorId || `DOC-${assignedDoctorCategory}`;
+
   const queuePrefix =
     assignedDoctorCategory === "PEDIATRICIAN"
       ? "P-"
@@ -342,14 +385,28 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       ? "Dentist"
       : "General Physician";
 
-  // Strict Scoping: Only records belonging to assigned doctor within this clinic
+  // Strict Scoping: Only records belonging strictly to this assigned doctor
   const scopedPatients = useMemo(() => {
     if (isAdmin) return patients;
     return patients.filter((p) => {
-      if (!p.doctorId && !p.doctorName) return true;
-      return p.doctorId === assignedDoctorId || p.doctorName === assignedDoctorName;
+      const pDocEmail = (p.doctorEmail || "").toLowerCase().trim();
+      const targetDocEmail = (assignedDoctorEmail || "").toLowerCase().trim();
+      const targetDocUid = currentUserProfile?.assignedDoctorUid || "";
+      if (p.doctorUid && targetDocUid && p.doctorUid === targetDocUid) return true;
+      if (pDocEmail && targetDocEmail) {
+        return pDocEmail === targetDocEmail;
+      }
+      if (p.doctorId && assignedDoctorId && p.doctorId === assignedDoctorId) return true;
+      if (p.doctorName && assignedDoctorName) {
+        const cleanP = p.doctorName.toLowerCase().replace("dr. ", "").replace("dr ", "").trim();
+        const cleanT = assignedDoctorName.toLowerCase().replace("dr. ", "").replace("dr ", "").trim();
+        if (cleanP && cleanT && (cleanP.includes(cleanT) || cleanT.includes(cleanP))) return true;
+      }
+      if (!targetDocUid && !targetDocEmail && !assignedDoctorId && !assignedDoctorName) return true;
+      if (!pDocEmail && !p.doctorName && !p.doctorUid) return true;
+      return false;
     });
-  }, [patients, assignedDoctorId, assignedDoctorName, isAdmin]);
+  }, [patients, assignedDoctorEmail, assignedDoctorName, assignedDoctorId, currentUserProfile?.assignedDoctorUid, isAdmin]);
 
   // Live Pending Bills derived from scoped Firestore patients
   const pendingBills = useMemo<BillingPendingItem[]>(() => {
@@ -454,14 +511,28 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
   // Settings Suite State
   const [openSettingSection, setOpenSettingSection] = useState<string>("clinic");
-  const [clinicDetails, setClinicDetails] = useState({
-    name: clinicInfo?.name || "Apollo Clinic",
+  const [clinicDetails, setClinicDetails] = useState(() => ({
+    name: clinicInfo?.name || currentUserProfile?.clinicName || "Clinic",
     tagline: "Care Today, Healthier Tomorrow",
-    address: clinicInfo?.address || "123, MG Road, Chennai, Tamil Nadu - 600001",
-    phone: "+91 98765 43210",
-    email: "info@apolloclinic.com",
-    gstNumber: "33ABCDE1234F1Z5",
-  });
+    address: clinicInfo?.address || currentUserProfile?.clinicAddress || "",
+    phone: currentUserProfile?.contactNumber || currentUserProfile?.phone || "",
+    email: currentUserProfile?.email || "",
+    gstNumber: "",
+  }));
+
+  // Sync clinicDetails with live Firestore clinic/profile data
+  useEffect(() => {
+    if (clinicInfo || currentUserProfile) {
+      setClinicDetails((prev) => ({
+        ...prev,
+        name: clinicInfo?.name || currentUserProfile?.clinicName || prev.name,
+        address: clinicInfo?.address || currentUserProfile?.clinicAddress || prev.address,
+        phone: currentUserProfile?.contactNumber || currentUserProfile?.phone || prev.phone,
+        email: currentUserProfile?.email || prev.email,
+      }));
+    }
+  }, [clinicInfo, currentUserProfile]);
+
   const [workingHours, setWorkingHours] = useState([
     { day: "Monday", hours: "09:00 AM - 09:00 PM", isClosed: false },
     { day: "Tuesday", hours: "09:00 AM - 09:00 PM", isClosed: false },
@@ -471,16 +542,55 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     { day: "Saturday", hours: "09:00 AM - 05:00 PM", isClosed: false },
     { day: "Sunday", hours: "Closed", isClosed: true },
   ]);
-  const [clinicUsersList, setClinicUsersList] = useState([
-    { initials: "MZ", name: "Mohammed Zaid", role: "Front Desk", status: "Active" },
-    { initials: "DS", name: "Dr. Sharma", role: "General Physician", status: "Active" },
-    { initials: "PP", name: "Priya Nair", role: "Receptionist", status: "Active" },
-  ]);
-  const [doctorFeesList, setDoctorFeesList] = useState([
-    { doctorRole: "General Physician (Dr. Sharma)", fee: 500 },
-    { doctorRole: "Pediatrician (Dr. Priya)", fee: 600 },
-    { doctorRole: "Dentist (Dr. Mehta)", fee: 700 },
-  ]);
+
+  // Live Clinic Users List populated dynamically without hardcoded users
+  const [clinicUsersList, setClinicUsersList] = useState<Array<{ initials: string; name: string; role: string; status: string }>>([]);
+
+  useEffect(() => {
+    const list: Array<{ initials: string; name: string; role: string; status: string }> = [];
+    if (currentUserProfile) {
+      const name = currentUserProfile.displayName || user?.displayName || "Receptionist";
+      list.push({
+        initials: name.slice(0, 2).toUpperCase(),
+        name,
+        role: "Receptionist",
+        status: currentUserProfile.isDeactivated ? "Inactive" : "Active",
+      });
+    }
+    if (clinicDoctors && clinicDoctors.length > 0) {
+      clinicDoctors.forEach((d) => {
+        const dName = d.displayName || d.email || "Doctor";
+        list.push({
+          initials: dName.slice(0, 2).toUpperCase(),
+          name: dName,
+          role: `${d.category || "GP"} Doctor`,
+          status: d.isDeactivated ? "Inactive" : "Active",
+        });
+      });
+    }
+    setClinicUsersList(list);
+  }, [currentUserProfile, user, clinicDoctors]);
+
+  // Live Doctor Fees derived from clinic doctors or assigned doctor
+  const [doctorFeesList, setDoctorFeesList] = useState<Array<{ doctorRole: string; fee: number }>>([]);
+
+  useEffect(() => {
+    if (clinicDoctors && clinicDoctors.length > 0) {
+      setDoctorFeesList(
+        clinicDoctors.map((doc) => ({
+          doctorRole: `${doc.displayName || "Doctor"} (${doc.category || "GP"})`,
+          fee: doc.consultationFee || (doc.category === "DENTIST" ? 700 : doc.category === "PEDIATRICIAN" ? 600 : 500),
+        }))
+      );
+    } else {
+      setDoctorFeesList([
+        {
+          doctorRole: `${assignedDoctorName} (${assignedDoctorCategory})`,
+          fee: assignedDoctorCategory === "DENTIST" ? 700 : assignedDoctorCategory === "PEDIATRICIAN" ? 600 : 500,
+        },
+      ]);
+    }
+  }, [clinicDoctors, assignedDoctorName, assignedDoctorCategory]);
   const [isEditClinicModalOpen, setIsEditClinicModalOpen] = useState(false);
   const [isEditHoursModalOpen, setIsEditHoursModalOpen] = useState(false);
   const [isManageUsersModalOpen, setIsManageUsersModalOpen] = useState(false);
@@ -489,30 +599,38 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   // Appointments Suite State - live synchronized from scoped Firestore patients
   const [customAppointments, setCustomAppointments] = useState<AppointmentItem[]>([]);
   const appointments = useMemo<AppointmentItem[]>(() => {
+    const todayStr = new Date().toISOString().split("T")[0];
     const fromPatients: AppointmentItem[] = scopedPatients.map((p) => ({
       id: `pat-${p.id}`,
       queueNo: p.queueNumber,
-      time: p.timestamp?.toDate
-        ? new Date(p.timestamp.toDate()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+      time: p.appointmentTime
+        ? p.appointmentTime
+        : p.timestamp?.toDate
+        ? new Date(p.timestamp.toDate()).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
         : "Today",
       patientName: p.name,
       phone: p.phone,
       doctor: p.doctorName || assignedDoctorName,
-      type: "General" as const,
-      status: (p.status === "Waiting"
+      type: (p.appointmentType || "General Consultation") as AppointmentItem["type"],
+      status: (p.status === "Scheduled" || p.status === "SCHEDULED"
+        ? "Scheduled"
+        : p.status === "Waiting"
         ? "Waiting"
         : p.status === "Called" || p.status === "Consulting" || p.status === "In Consultation"
         ? "Consulting"
         : p.status === "In Billing" || p.status === "Billing"
         ? "In Billing"
-        : p.status === "Completed"
-        ? p.billingStatus === "Paid"
+        : p.status === "Completed" || p.status === "PAID"
+        ? p.billingStatus === "Paid" || p.status === "PAID"
           ? "Completed"
           : "In Billing"
+        : p.status === "Cancelled"
+        ? "Cancelled"
         : "Waiting") as AppointmentItem["status"],
       age: p.age,
+      gender: p.gender || detectGenderFromName(p.name),
       notes: p.notes || "Live registered patient",
-      date: "2026-09-05",
+      date: p.appointmentDate || (p.timestamp?.toDate ? new Date(p.timestamp.toDate()).toISOString().split("T")[0] : todayStr),
     }));
     return [...fromPatients, ...customAppointments];
   }, [scopedPatients, customAppointments, assignedDoctorName]);
@@ -636,7 +754,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   const [editingAppointment, setEditingAppointment] = useState<AppointmentItem | null>(null);
   const [editAptName, setEditAptName] = useState("");
   const [editAptPhone, setEditAptPhone] = useState("");
-  const [editAptDoctor, setEditAptDoctor] = useState("Dr. Sharma");
+  const [editAptDoctor, setEditAptDoctor] = useState(assignedDoctorName);
   const [editAptType, setEditAptType] = useState<"General Consultation" | "Check Up" | "General" | "Dental" | "Follow-up">("General Consultation");
   const [editAptTime, setEditAptTime] = useState("09:00 AM");
   const [editAptStatus, setEditAptStatus] = useState<AppointmentItem["status"]>("Waiting");
@@ -701,13 +819,15 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
     const todayDateStr = new Date().toISOString().split("T")[0];
     const liveCurrentTime = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-    const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "clinic-default";
+    const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "";
     const nextQueueNumber = scopedPatients.length > 0 ? Math.max(...scopedPatients.map((p) => p.queueNumber || 0)) + 1 : 1;
 
     try {
       const patientData: any = {
         name: newAptName.trim(),
-        phone: newAptPhone.trim() || "+91 98765 00000",
+        phone: newAptPhone.trim(),
+        age: newAptAge.trim() || "",
+        gender: newAptGender || detectGenderFromName(newAptName.trim()),
         queueNumber: Number(nextQueueNumber),
         status: "SCHEDULED",
         appointmentType: newAptType,
@@ -715,8 +835,11 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         appointmentDate: todayDateStr,
         clinicId: String(clinicId),
         doctorId: String(assignedDoctorId),
+        doctorEmail: String(assignedDoctorEmail || "").toLowerCase().trim(),
         doctorName: String(assignedDoctorName),
         doctorCategory: String(assignedDoctorCategory),
+        receptionistEmail: String(user?.email || "").toLowerCase().trim(),
+        receptionistName: String(currentUserProfile?.displayName || "Front Desk"),
         addedBy: String(user?.uid || "receptionist"),
         timestamp: serverTimestamp(),
         createdAt: serverTimestamp(),
@@ -758,10 +881,23 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     showToast(`Calling ${apt.patientName} to ${apt.doctor}'s room...`);
   };
 
-  const handleUpdateAptStatus = (id: string, newStatus: AppointmentItem["status"]) => {
+  const handleUpdateAptStatus = async (id: string, newStatus: AppointmentItem["status"]) => {
     setCustomAppointments((prev) =>
       prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item))
     );
+    if (id.startsWith("pat-")) {
+      const patId = id.replace("pat-", "");
+      try {
+        await updateDoc(doc(db, "patients", patId), {
+          status: newStatus,
+        });
+      } catch (e) {
+        console.error("Firestore patient status update error:", e);
+      }
+    }
+    if (viewAptDetail && viewAptDetail.id === id) {
+      setViewAptDetail((prev) => (prev ? { ...prev, status: newStatus } : null));
+    }
     setOpenMenuAptId(null);
     showToast(`Status updated to ${newStatus}`);
   };
@@ -994,39 +1130,86 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   const DOCTOR_VISITS_DATA = useMemo(() => {
     const count = scopedPatients.length;
     return [
-      { name: assignedDoctorName, value: count, color: "#2563eb" },
+      { name: assignedDoctorName, value: count, color: "#064e3b" },
     ];
   }, [scopedPatients, assignedDoctorName]);
 
-  // Dynamic 7-Day Revenue Data
+  // Dynamic 7-Day Calendar Range (Past 6 days + Today)
+  const last7Days = useMemo(() => {
+    const today = new Date();
+    const days: { dateStr: string; dayLabel: string; startTs: number; endTs: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
+      const endOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
+      days.push({
+        dateStr: d.toISOString().split("T")[0],
+        dayLabel: d.toLocaleDateString("en-US", { weekday: "short" }),
+        startTs: startOfDay,
+        endTs: endOfDay,
+      });
+    }
+    return days;
+  }, []);
+
+  const getRecordTsMs = (record: any): number | null => {
+    if (!record) return null;
+    const ts = record.paidAt || record.timestamp || record.createdAt;
+    if (!ts) return null;
+    if (ts.toDate && typeof ts.toDate === "function") return ts.toDate().getTime();
+    if (ts.seconds) return ts.seconds * 1000;
+    if (typeof ts === "number") return ts;
+    if (typeof ts === "string") {
+      const p = new Date(ts).getTime();
+      return isNaN(p) ? null : p;
+    }
+    return null;
+  };
+
+  // Dynamic 7-Day Revenue Data (100% genuine live Firestore aggregation)
   const REVENUE_DATA = useMemo(() => {
-    const upiToday = revenueStats.upi;
-    const cashToday = revenueStats.cash;
-    return [
-      { day: "Sun", cash: Math.round(cashToday * 0.4), upi: Math.round(upiToday * 0.5) },
-      { day: "Mon", cash: Math.round(cashToday * 0.6), upi: Math.round(upiToday * 0.7) },
-      { day: "Tue", cash: Math.round(cashToday * 0.5), upi: Math.round(upiToday * 0.8) },
-      { day: "Wed", cash: Math.round(cashToday * 0.8), upi: Math.round(upiToday * 0.9) },
-      { day: "Thu", cash: Math.round(cashToday * 0.7), upi: Math.round(upiToday * 0.85) },
-      { day: "Fri", cash: Math.round(cashToday * 0.9), upi: Math.round(upiToday * 0.95) },
-      { day: "Sat", cash: cashToday, upi: upiToday },
-    ];
-  }, [revenueStats]);
+    return last7Days.map(({ dayLabel, startTs, endTs }) => {
+      let dayCash = 0;
+      let dayUpi = 0;
+
+      paidBillingPatients.forEach((p) => {
+        const ms = getRecordTsMs(p);
+        if (ms && ms >= startTs && ms <= endTs) {
+          const fee = typeof p.consultationFee === "number" ? p.consultationFee : (p.billingAmount ? Number(p.billingAmount) : 500);
+          if (p.paymentMethod === "Cash") {
+            dayCash += fee;
+          } else {
+            dayUpi += fee;
+          }
+        }
+      });
+
+      return {
+        day: dayLabel,
+        cash: dayCash,
+        upi: dayUpi,
+      };
+    });
+  }, [last7Days, paidBillingPatients]);
 
   // Dynamic Reports Datasets (100% Live from Firestore)
   const APPOINTMENTS_TREND_DATA = useMemo(() => {
-    const total = appointments.length;
-    const completed = scopedPatients.filter((p) => p.status === "Completed" || p.status === "Dispensed").length;
-    const cancelled = appointments.filter((a) => a.status === "Cancelled").length;
-    return [
-      { day: "Mon", total: Math.round(total * 0.3), completed: Math.round(completed * 0.3), cancelled: 0 },
-      { day: "Tue", total: Math.round(total * 0.5), completed: Math.round(completed * 0.5), cancelled: 0 },
-      { day: "Wed", total: Math.round(total * 0.7), completed: Math.round(completed * 0.7), cancelled: 0 },
-      { day: "Thu", total: Math.round(total * 0.85), completed: Math.round(completed * 0.85), cancelled: 0 },
-      { day: "Fri", total: Math.round(total * 0.95), completed: Math.round(completed * 0.95), cancelled: 0 },
-      { day: "Sat", total, completed, cancelled },
-    ];
-  }, [appointments, scopedPatients]);
+    return last7Days.map(({ dayLabel, startTs, endTs }) => {
+      const dayPatients = scopedPatients.filter((p) => {
+        const ms = getRecordTsMs(p);
+        return ms && ms >= startTs && ms <= endTs;
+      });
+      const completed = dayPatients.filter((p) => p.status === "Completed" || p.status === "Dispensed" || p.status === "PAID" || p.billingStatus === "Paid").length;
+      const cancelled = dayPatients.filter((p) => p.status === "Cancelled").length;
+      return {
+        day: dayLabel,
+        total: dayPatients.length,
+        completed,
+        cancelled,
+      };
+    });
+  }, [last7Days, scopedPatients]);
 
   const CONSULTATIONS_DOCTOR_DATA = useMemo(() => {
     const completedCount = scopedPatients.filter((p) => p.status === "Completed" || p.status === "Dispensed").length;
@@ -1036,21 +1219,26 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   }, [scopedPatients, assignedDoctorName]);
 
   const REVENUE_OVERVIEW_DATA = useMemo(() => {
-    const totalRev = revenueStats.total;
-    return [
-      { day: "Mon", amount: Math.round(totalRev * 0.1) },
-      { day: "Tue", amount: Math.round(totalRev * 0.2) },
-      { day: "Wed", amount: Math.round(totalRev * 0.35) },
-      { day: "Thu", amount: Math.round(totalRev * 0.5) },
-      { day: "Fri", amount: Math.round(totalRev * 0.8) },
-      { day: "Sat", amount: totalRev },
-    ];
-  }, [revenueStats]);
+    return last7Days.map(({ dayLabel, startTs, endTs }) => {
+      let dayTotal = 0;
+      paidBillingPatients.forEach((p) => {
+        const ms = getRecordTsMs(p);
+        if (ms && ms >= startTs && ms <= endTs) {
+          const fee = typeof p.consultationFee === "number" ? p.consultationFee : (p.billingAmount ? Number(p.billingAmount) : 500);
+          dayTotal += fee;
+        }
+      });
+      return {
+        day: dayLabel,
+        amount: dayTotal,
+      };
+    });
+  }, [last7Days, paidBillingPatients]);
 
   const PATIENT_TYPE_DISTRIBUTION = useMemo(() => {
     const total = patients.length;
     return [
-      { name: "New Patients", value: total, color: "#2563eb" },
+      { name: "New Patients", value: total, color: "#064e3b" },
       { name: "Returning Patients", value: 0, color: "#10b981" },
     ];
   }, [patients]);
@@ -1143,12 +1331,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   return (
     <div className="flex h-screen bg-[#f8fafc] text-slate-800 font-sans overflow-hidden antialiased">
       {/* 1. LEFT SIDEBAR (Dark navy / black: #070d18) */}
-      <aside className="w-64 bg-[#070d18] text-slate-300 hidden md:flex flex-col justify-between shrink-0 select-none border-r border-slate-900/80 z-20">
+      <aside className="w-64 bg-[#063328] text-slate-300 hidden md:flex flex-col justify-between shrink-0 select-none border-r border-[#03231b] z-20">
         <div className="p-6 flex flex-col gap-6">
           {/* Brand Logo & Name */}
           <div className="flex flex-col gap-2">
             <MediTrackLogo size="sm" theme="dark" showSubtitle={true} showBadge={false} />
-            <div className="flex items-center gap-2 pl-1 text-[10px] font-bold text-sky-400 bg-sky-500/10 py-1 px-2.5 rounded-lg border border-sky-500/20">
+            <div className="flex items-center gap-2 pl-1 text-[10px] font-bold text-emerald-300 bg-emerald-500/10 py-1 px-2.5 rounded-lg border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="truncate">{clinicInfo?.name || currentUserProfile?.clinicName || "Receptionist Desk"}</span>
             </div>
@@ -1160,7 +1348,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               onClick={() => setActiveTab("dashboard")}
               className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "dashboard"
-                  ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20"
+                  ? "bg-[#064e3b] text-white font-bold shadow-md shadow-emerald-950/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
               }`}
             >
@@ -1172,7 +1360,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               onClick={() => setActiveTab("appointments")}
               className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "appointments"
-                  ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20"
+                  ? "bg-[#064e3b] text-white font-bold shadow-md shadow-emerald-950/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
               }`}
             >
@@ -1184,7 +1372,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               onClick={() => setActiveTab("billing")}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "billing"
-                  ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20"
+                  ? "bg-[#064e3b] text-white font-bold shadow-md shadow-emerald-950/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
               }`}
             >
@@ -1203,7 +1391,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               onClick={() => setActiveTab("profile")}
               className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "profile"
-                  ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20"
+                  ? "bg-[#064e3b] text-white font-bold shadow-md shadow-emerald-950/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
               }`}
             >
@@ -1214,7 +1402,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         </div>
 
         {/* Profile Card & Logout */}
-        <div className="p-6 border-t border-slate-900/80 space-y-3">
+        <div className="p-6 border-t border-[#03231b] space-y-3">
           <div className="flex items-center gap-3 p-2 rounded-2xl bg-white/[0.03]">
             <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-black text-xs flex items-center justify-center">
               {receptionistInitials}
@@ -1227,14 +1415,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             </div>
           </div>
 
-          {isAdmin && onBackToAdmin && (
-            <button
-              onClick={onBackToAdmin}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-blue-400 hover:bg-white/5 transition-all cursor-pointer"
-            >
-              <span>← Back to Admin</span>
-            </button>
-          )}
 
           <button
             onClick={onLogout}
@@ -1246,42 +1426,211 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         </div>
       </aside>
 
+      {/* MOBILE SLIDE-OVER LEFT PANEL DRAWER (< 768px) */}
+      <AnimatePresence>
+        {isMobileDrawerOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileDrawerOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 md:hidden"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 300 }}
+              className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-[#063328] text-slate-300 z-50 flex flex-col justify-between select-none border-r border-[#03231b] shadow-2xl md:hidden"
+            >
+              <div className="flex flex-col">
+                {/* Header with Logo & Close Button */}
+                <div className="p-5 flex items-center justify-between border-b border-[#03231b]">
+                  <MediTrackLogo size="sm" theme="dark" showSubtitle={true} showBadge={false} />
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className="w-8 h-8 rounded-xl bg-white/5 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer active:scale-95"
+                    aria-label="Close menu"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="px-5 pt-3">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-300 bg-emerald-500/10 py-1.5 px-3 rounded-xl border border-emerald-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="truncate">{clinicInfo?.name || currentUserProfile?.clinicName || "Receptionist Desk"}</span>
+                  </div>
+                </div>
+
+                {/* Navigation Links */}
+                <nav className="p-4 space-y-1.5">
+                  <button
+                    onClick={() => {
+                      setActiveTab("dashboard");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === "dashboard"
+                        ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <LayoutDashboard size={18} />
+                    <span>Dashboard</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab("appointments");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === "appointments"
+                        ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <Calendar size={18} />
+                    <span>Appointments</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab("billing");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === "billing"
+                        ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <CreditCard size={18} />
+                      <span>Billing &amp; Payments</span>
+                    </div>
+                    {pendingBillingPatients.length > 0 && (
+                      <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+                        {pendingBillingPatients.length}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab("profile");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === "profile"
+                        ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <UserIcon size={18} />
+                    <span>Profile</span>
+                  </button>
+                </nav>
+              </div>
+
+              {/* Bottom Receptionist Info & Logout */}
+              <div className="p-4 border-t border-[#03231b] space-y-3 pb-safe">
+                <div className="flex items-center gap-3 px-2">
+                  <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-black text-xs flex items-center justify-center">
+                    {receptionistInitials}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-white truncate">
+                      {currentUserProfile?.displayName || user?.displayName || "Receptionist"}
+                    </p>
+                    <p className="text-[10px] font-semibold text-slate-400 truncate">Front Desk Desk</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    onLogout();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-red-400 hover:bg-white/5 transition-all cursor-pointer"
+                >
+                  <LogOut size={16} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* 2. MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col min-w-0 bg-[#fafbfc] overflow-y-auto pb-28 md:pb-6 w-full max-w-full overflow-x-hidden">
-        {/* TOP HEADER */}
-        <header className="h-14 sm:h-16 bg-white border-b border-slate-100/90 px-3 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] shrink-0 gap-2 w-full max-w-full">
-          {/* Mobile Logo & Brand (Visible on Screens < 768px) */}
-          <div className="flex md:hidden items-center gap-1.5 shrink min-w-0">
-            <MediTrackLogo size="sm" theme="light" showSubtitle={false} showBadge={false} />
+        {/* 1. MOBILE TOP HEADER (Strictly for mobile screens < 768px matching shared image: Hamburger + Centered MEDITRACK in Green Theme) */}
+        <header className="md:hidden h-14 bg-white border-b border-emerald-950/10 px-4 flex items-center justify-between sticky top-0 z-30 shrink-0 select-none shadow-[0_1px_3px_rgba(6,78,59,0.03)]">
+          <button
+            type="button"
+            onClick={() => setIsMobileDrawerOpen(true)}
+            className="p-2 -ml-2 text-[#063328] hover:text-[#064e3b] active:bg-emerald-50 rounded-xl transition-colors cursor-pointer"
+            aria-label="Open side menu panel"
+          >
+            <Menu size={24} className="stroke-[2.3]" />
+          </button>
+
+          <div className="flex flex-col items-center justify-center">
+            <span className="text-[17px] font-black tracking-[0.16em] text-[#063328] uppercase font-display leading-tight">
+              MEDITRACK
+            </span>
+            <span className="text-[8px] font-black tracking-[0.2em] px-2.5 py-0.5 rounded-md bg-black text-[#00d26a] border border-[#064e3b]/60 uppercase leading-none mt-0.5 shadow-2xs">
+              CLINIC SYSTEM
+            </span>
           </div>
 
-          {/* Left: Search input */}
-          <div className="relative w-48 sm:w-96 hidden md:block">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search patient by name, phone or MRN..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
-            />
-          </div>
+          {/* Equal balance spacer so center title stays mathematically centered */}
+          <div className="w-10 shrink-0 pointer-events-none" aria-hidden="true" />
+        </header>
 
-          {/* Center / Right: Assigned Doctor Badge */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Compact Assigned Doctor Badge */}
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 shrink-0 select-none">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-              <span className="text-slate-500 text-[10px] sm:text-[11px] font-semibold hidden sm:inline">Doctor:</span>
-              <span className="text-[11px] sm:text-xs font-extrabold text-slate-900 truncate max-w-[90px] sm:max-w-none">{assignedDoctorName}</span>
-              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-100/80 text-blue-700 uppercase tracking-wide">
-                {assignedDoctorCategory}
-              </span>
+        {/* 2. DESKTOP TOP HEADER (Strictly >= 768px, rendered only on Dashboard per user requirement) */}
+        {activeTab === "dashboard" && (
+          <header className="hidden md:flex h-16 bg-white border-b border-slate-100/90 px-8 items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] shrink-0 gap-2 w-full">
+            {/* Left: Search input */}
+            <div className="relative w-72 lg:w-96">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search patient by name, phone or MRN..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all font-medium"
+              />
             </div>
+
+            {/* Center / Right: Assigned Doctor Badge */}
+            <div className="flex items-center gap-4">
+              {/* Assigned Doctor Badge (Strictly Assigned) */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 shrink-0 select-none shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                <span className="text-slate-500 text-[11px] font-bold">Doctor:</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-black text-slate-900 truncate max-w-[200px]">
+                    {assignedDoctorName}
+                  </span>
+                  {assignedDoctorEmail && (
+                    <span className="text-[10px] font-mono text-slate-400 hidden lg:inline">
+                      ({assignedDoctorEmail})
+                    </span>
+                  )}
+                </div>
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100/80 text-emerald-800 uppercase tracking-wide">
+                  {assignedDoctorCategory}
+                </span>
+              </div>
 
               <button
                 onClick={() => showToast("No unread alerts")}
-                className="relative w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors"
+                className="relative w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <Bell size={16} />
                 <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white" />
@@ -1298,12 +1647,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   className="flex items-center gap-1.5 p-1 rounded-2xl hover:bg-slate-100 active:bg-slate-200 transition-all cursor-pointer select-none touch-target"
                   aria-label="User profile menu"
                 >
-                  <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center shadow-sm shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-[#064e3b] text-white font-extrabold text-xs flex items-center justify-center shadow-sm shrink-0">
                     {receptionistInitials}
                   </div>
                   <div className="hidden sm:block text-left">
                     <p className="text-xs font-bold text-slate-800 leading-tight">
-                      {currentUserProfile?.displayName || user?.displayName || "Anjali"}
+                      {currentUserProfile?.displayName || user?.displayName || "Receptionist"}
                     </p>
                     <p className="text-[10px] font-semibold text-slate-400 leading-none mt-0.5">Front Desk ({queuePrefix.replace("-", "")})</p>
                   </div>
@@ -1325,24 +1674,11 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 space-y-1 select-none"
                       >
                         <div className="px-3 py-2 border-b border-slate-100">
-                          <p className="text-xs font-black text-slate-900">{currentUserProfile?.displayName || user?.displayName || "User"}</p>
-                          <p className="text-[10.5px] font-bold text-blue-600">Assigned to: {assignedDoctorName} ({assignedDoctorCategory})</p>
-                          <p className="text-[9.5px] font-medium text-slate-400 mt-0.5">ID: {currentUserProfile?.clinicId || "CLINIC-GP-001"}</p>
+                          <p className="text-xs font-black text-slate-900">{currentUserProfile?.displayName || user?.displayName || "Receptionist"}</p>
+                          <p className="text-[10.5px] font-bold text-[#065f46]">Assigned to: {assignedDoctorName} ({assignedDoctorCategory})</p>
+                          <p className="text-[9.5px] font-medium text-slate-400 mt-0.5">Clinic ID: {currentUserProfile?.clinicId || clinicInfo?.id || "—"}</p>
                         </div>
                         <div className="py-1 space-y-0.5">
-                          {isAdmin && onSwitchToDoctorPortal && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsProfileMenuOpen(false);
-                                onSwitchToDoctorPortal();
-                              }}
-                              className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold text-blue-600 hover:bg-blue-50 flex items-center gap-2 transition-colors cursor-pointer"
-                            >
-                              <Stethoscope size={14} />
-                              <span>Switch to Doctor Portal</span>
-                            </button>
-                          )}
 
                           <button
                             type="button"
@@ -1388,6 +1724,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               </div>
             </div>
           </header>
+        )}
 
         {/* WORKSPACE CONTENT BASED ON ACTIVE TAB */}
         <div className={`max-w-7xl mx-auto w-full space-y-6 ${activeTab === "dashboard" ? "p-3.5 sm:p-6 md:p-8" : "p-3.5 sm:p-6 md:p-8 pt-4 sm:pt-6"}`}>
@@ -1403,9 +1740,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">UPI</p>
                     <p className="text-2xl font-black text-slate-900 mt-1">₹{revenueStats.upi.toLocaleString()}</p>
-                    <p className="text-[11px] font-extrabold text-emerald-600 mt-1 flex items-center gap-1">
-                      <span>↑ 12%</span>
-                      <span className="text-slate-400 font-medium">vs yesterday</span>
+                    <p className="text-[11px] font-semibold text-slate-400 mt-1">
+                      {paidBillingPatients.filter((p) => p.paymentMethod !== "Cash").length} digital payment{paidBillingPatients.filter((p) => p.paymentMethod !== "Cash").length === 1 ? "" : "s"}
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -1418,12 +1754,11 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cash</p>
                     <p className="text-2xl font-black text-slate-900 mt-1">₹{revenueStats.cash.toLocaleString()}</p>
-                    <p className="text-[11px] font-extrabold text-blue-600 mt-1 flex items-center gap-1">
-                      <span>↑ 8%</span>
-                      <span className="text-slate-400 font-medium">vs yesterday</span>
+                    <p className="text-[11px] font-semibold text-slate-400 mt-1">
+                      {paidBillingPatients.filter((p) => p.paymentMethod === "Cash").length} cash payment{paidBillingPatients.filter((p) => p.paymentMethod === "Cash").length === 1 ? "" : "s"}
                     </p>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
                     <Banknote size={22} />
                   </div>
                 </div>
@@ -1433,9 +1768,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
                     <p className="text-2xl font-black text-slate-900 mt-1">₹{revenueStats.total.toLocaleString()}</p>
-                    <p className="text-[11px] font-extrabold text-emerald-600 mt-1 flex items-center gap-1">
-                      <span>↑ 14%</span>
-                      <span className="text-slate-400 font-medium">vs yesterday</span>
+                    <p className="text-[11px] font-semibold text-slate-400 mt-1">
+                      {paidBillingPatients.length} invoice{paidBillingPatients.length === 1 ? "" : "s"} settled
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -1448,9 +1782,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Today's Patients</p>
                     <p className="text-2xl font-black text-slate-900 mt-1">{revenueStats.todayPatients}</p>
-                    <p className="text-[11px] font-extrabold text-purple-600 mt-1 flex items-center gap-1">
-                      <span>↑ 9%</span>
-                      <span className="text-slate-400 font-medium">vs yesterday</span>
+                    <p className="text-[11px] font-semibold text-slate-400 mt-1">
+                      {waitingPatients.length} currently in queue
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
@@ -1490,7 +1823,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-100/90 shadow-sm flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <BarChart2 size={18} className="text-blue-600" />
+                      <BarChart2 size={18} className="text-[#065f46]" />
                       <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
                         Revenue (Last 7 Days)
                       </h3>
@@ -1521,14 +1854,14 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             fontSize: "12px",
                           }}
                         />
-                        <Bar dataKey="cash" stackId="a" fill="#2563eb" radius={[0, 0, 4, 4]} barSize={26} />
+                        <Bar dataKey="cash" stackId="a" fill="#059669" radius={[0, 0, 4, 4]} barSize={26} />
                         <Bar dataKey="upi" stackId="a" fill="#00d26a" radius={[6, 6, 0, 0]} barSize={26} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="flex items-center justify-center gap-6 pt-3 text-xs font-bold text-slate-600 border-t border-slate-50">
                     <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#2563eb]" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#059669]" />
                       <span>Cash</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1541,7 +1874,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 {/* Donut Chart (Patient Visits by Doctor) */}
                 <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-100/90 shadow-sm flex flex-col justify-between">
                   <div className="flex items-center gap-2 mb-2">
-                    <Users size={16} className="text-blue-600" />
+                    <Users size={16} className="text-[#065f46]" />
                     <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
                       Patient Visits by Doctor
                     </h3>
@@ -1587,7 +1920,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     </div>
                   </div>
                   <div className="text-[11px] text-slate-400 font-medium text-center pt-2 border-t border-slate-50">
-                    Highest visit count today: <strong className="text-blue-600 font-bold">{scopedPatients.length > 0 ? assignedDoctorName : "0"}</strong>
+                    Highest visit count today: <strong className="text-[#065f46] font-bold">{scopedPatients.length > 0 ? assignedDoctorName : "0"}</strong>
                   </div>
                 </div>
               </div>
@@ -1616,13 +1949,13 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 {/* 1. Pending Collections */}
                 <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
                       <FileText size={16} />
                     </div>
                     <div>
                       <span className="text-2xl font-black text-slate-900 block leading-tight">{pendingBills.length}</span>
                       <p className="text-xs font-semibold text-slate-600">Pending Collections</p>
-                      <p className="text-xs font-extrabold text-amber-600 mt-0.5">₹{pendingBills.reduce((acc, b) => acc + b.fee, 0).toLocaleString()}</p>
+                      <p className="text-xs font-extrabold text-amber-600 mt-0.5">₹{pendingBills.reduce((acc, b) => acc + (Number(b.fee) || 0), 0).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>
@@ -1636,7 +1969,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <div>
                       <span className="text-2xl font-black text-slate-900 block leading-tight">{paidInvoicesList.length}</span>
                       <p className="text-xs font-semibold text-slate-600">Paid Invoices (Today)</p>
-                      <p className="text-xs font-extrabold text-emerald-600 mt-0.5">₹{paidInvoicesList.reduce((acc, b) => acc + b.amount, 0).toLocaleString()}</p>
+                      <p className="text-xs font-extrabold text-emerald-600 mt-0.5">₹{paidInvoicesList.reduce((acc, b) => acc + (Number(b.amount) || 0), 0).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>
@@ -1644,7 +1977,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 {/* 3. Patients to Bill */}
                 <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
                       <Users size={16} />
                     </div>
                     <div>
@@ -1715,7 +2048,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                                 setSelectedPaymentMode("UPI");
                                 setPaymentCashTendered(bill.fee.toString());
                               }}
-                              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm shadow-blue-600/20 transition-all cursor-pointer inline-flex items-center gap-1.5"
+                              className="px-3.5 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs rounded-lg shadow-sm shadow-emerald-950/20 transition-all cursor-pointer inline-flex items-center gap-1.5"
                             >
                               <CreditCard size={12} />
                               <span>Bill Now</span>
@@ -1754,7 +2087,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 </div>
                 <button
                   onClick={() => setIsAddQueueModalOpen(true)}
-                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm shadow-blue-600/20 flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto shrink-0"
+                  className="px-3.5 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-950/20 flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto shrink-0"
                 >
                   <Plus size={15} />
                   <span>+ Add to Queue</span>
@@ -1766,7 +2099,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 {/* 1. Total in Queue */}
                 <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
                       <Users size={16} />
                     </div>
                     <div>
@@ -1853,7 +2186,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           <td className="py-2.5 px-4 text-slate-700 font-mono font-medium">{q.time}</td>
                           <td className="py-2.5 px-4">
                             {q.status === "In Consultation" && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                                 In Consultation
                               </span>
                             )}
@@ -1883,7 +2216,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                                     }
                                     showToast(`Calling ${q.name} to ${q.doctor}'s room...`);
                                   }}
-                                  className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1"
+                                  className="px-2.5 py-1 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1"
                                 >
                                   <PhoneCall size={11} />
                                   <span>Call</span>
@@ -1895,7 +2228,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                                   const p = patients.find((pat) => pat.id === q.id);
                                   if (p) setViewingPatient(p);
                                 }}
-                                className="p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg bg-slate-50 hover:bg-emerald-50 text-slate-500 hover:text-[#065f46] transition-colors cursor-pointer"
                                 title="View Patient Details"
                               >
                                 <Eye size={13} />
@@ -1946,7 +2279,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               {/* Registration Form */}
               <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                  <UserPlus size={18} className="text-blue-600" />
+                  <UserPlus size={18} className="text-[#065f46]" />
                   <h3 className="text-sm font-extrabold text-slate-900">Register New Patient</h3>
                 </div>
 
@@ -1959,7 +2292,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       value={regPatientName}
                       onChange={(e) => setRegPatientName(e.target.value)}
                       placeholder="e.g. Ramesh Kumar"
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:border-[#064e3b] focus:bg-white"
                     />
                   </div>
 
@@ -1971,7 +2304,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       value={regPatientPhone}
                       onChange={(e) => setRegPatientPhone(e.target.value)}
                       placeholder="+91 9876543210"
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:border-[#064e3b] focus:bg-white"
                     />
                   </div>
 
@@ -1982,14 +2315,14 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       value={regPatientAge}
                       onChange={(e) => setRegPatientAge(e.target.value)}
                       placeholder="e.g. 34"
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:border-[#064e3b] focus:bg-white"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={isProcessing}
-                    className="w-full py-3 bg-[#2563eb] hover:bg-blue-700 text-white font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-500/20 cursor-pointer disabled:opacity-50"
+                    className="w-full py-3 bg-[#064e3b] hover:bg-[#043d2e] text-white font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-950/20 cursor-pointer disabled:opacity-50"
                   >
                     {isProcessing ? "Adding to Queue..." : "Add to Live Queue →"}
                   </button>
@@ -2007,7 +2340,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     {patients.map((p) => (
                       <div key={p.id} className="py-3 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">
                             {p.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="truncate">
@@ -2023,7 +2356,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             p.status === "Waiting"
                               ? "bg-amber-50 text-amber-700"
                               : p.status === "Called"
-                              ? "bg-blue-50 text-blue-700"
+                              ? "bg-emerald-50 text-emerald-700"
                               : "bg-emerald-50 text-emerald-700"
                           }`}>
                             Token #{p.queueNumber}
@@ -2032,7 +2365,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => setViewingPatient(p)}
-                              className="p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg bg-slate-50 hover:bg-emerald-50 text-slate-500 hover:text-[#065f46] transition-colors cursor-pointer"
                               title="View Patient Profile"
                             >
                               <Eye size={13} />
@@ -2082,7 +2415,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 </div>
                 <button
                   onClick={() => setIsNewAptModalOpen(true)}
-                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm shadow-blue-600/20 flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto shrink-0"
+                  className="px-3.5 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-950/20 flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto shrink-0"
                 >
                   <Plus size={15} />
                   <span>+ New Appointment</span>
@@ -2095,12 +2428,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-slate-900">{aptKpis.total}</span>
-                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
                       <Calendar size={15} />
                     </div>
                   </div>
                   <p className="text-xs font-semibold text-slate-600 mt-1.5">Today's Appointments</p>
-                  <p className="text-[11px] font-bold text-blue-600 mt-0.5 flex items-center gap-0.5">
+                  <p className="text-[11px] font-bold text-[#065f46] mt-0.5 flex items-center gap-0.5">
                     <span>↑ 20%</span>
                     <span className="text-slate-400 font-normal">from yesterday</span>
                   </p>
@@ -2163,7 +2496,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <h3 className="text-sm font-black text-slate-900 font-display">
                       Appointment List
                     </h3>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700">
                       {filteredAppointments.length}
                     </span>
                   </div>
@@ -2213,7 +2546,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                               </span>
                             )}
                             {apt.status === "Consulting" && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                                 Consulting
                               </span>
                             )}
@@ -2308,7 +2641,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             </span>
                           )}
                           {apt.status === "Consulting" && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                               Consulting
                             </span>
                           )}
@@ -2355,7 +2688,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       </div>
 
                       {apt.notes && (
-                        <p className="text-[11px] text-slate-600 italic bg-blue-50/40 p-2 rounded-lg border border-blue-100/60">
+                        <p className="text-[11px] text-slate-600 italic bg-emerald-50/40 p-2 rounded-lg border border-emerald-100/60">
                           "{apt.notes}"
                         </p>
                       )}
@@ -2402,7 +2735,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       <h2 className="text-xl font-black text-slate-900">
                         {currentUserProfile?.displayName || user?.displayName || "Receptionist"}
                       </h2>
-                      <p className="text-xs font-bold text-blue-600">Front Desk Receptionist • Assigned: {assignedDoctorName}</p>
+                      <p className="text-xs font-bold text-[#065f46]">Front Desk Receptionist • Assigned: {assignedDoctorName}</p>
                       <p className="text-xs text-slate-400 font-medium">{user?.email}</p>
                     </div>
                   </div>
@@ -2414,7 +2747,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       setProfilePhone(currentUserProfile?.contactNumber || currentUserProfile?.phone || "");
                       setIsEditProfileOpen(true);
                     }}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-all flex items-center gap-2 cursor-pointer"
+                    className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <Pencil size={14} />
                     <span>Edit Profile</span>
@@ -2440,7 +2773,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
                       <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Phone Number</label>
-                      <p className="text-sm font-black text-slate-900">{currentUserProfile?.contactNumber || currentUserProfile?.phone || "+91 98765 43210"}</p>
+                      <p className="text-sm font-black text-slate-900">{currentUserProfile?.contactNumber || currentUserProfile?.phone || "—"}</p>
                     </div>
 
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
@@ -2455,12 +2788,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
                       <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Clinic Name</label>
-                      <p className="text-sm font-black text-slate-900">{clinicInfo?.name || currentUserProfile?.clinicName || "Meditrack Healthcare Center"}</p>
+                      <p className="text-sm font-black text-slate-900">{clinicInfo?.name || currentUserProfile?.clinicName || "Clinic"}</p>
                     </div>
 
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 sm:col-span-2">
                       <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Clinic ID</label>
-                      <p className="text-sm font-mono font-black text-blue-600">{clinicInfo?.id || currentUserProfile?.clinicId || "CLINIC-001"}</p>
+                      <p className="text-sm font-mono font-black text-[#065f46]">{clinicInfo?.id || currentUserProfile?.clinicId || "—"}</p>
                     </div>
 
                     {/* Explicit Sign Out / Logout Button */}
@@ -2494,88 +2827,94 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 10 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 10 }}
+              initial={{ scale: 0.95, y: 10, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 10, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-5"
+              style={{ maxWidth: "420px", width: "100%" }}
+              className="bg-white rounded-2xl p-5 shadow-2xl border border-slate-100 space-y-3.5 mx-auto"
             >
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="text-base font-black text-slate-900">Edit Profile</h3>
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <UserIcon size={15} />
+                  </div>
+                  <h3 className="text-sm font-black text-slate-900">Edit Profile</h3>
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsEditProfileOpen(false)}
-                  className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer"
+                  className="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer transition-colors"
                 >
-                  <X size={16} />
+                  <X size={15} />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveProfile} className="space-y-4">
+              <form onSubmit={handleSaveProfile} className="space-y-3">
                 {/* Editable Fields */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Full Name</label>
+                  <label className="text-[11px] font-bold text-slate-600 block">Full Name</label>
                   <input
                     type="text"
                     required
                     value={profileDisplayName}
                     onChange={(e) => setProfileDisplayName(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-[#064e3b] focus:bg-white transition-all"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Phone Number</label>
+                  <label className="text-[11px] font-bold text-slate-600 block">Phone Number</label>
                   <input
                     type="tel"
                     required
                     value={profilePhone}
                     onChange={(e) => setProfilePhone(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-[#064e3b] focus:bg-white transition-all"
                   />
                 </div>
 
                 {/* System Authorization Fields (Disabled / Controlled) */}
-                <div className="pt-2 border-t border-slate-100 space-y-3">
-                  <p className="text-[10.5px] font-bold text-amber-600 uppercase tracking-wider">
-                    🔒 System Controlled Authorization Fields (Read-Only)
+                <div className="pt-2 border-t border-slate-100 space-y-2">
+                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1">
+                    <span>🔒 System Controlled Authorization Fields</span>
                   </p>
 
-                  <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 block">Clinic ID</label>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Clinic ID</label>
                       <input
                         type="text"
                         disabled
-                        value={clinicInfo?.id || currentUserProfile?.clinicId || "CLINIC-001"}
-                        className="w-full p-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 cursor-not-allowed"
+                        value={clinicInfo?.id || currentUserProfile?.clinicId || ""}
+                        className="w-full py-1.5 px-2.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 cursor-not-allowed"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 block">Role</label>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Role</label>
                       <input
                         type="text"
                         disabled
                         value={currentUserProfile?.role || "Receptionist"}
-                        className="w-full p-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 cursor-not-allowed"
+                        className="w-full py-1.5 px-2.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 cursor-not-allowed"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-3 flex items-center justify-end gap-3">
+                <div className="pt-2.5 flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setIsEditProfileOpen(false)}
-                    className="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-extrabold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
+                    className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSavingProfile}
-                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/20 cursor-pointer disabled:opacity-50"
+                    className="px-4 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs rounded-xl shadow-sm shadow-emerald-950/20 cursor-pointer disabled:opacity-50 transition-colors"
                   >
                     {isSavingProfile ? "Saving..." : "Save Changes"}
                   </button>
@@ -2615,7 +2954,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
                 {/* Receipt Header */}
                 <div className="text-center pb-4 border-b border-slate-100 space-y-1">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center mx-auto mb-2 shadow-md">
+                  <div className="w-10 h-10 rounded-2xl bg-[#064e3b] text-white flex items-center justify-center mx-auto mb-2 shadow-md">
                     <Heart size={20} className="fill-white" />
                   </div>
                   <h3 className="text-xl font-black text-slate-900 font-display">
@@ -2666,7 +3005,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </div>
                   <div className="flex justify-between pt-3 border-t border-slate-200 text-sm font-black text-slate-900">
                     <span>Total Paid ({activeReceiptPatient.paymentMethod || "UPI"})</span>
-                    <span className="text-blue-600">₹{activeReceiptPatient.consultationFee || 500}</span>
+                    <span className="text-[#065f46]">₹{activeReceiptPatient.consultationFee || 500}</span>
                   </div>
                 </div>
 
@@ -2717,7 +3056,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                     <Calendar size={16} />
                   </div>
                   <div>
@@ -2747,7 +3086,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       placeholder="e.g. Ramesh Kumar"
                       value={newAptName}
                       onChange={(e) => setNewAptName(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
                     />
                   </div>
 
@@ -2762,7 +3101,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       placeholder="+91 98765 43210"
                       value={newAptPhone}
                       onChange={(e) => setNewAptPhone(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
                     />
                   </div>
 
@@ -2773,7 +3112,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     </label>
                     <div className="w-full px-3 py-2 bg-slate-100/90 border border-slate-200 rounded-xl text-xs text-slate-900 font-extrabold flex items-center justify-between shadow-inner">
                       <span className="truncate">{assignedDoctorName} ({categoryLabel})</span>
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0">
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">
                         Locked
                       </span>
                     </div>
@@ -2791,7 +3130,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           e.target.value as "General Consultation" | "Check Up"
                         )
                       }
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium cursor-pointer"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium cursor-pointer"
                     >
                       <option value="General Consultation">General Consultation</option>
                       <option value="Check Up">Check Up</option>
@@ -2823,7 +3162,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       placeholder="Symptoms, past history, or reason for appointment..."
                       value={newAptNotes}
                       onChange={(e) => setNewAptNotes(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
                     />
                   </div>
                 </div>
@@ -2839,7 +3178,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-md shadow-blue-600/20 flex items-center gap-2 transition-all cursor-pointer"
+                    className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-2 transition-all cursor-pointer"
                   >
                     <Check size={15} />
                     <span>Confirm &amp; Schedule</span>
@@ -2910,7 +3249,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     required
                     value={editAptName}
                     onChange={(e) => setEditAptName(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
                   />
                 </div>
 
@@ -2925,7 +3264,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       required
                       value={editAptPhone}
                       onChange={(e) => setEditAptPhone(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
                     />
                   </div>
 
@@ -2937,7 +3276,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <select
                       value={editAptType}
                       onChange={(e) => setEditAptType(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium cursor-pointer"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium cursor-pointer"
                     >
                       <option value="General Consultation">General Consultation</option>
                       <option value="Check Up">Check Up</option>
@@ -2964,7 +3303,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <select
                       value={editAptStatus}
                       onChange={(e) => setEditAptStatus(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium cursor-pointer"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium cursor-pointer"
                     >
                       <option value="Waiting">Waiting</option>
                       <option value="Consulting">Consulting</option>
@@ -2987,7 +3326,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     type="text"
                     value={editAptNotes}
                     onChange={(e) => setEditAptNotes(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
                   />
                 </div>
 
@@ -3006,7 +3345,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <button
                     type="button"
                     onClick={handleSaveAppointmentEdits}
-                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <Check size={15} />
                     <span>Save Changes</span>
@@ -3100,7 +3439,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black shrink-0">
                     <Receipt size={16} />
                   </div>
                   <div>
@@ -3134,7 +3473,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </div>
                   <div>
                     <span className="text-slate-400 font-medium block">Consultation Fee:</span>
-                    <strong className="text-blue-600 font-black text-xs">₹{selectedBillForPayment.fee}</strong>
+                    <strong className="text-[#065f46] font-black text-xs">₹{selectedBillForPayment.fee}</strong>
                   </div>
                 </div>
               </div>
@@ -3150,16 +3489,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     onClick={() => setSelectedPaymentMode("UPI")}
                     className={`p-2.5 rounded-xl border-2 text-left transition-all flex flex-col gap-1.5 cursor-pointer ${
                       selectedPaymentMode === "UPI"
-                        ? "border-blue-600 bg-blue-50/50 shadow-xs"
+                        ? "border-[#064e3b] bg-emerald-50/50 shadow-xs"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
                         <QrCode size={14} />
                       </div>
                       {selectedPaymentMode === "UPI" && (
-                        <div className="w-3.5 h-3.5 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                        <div className="w-3.5 h-3.5 rounded-full bg-[#064e3b] text-white flex items-center justify-center">
                           <Check size={9} strokeWidth={3} />
                         </div>
                       )}
@@ -3344,7 +3683,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         const cleanPhone = rawDigits.length === 10 ? `91${rawDigits}` : rawDigits.length === 11 && rawDigits.startsWith("0") ? `91${rawDigits.slice(1)}` : rawDigits;
                         const pdfFileName = `MediTrack_${invoiceNo}_${pat.name.replace(/\s+/g, '-')}.pdf`;
                         const invoiceUrl = `https://meditrack-d03cb.web.app/?invoice=${invoiceNo}`;
-                        const waMsgText = `🏥 ${clinicDetails.name || "MediTrack GP & Family Health Center"}\n\nHello ${pat.name},\n\nYour payment of ₹${feeAmount} has been received successfully. ✅\n🧾 Invoice: ${invoiceNo}\n💳 Payment: ${selectedPaymentMode}\n📌 Status: PAID\n📄 View & Download Invoice:\n${invoiceUrl}\n\nThank you for choosing MediTrack.`;
+                        const waMsgText = `🏥 ${clinicDetails.name || clinicInfo?.name || "Clinic"}\n\nHello ${pat.name},\n\nYour payment of ₹${feeAmount} has been received successfully. ✅\n🧾 Invoice: ${invoiceNo}\n💳 Payment: ${selectedPaymentMode}\n📌 Status: PAID\n📄 View & Download Invoice:\n${invoiceUrl}\n\nThank you for choosing ${clinicDetails.name || clinicInfo?.name || "our clinic"}.`;
 
                         try {
                           const waRes = await sendWhatsApp({
@@ -3396,7 +3735,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       setIsProcessingWhatsAppPdf(false);
                     }
                   }}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-4 py-2 bg-[#064e3b] hover:bg-[#043d2e] disabled:bg-emerald-900/40 text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   {isProcessingWhatsAppPdf ? (
                     <>
@@ -3446,7 +3785,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               {/* Printable Invoice Container */}
               <div id="printable-invoice" className="space-y-3 text-slate-800">
                 {/* Header Letterhead */}
-                <div className="flex items-start justify-between border-b border-slate-900 pb-2.5">
+                <div className="flex items-start justify-between border-b border-[#03231b] pb-2.5">
                   <div className="space-y-1">
                     <MediTrackLogo size="xs" theme="light" showSubtitle={true} showBadge={false} />
                     <div className="pt-0.5 space-y-0.5">
@@ -3467,7 +3806,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-display">
                       TAX INVOICE
                     </h3>
-                    <p className="text-[11px] font-mono font-bold text-blue-600">{activeReceiptData.invoiceNo}</p>
+                    <p className="text-[11px] font-mono font-bold text-[#065f46]">{activeReceiptData.invoiceNo}</p>
                   </div>
                 </div>
 
@@ -3525,7 +3864,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     </div>
                     <div className="flex justify-between pt-1.5 border-t border-slate-200 text-xs font-black text-slate-900">
                       <span>Total Amount Paid ({activeReceiptData.method})</span>
-                      <span className="text-blue-600 font-mono font-black text-sm">₹{activeReceiptData.amount}.00</span>
+                      <span className="text-[#065f46] font-mono font-black text-sm">₹{activeReceiptData.amount}.00</span>
                     </div>
                   </div>
                 </div>
@@ -3564,7 +3903,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       window.print();
                     }
                   }}
-                  className="w-full sm:w-1/2 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-1/2 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Download size={14} />
                   <span>Download PDF Document</span>
@@ -3575,7 +3914,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     const cleanPhone = formatWhatsAppNumber(activeReceiptData.phone);
                     const pdfName = `MediTrack_${activeReceiptData.invoiceNo}_${activeReceiptData.name.replace(/\s+/g, '-')}.pdf`;
                     const invoiceUrl = `https://meditrack-d03cb.web.app/?invoice=${activeReceiptData.invoiceNo}`;
-                    const waMsg = `🏥 ${clinicDetails.name || "MediTrack GP & Family Health Center"}\n\nHello ${activeReceiptData.name},\n\nYour payment of ₹${activeReceiptData.amount} has been received successfully. ✅\n🧾 Invoice: ${activeReceiptData.invoiceNo}\n💳 Payment: ${activeReceiptData.method}\n📌 Status: PAID\n📄 View & Download Invoice:\n${invoiceUrl}\n\nThank you for choosing MediTrack.`;
+                    const waMsg = `🏥 ${clinicDetails.name || clinicInfo?.name || "Clinic"}\n\nHello ${activeReceiptData.name},\n\nYour payment of ₹${activeReceiptData.amount} has been received successfully. ✅\n🧾 Invoice: ${activeReceiptData.invoiceNo}\n💳 Payment: ${activeReceiptData.method}\n📌 Status: PAID\n📄 View & Download Invoice:\n${invoiceUrl}\n\nThank you for choosing ${clinicDetails.name || clinicInfo?.name || "our clinic"}.`;
 
                     if (activeReceiptData?.pdfDataUri && cleanPhone) {
                       try {
@@ -3628,7 +3967,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             >
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
                     <UserPlus size={20} />
                   </div>
                   <div>
@@ -3657,20 +3996,23 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         ? Math.max(...patients.map((p) => p.queueNumber || 0)) + 1
                         : 1;
 
-                    const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "clinic-default";
+                    const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "";
                     const addedBy = user?.uid || "receptionist";
 
                     const patientData: any = {
                       name: newQueueName.trim(),
-                      phone: newQueuePhone.trim() || "+91 98765 00000",
+                      phone: newQueuePhone.trim(),
                       age: newQueueAge.trim(),
                       gender: newQueueGender,
                       queueNumber: Number(nextQueueNumber),
                       status: "Waiting",
                       clinicId: String(clinicId),
                       doctorId: String(assignedDoctorId),
+                      doctorEmail: String(assignedDoctorEmail || "").toLowerCase().trim(),
                       doctorName: String(assignedDoctorName),
                       doctorCategory: String(assignedDoctorCategory),
+                      receptionistEmail: String(user?.email || "").toLowerCase().trim(),
+                      receptionistName: String(currentUserProfile?.displayName || "Front Desk"),
                       addedBy: String(addedBy),
                       timestamp: serverTimestamp(),
                       consultationFee: assignedDoctorCategory === "DENTIST" ? 700 : assignedDoctorCategory === "PEDIATRICIAN" ? 600 : 500,
@@ -3704,7 +4046,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     placeholder="e.g. Rahul Verma"
                     value={newQueueName}
                     onChange={(e) => setNewQueueName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
                   />
                 </div>
 
@@ -3717,7 +4059,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     placeholder="+91 98765 43210"
                     value={newQueuePhone}
                     onChange={(e) => setNewQueuePhone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
                   />
                 </div>
 
@@ -3745,7 +4087,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md shadow-blue-600/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+                    className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95"
                   >
                     <Check size={16} />
                     <span>Issue Token &amp; Add</span>
@@ -4016,7 +4358,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         setIsProcessingWhatsAppPdf(false);
                       }
                     }}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+                    className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] disabled:bg-emerald-900/40 text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95"
                   >
                     {isProcessingWhatsAppPdf ? (
                       <>
@@ -4116,7 +4458,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     setIsEditClinicModalOpen(false);
                     showToast("Clinic details updated successfully!");
                   }}
-                  className="px-5 py-2 bg-blue-600 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-600/20"
+                  className="px-5 py-2 bg-[#064e3b] text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-950/20"
                 >
                   Save Changes
                 </button>
@@ -4148,7 +4490,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             >
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                     <Calendar size={20} />
                   </div>
                   <div>
@@ -4188,7 +4530,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Current Status</span>
                   <p className="mt-0.5">
-                    <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                    <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                       {viewAptDetail.status}
                     </span>
                   </p>
@@ -4256,7 +4598,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       handleCallApt(viewAptDetail);
                       setViewAptDetail(null);
                     }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                    className="px-4 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
                   >
                     <PhoneCall size={13} />
                     <span>Call Patient</span>
@@ -4290,7 +4632,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             >
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-sm shadow-md">
+                  <div className="w-11 h-11 rounded-2xl bg-[#064e3b] text-white flex items-center justify-center font-black text-sm shadow-md">
                     {viewingPatient.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div>
@@ -4317,7 +4659,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Queue Token</span>
-                  <p className="font-black text-blue-600 mt-0.5 text-sm">#{viewingPatient.queueNumber}</p>
+                  <p className="font-black text-[#065f46] mt-0.5 text-sm">#{viewingPatient.queueNumber}</p>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Live Queue Status</span>
@@ -4385,7 +4727,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         setViewingPatient(null);
                         showToast(`Calling ${viewingPatient.name} to consulting room...`);
                       }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                      className="px-4 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
                     >
                       <PhoneCall size={13} />
                       <span>Call Now</span>
@@ -4418,7 +4760,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <Pencil size={16} className="text-blue-600" />
+                  <Pencil size={16} className="text-[#065f46]" />
                   <h3 className="text-base font-black text-slate-900 font-display">Edit Patient Record</h3>
                 </div>
                 <button
@@ -4492,7 +4834,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 <button
                   type="button"
                   onClick={handleSavePatientEdits}
-                  className="px-5 py-2 bg-blue-600 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-600/20 hover:bg-blue-700"
+                  className="px-5 py-2 bg-[#064e3b] text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-950/20 hover:bg-[#043d2e]"
                 >
                   Save Changes
                 </button>
@@ -4559,7 +4901,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             )
                           );
                         }}
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-slate-300 text-[#065f46] focus:ring-[#064e3b]"
                       />
                       <span>Closed</span>
                     </label>
@@ -4581,7 +4923,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     setIsEditHoursModalOpen(false);
                     showToast("Clinic working hours updated successfully!");
                   }}
-                  className="px-5 py-2 bg-blue-600 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-600/20 hover:bg-blue-700"
+                  className="px-5 py-2 bg-[#064e3b] text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-950/20 hover:bg-[#043d2e]"
                 >
                   Save Schedule
                 </button>
@@ -4627,7 +4969,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 {clinicUsersList.map((usr, idx) => (
                   <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-extrabold text-xs flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center justify-center">
                         {usr.initials}
                       </div>
                       <div>
@@ -4745,6 +5087,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         waitingCount={waitingPatients.length}
         pendingBillingCount={pendingBillingPatients.length}
         doctorCategory={assignedDoctorCategory as any}
+        onOpenSidePanel={() => setIsMobileDrawerOpen(true)}
       />
     </div>
   );

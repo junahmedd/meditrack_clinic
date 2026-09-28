@@ -43,6 +43,7 @@ import {
   ArrowRight,
   Pencil,
   MoreHorizontal,
+  Menu,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -57,59 +58,194 @@ import {
   Cell,
 } from "recharts";
 
-export function detectGenderFromName(name: string): "Male" | "Female" | "NA" {
-  if (!name || typeof name !== "string") return "NA";
-  const trimmed = name.trim();
-  if (!trimmed) return "NA";
+// Title prefixes
+const MALE_PREFIXES = new Set([
+  "mr", "mister", "master", "sir", "shri", "shree", "baba", "bhai",
+  "kumar", "sheikh", "shaikh", "syed", "sayed", "dr", "ustad", "maulana"
+]);
 
-  const firstWord = trimmed.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, "");
-  if (["mr", "master", "sir", "baba", "shri", "kumar"].includes(firstWord)) {
+const FEMALE_PREFIXES = new Set([
+  "mrs", "ms", "miss", "smt", "shrimati", "lady", "madam", "kumari",
+  "sister", "bibi", "begum", "khatoon", "didi"
+]);
+
+// Comprehensive Male Names & Tokens
+const MALE_NAMES = new Set([
+  "sanath", "rahul", "amit", "rohit", "suresh", "ramesh", "raj", "rajesh", "vijay", "ajay",
+  "anil", "sunil", "mohammed", "mohammad", "muhammad", "md", "ahmed", "ahmad", "ali",
+  "john", "david", "alex", "michael", "arjun", "karan", "dev", "rohan", "priyansh",
+  "aarav", "arav", "vikram", "priyanshu", "deepak", "manish", "sanjay", "sachin",
+  "varun", "nikhil", "tarun", "gaurav", "vivek", "pankaj", "alok", "harsh", "kabir",
+  "aditya", "yash", "vishal", "dinesh", "pradeep", "pawan", "rakesh", "ashok", "mukesh",
+  "zaid", "khaled", "khalid", "mustafa", "hassan", "hasan", "hussein", "hussain",
+  "ibrahim", "omar", "umar", "usman", "uthman", "imran", "salman", "aamir", "amir",
+  "shahid", "tariq", "danish", "bilal", "hamza", "farhan", "usama", "osama", "ravi",
+  "kiran", "karthik", "kartik", "siddharth", "sid", "akash", "aakash", "ayush",
+  "harshit", "rishabh", "abhishek", "anurag", "aman", "pranav", "chinmay", "tanmay",
+  "suraj", "sooraj", "govind", "gopal", "krishna", "shiva", "shivam", "satyam",
+  "shubham", "parth", "lakshya", "mayank", "sumit", "puneet", "anand", "ashwin",
+  "chetan", "chirag", "dhruv", "ishan", "ishaan", "jay", "kunal", "madhav", "manav",
+  "neeraj", "prashant", "raghav", "ranveer", "ritesh", "ronak", "sahil", "samar",
+  "sarvesh", "shashank", "shreyas", "sourabh", "saurabh", "tejas", "utkarsh", "vaibhav",
+  "vipin", "yuvraj", "junaid", "nawaz", "saif", "irfan", "faisal", "arbaaz", "sohail",
+  "rehan", "adnan", "rizwan", "sameer", "samir", "arshad", "asif", "atif", "kashif",
+  "rashid", "wasim", "waseem", "waqas", "zeeshan", "shariq", "shakir", "shabbir",
+  "tanveer", "tanvir", "jawad", "nasir", "nasser", "zahid", "zain", "ayan", "rayan",
+  "ayaan", "faizan", "arham", "anas", "huzaifa", "zubair", "shaikh", "sheikh", "khan",
+  "pathan", "qureshi", "ansari", "sayyed", "syed", "mirza", "baig", "beg", "bharat",
+  "pratap", "singh", "chauhan", "rathore", "sharma", "verma", "gupta", "agarwal",
+  "mishra", "pandey", "tiwari", "yadav", "choudhary", "patel", "reddy", "nair",
+  "menon", "pillai", "rao", "gowda", "hegde", "shetty", "bhat", "kamath", "pai",
+  "kamat", "shenoy", "prabhu", "naik", "fernandes", "dsouza", "pereira", "silva",
+  "lobo", "pinto", "almeida", "rodrigues", "george", "thomas", "joseph", "mathew",
+  "peter", "paul", "james", "robert", "william", "charles", "daniel", "samuel",
+  "benjamin", "lucas", "henry", "jack", "noah", "liam", "ethan", "oliver", "mason",
+  "logan", "jacob", "aiden", "ryan", "luke", "leo", "adam", "ian", "colin", "brian",
+  "kevin", "eric", "jason", "justin", "brandon", "tyler", "sanath", "babu", "appa",
+  "anna", "chandan", "goutham", "gautam", "kallesh", "manjunath", "somnath",
+  "jagan", "jagannath", "amarnath", "pramod", "vinod", "subhash", "prakash", "kailash",
+  "avinash", "mohan", "sohan", "roshan", "madan", "kamal", "firoz", "iqbal", "afzal",
+  "javed", "pervez", "nadeem", "naeem", "azeem", "shahbaz", "shohail", "tauseef"
+]);
+
+// Comprehensive Female Names & Tokens
+const FEMALE_NAMES = new Set([
+  "priya", "pooja", "puja", "neha", "shweta", "kavita", "meena", "ritu", "sneha",
+  "aarti", "arti", "divya", "ananya", "riya", "sara", "sarah", "zara", "emma",
+  "mary", "maria", "anjali", "radha", "seema", "simran", "rekha", "geeta", "gita",
+  "sita", "laxmi", "lakshmi", "swati", "jyoti", "monica", "monika", "kajal", "tanya",
+  "nisha", "sonam", "sonia", "sonya", "payal", "deepika", "katrina", "aishwarya",
+  "ishita", "shruti", "kriti", "krithi", "sakshi", "muskan", "khushi", "fatima",
+  "fathima", "aisha", "ayesha", "zainab", "mariam", "maryam", "noor", "sana",
+  "kavya", "navya", "ramya", "soumya", "sowmya", "shreya", "bhavya", "pragya",
+  "dhanya", "aditi", "smriti", "jagriti", "pragati", "shanti", "kirti", "keerthi",
+  "dipti", "deepti", "tripti", "drishti", "srishti", "urvashi", "janvi", "jhanvi",
+  "jahnavi", "vaishnavi", "ashwini", "tejaswini", "manasvi", "roshni", "ragini",
+  "kamini", "yamini", "mohini", "nalini", "shalini", "malini", "rohini", "nandini",
+  "damini", "chandni", "mansi", "rashi", "ankita", "nikita", "parul", "smita",
+  "namrata", "babita", "sarita", "lalita", "vineeta", "vinita", "sangeeta", "anita",
+  "sunita", "kareena", "tina", "reena", "heena", "hina", "sheena", "zarina", "sabina",
+  "amina", "madina", "vandana", "archana", "chetna", "upasana", "bhavana", "sadhana",
+  "ruksana", "farzana", "shabana", "sultana", "tanushree", "rajshree", "jayshree",
+  "dhanashree", "bhagyashree", "gayatri", "savitri", "khadija", "asma", "salma",
+  "halima", "sumayya", "safiya", "ruqayya", "bushra", "hira", "sadia", "nadia",
+  "rabia", "shazia", "fauzia", "samina", "yasmin", "nasreen", "parveen", "shabnam",
+  "nilofar", "tasneem", "shahnaz", "gulnaz", "aliza", "mahnoor", "zoya", "inaya",
+  "myra", "aira", "amaira", "anaya", "kiara", "avani", "ira", "saanvi", "aadhya",
+  "aaradhya", "diya", "siya", "jiya", "piya", "mira", "meera", "leela", "lila",
+  "maya", "tara", "chaya", "uma", "usha", "veena", "bela", "shashi", "saroj",
+  "kamla", "sudha", "vidya", "shobha", "pushpa", "madhu", "manju", "renu", "anju",
+  "suniti", "bharti", "chitra", "deepa", "hema", "jaya", "komal", "leena", "mamta",
+  "mona", "pallavi", "poonam", "prerna", "rachna", "ranjana", "rashmi", "rupa",
+  "sapna", "shikha", "shilpa", "sobia", "suman", "sushma", "sweta", "urmila",
+  "varsha", "alisha", "ashley", "charlotte", "chloe", "claire", "elena", "elizabeth",
+  "grace", "hannah", "isabella", "jessica", "julia", "laura", "lucy", "madeline",
+  "megan", "mia", "natalie", "olivia", "rachel", "rebecca", "samantha", "sophia",
+  "victoria", "ammu", "devi", "kaur", "begum", "khatoon", "bano", "bai"
+]);
+
+// Special male names ending in 'a'
+const MALE_NAMES_ENDING_IN_A = new Set([
+  "krishna", "shiva", "rama", "rana", "mustafa", "hamza", "talha", "yahya",
+  "musa", "isa", "usama", "osama", "zubair", "joshua", "luca", "ezra", "noah"
+]);
+
+export function detectGenderFromName(name: string): "Male" | "Female" {
+  if (!name || typeof name !== "string") return "Male";
+  const cleanStr = name.trim().toLowerCase();
+  if (!cleanStr) return "Male";
+
+  const words = cleanStr.replace(/[^a-z\s]/g, " ").split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "Male";
+
+  const firstToken = words[0];
+  if (MALE_PREFIXES.has(firstToken)) return "Male";
+  if (FEMALE_PREFIXES.has(firstToken)) return "Female";
+
+  const coreWords = words.filter(w => !MALE_PREFIXES.has(w) && !FEMALE_PREFIXES.has(w));
+  const tokensToCheck = coreWords.length > 0 ? coreWords : words;
+
+  // 1. Direct first-name lookup (highest weight)
+  const firstName = tokensToCheck[0];
+  if (MALE_NAMES.has(firstName)) return "Male";
+  if (FEMALE_NAMES.has(firstName)) return "Female";
+
+  // 2. Scan remaining tokens for definitive markers (e.g. Sanath Ali Shaikh -> 'ali' or 'shaikh' or 'devi' or 'begum')
+  for (const token of tokensToCheck) {
+    if (FEMALE_NAMES.has(token)) return "Female";
+    if (MALE_NAMES.has(token)) return "Male";
+  }
+
+  // 3. Linguistic suffix analysis on first name
+  if (MALE_NAMES_ENDING_IN_A.has(firstName)) return "Male";
+
+  // Strong male suffixes
+  if (
+    firstName.endsWith("ath") ||
+    firstName.endsWith("esh") ||
+    firstName.endsWith("it") ||
+    firstName.endsWith("av") ||
+    firstName.endsWith("ak") ||
+    firstName.endsWith("al") ||
+    firstName.endsWith("ik") ||
+    firstName.endsWith("ay") ||
+    firstName.endsWith("ur") ||
+    firstName.endsWith("am") ||
+    firstName.endsWith("as") ||
+    firstName.endsWith("eep") ||
+    firstName.endsWith("jeet") ||
+    firstName.endsWith("meet") ||
+    firstName.endsWith("preet") ||
+    firstName.endsWith("want") ||
+    firstName.endsWith("kant") ||
+    firstName.endsWith("lal") ||
+    firstName.endsWith("raj") ||
+    firstName.endsWith("nath") ||
+    firstName.endsWith("babu") ||
+    firstName.endsWith("singh") ||
+    firstName.endsWith("kumar") ||
+    firstName.endsWith("uddin") ||
+    firstName.endsWith("ullah")
+  ) {
     return "Male";
   }
-  if (["mrs", "ms", "miss", "lady", "smt", "kumari"].includes(firstWord)) {
+
+  // Strong female suffixes
+  if (
+    firstName.endsWith("ita") ||
+    firstName.endsWith("ika") ||
+    firstName.endsWith("ina") ||
+    firstName.endsWith("eena") ||
+    firstName.endsWith("ana") ||
+    firstName.endsWith("ya") ||
+    firstName.endsWith("ti") ||
+    firstName.endsWith("ni") ||
+    firstName.endsWith("la") ||
+    firstName.endsWith("sha") ||
+    firstName.endsWith("shree") ||
+    firstName.endsWith("sri") ||
+    firstName.endsWith("wati") ||
+    firstName.endsWith("mati") ||
+    firstName.endsWith("devi") ||
+    firstName.endsWith("bai") ||
+    firstName.endsWith("bano") ||
+    firstName.endsWith("khatoon")
+  ) {
     return "Female";
   }
-  if (trimmed.toLowerCase().startsWith("mr.") || trimmed.toLowerCase().startsWith("mr ")) return "Male";
-  if (trimmed.toLowerCase().startsWith("mrs.") || trimmed.toLowerCase().startsWith("mrs ") || trimmed.toLowerCase().startsWith("ms.") || trimmed.toLowerCase().startsWith("ms ")) return "Female";
 
-  const maleNames = new Set([
-    "rahul", "amit", "rohit", "suresh", "ramesh", "raj", "rajesh", "vijay", "ajay",
-    "anil", "sunil", "mohammed", "ahmed", "ali", "john", "david", "alex", "michael",
-    "arjun", "karan", "dev", "rohan", "priyansh", "arav", "vikram", "priyanshu",
-    "deepak", "manish", "sanjay", "sachin", "varun", "nikhil", "tarun", "gaurav",
-    "vivek", "pankaj", "alok", "harsh", "kabir", "aditya", "yash", "vishal", "dinesh",
-    "pradeep", "pawan", "rakesh", "ashok", "mukesh", "zaid", "khaled", "mustafa",
-    "hassan", "hussein", "ibrahim", "omar", "usman", "imran", "salman", "aamir",
-    "shahid", "tariq", "danish", "bilal", "hamza", "farhan", "usama", "ravi", "kiran"
-  ]);
-
-  const femaleNames = new Set([
-    "priya", "anita", "sunita", "pooja", "neha", "shweta", "kavita", "meena",
-    "ritu", "sneha", "aarti", "divya", "ananya", "riya", "sara", "emma", "mary",
-    "anjali", "radha", "seema", "rekha", "geeta", "sita", "laxmi", "swati", "jyoti",
-    "monica", "simran", "kajal", "tanya", "nisha", "sonam", "sonia", "payal",
-    "deepika", "katrina", "aishwarya", "ishita", "shruti", "kriti", "sakshi", "muskan",
-    "khushi", "fatima", "aisha", "zainab", "mariam", "noor", "sana", "kavya"
-  ]);
-
-  const nameParts = trimmed
-    .replace(/^(mr|mrs|ms|miss|master|dr|smt)\.?\s+/i, "")
-    .toLowerCase()
-    .split(/\s+/);
-  
-  const cleanFirstName = nameParts[0]?.replace(/[^a-z]/g, "") || "";
-
-  if (maleNames.has(cleanFirstName)) return "Male";
-  if (femaleNames.has(cleanFirstName)) return "Female";
-
-  if (cleanFirstName.endsWith("ita") || cleanFirstName.endsWith("isha") || cleanFirstName.endsWith("anjali")) {
+  // Common feminine vowel endings (a, i, ee, ah)
+  if (
+    firstName.endsWith("a") ||
+    firstName.endsWith("i") ||
+    firstName.endsWith("ee") ||
+    firstName.endsWith("ah")
+  ) {
     return "Female";
   }
-  if (cleanFirstName.endsWith("kumar") || cleanFirstName.endsWith("deep") || cleanFirstName.endsWith("singh")) {
-    return "Male";
-  }
 
-  return "NA";
+  // Safe universal fallback (never returns "NA")
+  return "Male";
 }
 
 export type DoctorCategory = "GP" | "PEDIATRICIAN" | "DENTIST";
@@ -148,8 +284,11 @@ export interface Patient {
   paidAt?: any;
   invoiceNumber?: string;
   doctorId?: string;
+  doctorEmail?: string;
   doctorName?: string;
   doctorCategory?: DoctorCategory | string;
+  receptionistEmail?: string;
+  receptionistName?: string;
   vitals?: {
     bp?: string;
     temperature?: string;
@@ -203,8 +342,10 @@ export interface UserProfile {
   consultationFee?: number;
   doctorId?: string;
   assignedDoctorId?: string;
+  assignedDoctorEmail?: string;
   assignedDoctorName?: string;
   assignedDoctorCategory?: DoctorCategory;
+  assignedReceptionistEmail?: string;
 }
 
 interface DoctorPortalProps {
@@ -213,6 +354,7 @@ interface DoctorPortalProps {
   clinicInfo: { id?: string; name: string; address: string } | null;
   patients: Patient[];
   onLogout: () => void;
+  clinicDoctors?: any[];
   isAdmin?: boolean;
   onBackToAdmin?: () => void;
   onCallPatient: (patient: Patient) => Promise<void>;
@@ -310,7 +452,7 @@ const getIconStyle = (type?: string, category?: string) => {
   const lowerType = (type || "").toLowerCase();
 
   if (lowerCat.includes("analgesic") || lowerType.includes("tablet")) {
-    return "bg-blue-100/80 text-blue-600 border border-blue-200/50";
+    return "bg-emerald-100/80 text-[#065f46] border border-emerald-200/50";
   }
   if (lowerCat.includes("antibiotic") || lowerType.includes("capsule")) {
     return "bg-amber-100/80 text-amber-600 border border-amber-200/50";
@@ -325,7 +467,7 @@ const getIconStyle = (type?: string, category?: string) => {
     return "bg-amber-100/80 text-amber-600 border border-amber-200/50";
   }
   if (lowerCat.includes("lipid")) {
-    return "bg-blue-100/80 text-blue-600 border border-blue-200/50";
+    return "bg-emerald-100/80 text-[#065f46] border border-emerald-200/50";
   }
   if (lowerCat.includes("supplement")) {
     return "bg-amber-100/80 text-amber-600 border border-amber-200/50";
@@ -340,7 +482,7 @@ const getCategoryBadgeStyle = (category?: string) => {
   if (lower.includes("antihistamine")) return "bg-purple-50 text-purple-600 border border-purple-100/80";
   if (lower.includes("antacid")) return "bg-rose-50 text-rose-600 border border-rose-100/80";
   if (lower.includes("antidiabetic")) return "bg-emerald-50 text-emerald-600 border border-emerald-100/80";
-  if (lower.includes("lipid")) return "bg-blue-50 text-blue-600 border border-blue-100/80";
+  if (lower.includes("lipid")) return "bg-emerald-50 text-emerald-700 border border-emerald-100/80";
   if (lower.includes("supplement")) return "bg-amber-50 text-amber-700 border border-amber-100/80";
   return "bg-slate-100 text-slate-700 border border-slate-200/80";
 };
@@ -352,7 +494,7 @@ const TOOTH_STATUS_COLORS: Record<ToothCondition, { bg: string; text: string; bo
   Crown: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-300" },
   RCT: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-300" },
   Extraction: { bg: "bg-red-50", text: "text-red-700", border: "border-red-400" },
-  Filling: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-300" },
+  Filling: { bg: "bg-emerald-50", text: "text-[#065f46]", border: "border-emerald-300" },
 };
 
 export function DoctorPortal({
@@ -372,6 +514,7 @@ export function DoctorPortal({
   isHistoryOpen,
   setIsHistoryOpen,
   onFetchHistory,
+  clinicDoctors = [],
   onSelectDemoAccount,
 }: DoctorPortalProps) {
   // Active Navigation Tab
@@ -385,6 +528,7 @@ export function DoctorPortal({
     | "lab_orders"
     | "appointments"
   >("dashboard");
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   // Determine Doctor Category
   const [category, setCategory] = useState<DoctorCategory>(() => {
@@ -398,13 +542,12 @@ export function DoctorPortal({
   });
 
   const doctorDisplayName = useMemo(() => {
-    const fallbackName = category === "PEDIATRICIAN" ? "Dr. Priya Nair" : category === "DENTIST" ? "Dr. Ahmed Khan" : "Dr. Rahul Sharma";
-    const name = currentUserProfile?.displayName || user?.displayName || fallbackName;
-    if (name.toLowerCase().startsWith("dr.") || name.toLowerCase().startsWith("dr ")) {
-      return name;
+    const rawName = currentUserProfile?.displayName || user?.displayName || (user?.email ? user.email.split("@")[0] : "") || "Doctor";
+    if (rawName.toLowerCase().startsWith("dr.") || rawName.toLowerCase().startsWith("dr ")) {
+      return rawName;
     }
-    return `Dr. ${name}`;
-  }, [currentUserProfile, user, category]);
+    return `Dr. ${rawName}`;
+  }, [currentUserProfile, user]);
 
   const doctorInitials = useMemo(() => {
     const clean = doctorDisplayName.replace(/^Dr\.\s*/i, "").trim();
@@ -428,16 +571,27 @@ export function DoctorPortal({
   const [diagnosisSearch, setDiagnosisSearch] = useState("");
   const [showDiagnosisDropdown, setShowDiagnosisDropdown] = useState(false);
 
-  // Automatically detect patient gender from active patient's name
-  const detectedGender = useMemo(() => {
-    if (!activePatient) return "NA";
-    const detected = detectGenderFromName(activePatient.name);
-    if (detected !== "NA") return detected;
-    if (activePatient.gender && (activePatient.gender === "Male" || activePatient.gender === "Female")) {
-      return activePatient.gender;
+  // Automatically detect patient gender from active patient's name, with manual toggle option
+  const [doctorSelectedGender, setDoctorSelectedGender] = useState<"Male" | "Female" | null>(null);
+
+  useEffect(() => {
+    if (!activePatient) {
+      setDoctorSelectedGender(null);
+      return;
     }
-    return "NA";
-  }, [activePatient]);
+    if (activePatient.gender === "Male" || activePatient.gender === "Female") {
+      setDoctorSelectedGender(activePatient.gender);
+    } else {
+      const autoGender = detectGenderFromName(activePatient.name);
+      setDoctorSelectedGender(autoGender);
+      // Auto-save to Firestore so subsequent loads remember it
+      if (activePatient.id) {
+        updateDoc(doc(db, "patients", activePatient.id), { gender: autoGender }).catch(console.error);
+      }
+    }
+  }, [activePatient?.id, activePatient?.name, activePatient?.gender]);
+
+  const detectedGender: "Male" | "Female" = doctorSelectedGender || (activePatient ? detectGenderFromName(activePatient.name) : "Male");
 
   // Vitals State (Empty initial values, populated dynamically from active patient)
   const [vitals, setVitals] = useState({
@@ -589,10 +743,7 @@ export function DoctorPortal({
 
   // Filter Doctor Queue strictly for this authenticated doctor
   const doctorQueue = useMemo(() => {
-    const docId =
-      currentUserProfile?.doctorId ||
-      user?.uid ||
-      (category === "GP" ? "DOC-GP-001" : category === "PEDIATRICIAN" ? "DOC-PED-001" : "DOC-DENT-001");
+    const docId = currentUserProfile?.doctorId || user?.uid || "";
     return patients.filter((p) => {
       if (
         p.status === "Completed" ||
@@ -608,29 +759,38 @@ export function DoctorPortal({
         p.status === "Scheduled"
       ) return false;
       if (isAdmin) return true;
-      if (p.doctorId) {
+      if (p.doctorUid && user?.uid && p.doctorUid === user.uid) return true;
+      const myEmail = (user?.email || currentUserProfile?.email || "").toLowerCase().trim();
+      const patDocEmail = (p.doctorEmail || "").toLowerCase().trim();
+      if (myEmail && patDocEmail) {
+        return patDocEmail === myEmail;
+      }
+      if (p.doctorId && docId) {
         const cleanDocId = String(docId).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
         const cleanPatDocId = String(p.doctorId).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-        if (cleanPatDocId === cleanDocId || cleanPatDocId.includes(category.toUpperCase())) return true;
+        if (cleanPatDocId === cleanDocId) return true;
       }
-      if (p.doctorName) return p.doctorName.toLowerCase().includes(doctorDisplayName.toLowerCase().replace("dr. ", ""));
+      if (p.doctorName && doctorDisplayName) return p.doctorName.toLowerCase().includes(doctorDisplayName.toLowerCase().replace("dr. ", ""));
       return true;
     });
-  }, [patients, currentUserProfile, user, category, doctorDisplayName, isAdmin]);
+  }, [patients, currentUserProfile, user, doctorDisplayName, isAdmin]);
 
   // Doctor Patient History List
   const doctorPatientsList = useMemo(() => {
-    const docId =
-      currentUserProfile?.doctorId ||
-      user?.uid ||
-      (category === "GP" ? "DOC-GP-001" : category === "PEDIATRICIAN" ? "DOC-PED-001" : "DOC-DENT-001");
+    const docId = currentUserProfile?.doctorId || user?.uid || "";
     return patients.filter((p) => {
       if (isAdmin) return true;
-      if (p.doctorId) return p.doctorId === docId;
-      if (p.doctorName) return p.doctorName.toLowerCase().includes(doctorDisplayName.toLowerCase().replace("dr. ", ""));
+      if (p.doctorUid && user?.uid && p.doctorUid === user.uid) return true;
+      const myEmail = (user?.email || currentUserProfile?.email || "").toLowerCase().trim();
+      const patDocEmail = (p.doctorEmail || "").toLowerCase().trim();
+      if (myEmail && patDocEmail) {
+        return patDocEmail === myEmail;
+      }
+      if (p.doctorId && docId) return p.doctorId === docId;
+      if (p.doctorName && doctorDisplayName) return p.doctorName.toLowerCase().includes(doctorDisplayName.toLowerCase().replace("dr. ", ""));
       return true;
     });
-  }, [patients, currentUserProfile, user, category, doctorDisplayName, isAdmin]);
+  }, [patients, currentUserProfile, user, doctorDisplayName, isAdmin]);
 
   // Patient Statistics Chart Data (Strict Live Firebase Data - Starts at 0)
   const patientStatsData = useMemo(() => {
@@ -644,12 +804,15 @@ export function DoctorPortal({
 
     return days.map((day) => {
       const registeredCount = doctorPatientsList.filter((p) => {
-        if (!p.createdAt) return false;
+        const ts: any = p.createdAt || p.timestamp;
+        if (!ts) return false;
         let pDate: Date | null = null;
-        if (p.createdAt.seconds) {
-          pDate = new Date(p.createdAt.seconds * 1000);
-        } else if (typeof p.createdAt === "string" || typeof p.createdAt === "number") {
-          pDate = new Date(p.createdAt);
+        if (ts.toDate && typeof ts.toDate === "function") {
+          pDate = ts.toDate();
+        } else if (ts.seconds) {
+          pDate = new Date(ts.seconds * 1000);
+        } else if (typeof ts === "string" || typeof ts === "number") {
+          pDate = new Date(ts);
         }
         if (!pDate || isNaN(pDate.getTime())) return false;
         return pDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }) === day;
@@ -685,7 +848,7 @@ export function DoctorPortal({
 
     const chartSlices = total > 0
       ? [
-          { name: "Consultation", value: consultationRev, color: "#2563eb", percentage: consultationPct },
+          { name: "Consultation", value: consultationRev, color: "#064e3b", percentage: consultationPct },
           { name: "Check in", value: checkInRev, color: "#10b981", percentage: checkInPct },
         ]
       : [
@@ -693,7 +856,7 @@ export function DoctorPortal({
         ];
 
     const legendSlices = [
-      { name: "Consultation", value: consultationRev, color: "#2563eb", percentage: consultationPct },
+      { name: "Consultation", value: consultationRev, color: "#064e3b", percentage: consultationPct },
       { name: "Check in", value: checkInRev, color: "#10b981", percentage: checkInPct },
     ];
 
@@ -724,28 +887,29 @@ export function DoctorPortal({
 
   // Real-time Firestore sync for clinic medicines
   useEffect(() => {
-    const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "DEFAULT_CLINIC";
+    const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "";
     const medRef = collection(db, "medicines");
 
     const unsubscribe = onSnapshot(
       medRef,
       (snapshot) => {
         if (snapshot.empty) {
-          // Seed default medicines if collection is empty
-          DEFAULT_MEDICINES.forEach((med) => {
-            addDoc(medRef, {
-              ...med,
-              clinicId,
-              createdAt: serverTimestamp(),
-            }).catch(console.error);
-          });
+          if (clinicId) {
+            DEFAULT_MEDICINES.forEach((med) => {
+              addDoc(medRef, {
+                ...med,
+                clinicId,
+                createdAt: serverTimestamp(),
+              }).catch(console.error);
+            });
+          }
         } else {
           const items: MedicineItem[] = snapshot.docs
             .map((docSnap) => ({
               id: docSnap.id,
               ...(docSnap.data() as Omit<MedicineItem, "id">),
             }))
-            .filter((m) => !m.clinicId || m.clinicId === clinicId || m.clinicId === "DEFAULT_CLINIC");
+            .filter((m) => !m.clinicId || (clinicId && m.clinicId === clinicId));
           setMedicines(items);
         }
       },
@@ -835,8 +999,11 @@ export function DoctorPortal({
       showToast("Medicine Name is required");
       return;
     }
-
-    const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "DEFAULT_CLINIC";
+    const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "";
+    if (!clinicId) {
+      showToast("Clinic identifier not found. Please reload.");
+      return;
+    }
     const selectedForm = medicineFormData.form || medicineFormData.type || "Tablet";
     const docData = {
       clinicId,
@@ -904,9 +1071,9 @@ export function DoctorPortal({
                 key={i}
                 className="px-2.5 py-1 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-800 flex items-center gap-2"
               >
-                <Pill size={13} className="text-blue-600 shrink-0" />
-                <span className="text-blue-950 font-black">{item.medicine}</span>
-                <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded-md font-mono font-bold">
+                <Pill size={13} className="text-[#065f46] shrink-0" />
+                <span className="text-emerald-950 font-black">{item.medicine}</span>
+                <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-md font-mono font-bold">
                   {item.dosage || "1-0-1"}
                 </span>
                 <span className="text-[10px] text-slate-500 font-medium">
@@ -925,7 +1092,7 @@ export function DoctorPortal({
     }
     return (
       <div className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 flex items-center gap-2">
-        <Pill size={13} className="text-blue-600 shrink-0" />
+        <Pill size={13} className="text-[#065f46] shrink-0" />
         <span>{prescriptionStr}</span>
       </div>
     );
@@ -1103,7 +1270,7 @@ export function DoctorPortal({
   return (
     <div className="flex h-screen bg-[#f8fafc] text-slate-800 font-sans overflow-hidden antialiased">
       {/* 1. DARK LEFT SIDEBAR (Matching uploaded screenshot) */}
-      <aside className="w-64 bg-[#0a1120] text-slate-300 hidden md:flex flex-col justify-between shrink-0 select-none border-r border-slate-900 z-20">
+      <aside className="w-64 bg-[#063328] text-slate-300 hidden md:flex flex-col justify-between shrink-0 select-none border-r border-[#03231b] z-20">
         <div className="flex flex-col">
           {/* Clinic Brand Header */}
           <div className="p-6 pb-4">
@@ -1118,7 +1285,7 @@ export function DoctorPortal({
               onClick={() => setActiveTab("dashboard")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "dashboard"
-                  ? "bg-[#2563eb] text-white shadow-lg shadow-blue-600/25"
+                  ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -1130,7 +1297,7 @@ export function DoctorPortal({
               onClick={() => setActiveTab("medicine")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "medicine" || activeTab === "appointments"
-                  ? "bg-[#2563eb] text-white shadow-lg shadow-blue-600/25"
+                  ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -1142,7 +1309,7 @@ export function DoctorPortal({
               onClick={() => setActiveTab("consultation")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "consultation"
-                  ? "bg-[#2563eb] text-white shadow-lg shadow-blue-600/25"
+                  ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -1154,7 +1321,7 @@ export function DoctorPortal({
               onClick={() => setActiveTab("profile")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "profile"
-                  ? "bg-[#2563eb] text-white shadow-lg shadow-blue-600/25"
+                  ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -1165,9 +1332,9 @@ export function DoctorPortal({
         </div>
 
         {/* Bottom User Profile & Logout */}
-        <div className="p-4 border-t border-slate-900/80 space-y-3">
+        <div className="p-4 border-t border-[#03231b] space-y-3">
           <div className="flex items-center gap-3 px-2">
-            <div className="w-10 h-10 rounded-full bg-[#2563eb] text-white font-extrabold text-xs flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-full bg-[#064e3b] text-white font-extrabold text-xs flex items-center justify-center shadow-md">
               {doctorInitials}
             </div>
             <div className="text-left overflow-hidden">
@@ -1180,14 +1347,6 @@ export function DoctorPortal({
             </div>
           </div>
 
-          {isAdmin && onBackToAdmin && (
-            <button
-              onClick={onBackToAdmin}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-blue-400 hover:bg-white/5 transition-all cursor-pointer"
-            >
-              ← Back to Admin
-            </button>
-          )}
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-red-400 hover:bg-white/5 transition-all cursor-pointer"
@@ -1198,133 +1357,279 @@ export function DoctorPortal({
         </div>
       </aside>
 
+      {/* MOBILE SLIDE-OVER LEFT PANEL DRAWER (< 768px) */}
+      <AnimatePresence>
+        {isMobileDrawerOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileDrawerOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 md:hidden"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 300 }}
+              className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-[#063328] text-slate-300 z-50 flex flex-col justify-between select-none border-r border-[#03231b] shadow-2xl md:hidden"
+            >
+              <div className="flex flex-col">
+                {/* Header with Logo & Close Button */}
+                <div className="p-5 flex items-center justify-between border-b border-[#03231b]">
+                  <MediTrackLogo size="sm" theme="dark" showSubtitle={true} showBadge={false} />
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className="w-8 h-8 rounded-xl bg-white/5 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer active:scale-95"
+                    aria-label="Close menu"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Navigation Links */}
+                <nav className="p-4 space-y-1.5">
+                  <button
+                    onClick={() => {
+                      setActiveTab("dashboard");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === "dashboard"
+                        ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <LayoutDashboard size={18} />
+                    <span>Dashboard</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab("medicine");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === "medicine" || activeTab === "appointments"
+                        ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <Pill size={18} />
+                    <span>Medicine</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab("consultation");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === "consultation"
+                        ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <Stethoscope size={18} />
+                    <span>Consultation</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab("profile");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === "profile"
+                        ? "bg-[#064e3b] text-white shadow-lg shadow-emerald-950/30"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <User size={18} />
+                    <span>Profile</span>
+                  </button>
+                </nav>
+              </div>
+
+              {/* Bottom Doctor Info & Logout */}
+              <div className="p-4 border-t border-[#03231b] space-y-3 pb-safe">
+                <div className="flex items-center gap-3 px-2">
+                  <div className="w-10 h-10 rounded-full bg-[#064e3b] text-white font-extrabold text-xs flex items-center justify-center shadow-md">
+                    {doctorInitials}
+                  </div>
+                  <div className="text-left overflow-hidden">
+                    <p className="text-xs font-extrabold text-white truncate leading-tight">
+                      {doctorDisplayName}
+                    </p>
+                    <p className="text-[10px] font-medium text-slate-400 truncate">
+                      {categoryLabel}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    onLogout();
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-red-400 hover:bg-white/5 transition-all cursor-pointer"
+                >
+                  <LogOut size={16} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* 2. MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col min-w-0 bg-[#f8fafc] overflow-y-auto pb-28 md:pb-6 w-full max-w-full overflow-x-hidden">
-        {/* Clean Top Header Bar */}
-        <header className="h-14 sm:h-16 bg-white border-b border-slate-100 px-3 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] gap-2 w-full max-w-full shrink-0">
-          {/* Mobile Logo & Department Badge (Visible on Screens < 768px) */}
-          <div className="flex md:hidden items-center gap-1.5 shrink min-w-0">
-            <MediTrackLogo size="sm" theme="light" showSubtitle={false} showBadge={false} />
-            <span className="hidden sm:inline-block text-[9.5px] font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 uppercase tracking-wide truncate">
-              {categoryLabel}
+        {/* 1. MOBILE TOP HEADER (Strictly for mobile screens < 768px matching shared image: Hamburger + Centered MEDITRACK in Green Theme) */}
+        <header className="md:hidden h-14 bg-white border-b border-emerald-950/10 px-4 flex items-center justify-between sticky top-0 z-30 shrink-0 select-none shadow-[0_1px_3px_rgba(6,78,59,0.03)]">
+          <button
+            type="button"
+            onClick={() => setIsMobileDrawerOpen(true)}
+            className="p-2 -ml-2 text-[#063328] hover:text-[#064e3b] active:bg-emerald-50 rounded-xl transition-colors cursor-pointer"
+            aria-label="Open side menu panel"
+          >
+            <Menu size={24} className="stroke-[2.3]" />
+          </button>
+
+          <div className="flex flex-col items-center justify-center">
+            <span className="text-[17px] font-black tracking-[0.16em] text-[#063328] uppercase font-display leading-tight">
+              MEDITRACK
+            </span>
+            <span className="text-[8px] font-black tracking-[0.2em] px-2.5 py-0.5 rounded-md bg-black text-[#00d26a] border border-[#064e3b]/60 uppercase leading-none mt-0.5 shadow-2xs">
+              CLINIC SYSTEM
             </span>
           </div>
 
-          {/* Left Search Input Bar */}
-          <div className="flex-1 max-w-md hidden md:block">
-            <div className="relative flex items-center">
-              <Search size={15} className="absolute left-3.5 text-slate-400 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search patient by name, phone or MRN..."
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
-              />
+          {/* Equal balance spacer so center title stays mathematically centered */}
+          <div className="w-10 shrink-0 pointer-events-none" aria-hidden="true" />
+        </header>
+
+        {/* 2. DESKTOP TOP HEADER (Strictly >= 768px, rendered only on Dashboard per user requirement) */}
+        {activeTab === "dashboard" && (
+          <header className="hidden md:flex h-16 bg-white border-b border-slate-100 px-8 items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] gap-2 w-full shrink-0">
+            {/* Left Search Input Bar */}
+            <div className="flex-1 max-w-md">
+              <div className="relative flex items-center">
+                <Search size={15} className="absolute left-3.5 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search patient by name, phone or MRN..."
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] focus:bg-white transition-all"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Right Header Status & Avatar Pill */}
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-            <NetworkStatusBanner />
+            {/* Right Header Status & Avatar Pill */}
+            <div className="flex items-center gap-4 shrink-0">
+              <NetworkStatusBanner />
 
-            {/* Notification Bell */}
-            <button
-              onClick={() => showToast("No new notifications")}
-              className="relative w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-            >
-              <Bell size={16} />
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
-            </button>
-
-            {/* Doctor Profile Dropdown Pill */}
-            <div className="relative">
+              {/* Notification Bell */}
               <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowProfileDropdown((prev) => !prev);
-                }}
-                className="flex items-center gap-1.5 p-1 rounded-2xl hover:bg-slate-100 active:bg-slate-200 transition-all cursor-pointer select-none touch-target"
-                aria-label="User profile menu"
+                onClick={() => showToast("No new notifications")}
+                className="relative w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                <div className="w-9 h-9 rounded-full bg-[#2563eb] text-white font-extrabold text-xs flex items-center justify-center shadow-sm shrink-0">
-                  {doctorInitials}
-                </div>
-                <div className="text-left hidden xl:block">
-                  <p className="text-xs font-extrabold text-slate-900 leading-tight">
-                    {doctorDisplayName}
-                  </p>
-                  <p className="text-[10px] font-medium text-slate-400">
-                    {categoryLabel}
-                  </p>
-                </div>
-                <ChevronDown size={14} className="text-slate-400 shrink-0" />
+                <Bell size={16} />
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
               </button>
 
-              {/* Profile Menu Dropdown */}
-              <AnimatePresence>
-                {showProfileDropdown && (
-                  <>
-                    {/* Click Outside Dismissal Backdrop */}
-                    <div
-                      className="fixed inset-0 z-40 bg-transparent"
-                      onClick={() => setShowProfileDropdown(false)}
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 space-y-1 select-none"
-                    >
-                      <div className="px-3 py-2 border-b border-slate-100">
-                        <p className="text-xs font-black text-slate-900">{doctorDisplayName}</p>
-                        <p className="text-[10.5px] font-bold text-blue-600">{categoryLabel}</p>
-                        <p className="text-[9.5px] font-medium text-slate-400 mt-0.5">ID: {currentUserProfile?.clinicId || "CLINIC-GP-001"}</p>
-                      </div>
-                      <div className="py-1 space-y-0.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveTab("profile");
-                            setShowProfileDropdown(false);
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                        >
-                          <User size={15} className="text-slate-400" />
-                          <span>View Profile</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveTab("profile");
-                            setIsEditProfileOpen(true);
-                            setShowProfileDropdown(false);
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                        >
-                          <Settings size={15} className="text-slate-400" />
-                          <span>Settings & Preferences</span>
-                        </button>
-                      </div>
-                      <div className="border-t border-slate-100 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowProfileDropdown(false);
-                            onLogout();
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                        >
-                          <LogOut size={15} className="text-red-500" />
-                          <span>Sign Out</span>
-                        </button>
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
+              {/* Doctor Profile Dropdown Pill */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowProfileDropdown((prev) => !prev);
+                  }}
+                  className="flex items-center gap-1.5 p-1 rounded-2xl hover:bg-slate-100 active:bg-slate-200 transition-all cursor-pointer select-none touch-target"
+                  aria-label="User profile menu"
+                >
+                  <div className="w-9 h-9 rounded-full bg-[#064e3b] text-white font-extrabold text-xs flex items-center justify-center shadow-sm shrink-0">
+                    {doctorInitials}
+                  </div>
+                  <div className="text-left hidden xl:block">
+                    <p className="text-xs font-extrabold text-slate-900 leading-tight">
+                      {doctorDisplayName}
+                    </p>
+                    <p className="text-[10px] font-medium text-slate-400">
+                      {categoryLabel}
+                    </p>
+                  </div>
+                  <ChevronDown size={14} className="text-slate-400 shrink-0" />
+                </button>
+
+                {/* Profile Menu Dropdown */}
+                <AnimatePresence>
+                  {showProfileDropdown && (
+                    <>
+                      {/* Click Outside Dismissal Backdrop */}
+                      <div
+                        className="fixed inset-0 z-40 bg-transparent"
+                        onClick={() => setShowProfileDropdown(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                        className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 space-y-1 select-none"
+                      >
+                        <div className="px-3 py-2 border-b border-slate-100">
+                          <p className="text-xs font-black text-slate-900">{doctorDisplayName}</p>
+                          <p className="text-[10.5px] font-bold text-[#065f46]">{categoryLabel}</p>
+                          <p className="text-[9.5px] font-medium text-slate-400 mt-0.5">Clinic ID: {currentUserProfile?.clinicId || clinicInfo?.id || "—"}</p>
+                        </div>
+                        <div className="py-1 space-y-0.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("profile");
+                              setShowProfileDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <User size={15} className="text-slate-400" />
+                            <span>View Profile</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("profile");
+                              setIsEditProfileOpen(true);
+                              setShowProfileDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <Settings size={15} className="text-slate-400" />
+                            <span>Settings & Preferences</span>
+                          </button>
+                        </div>
+                        <div className="border-t border-slate-100 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowProfileDropdown(false);
+                              onLogout();
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <LogOut size={15} className="text-red-500" />
+                            <span>Sign Out</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
         {/* 3. TAB WORKSPACES */}
 
@@ -1358,7 +1663,7 @@ export function DoctorPortal({
               <div className="lg:col-span-4 bg-white rounded-2xl p-4 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-black text-slate-900 font-display">Today's Patients</h3>
-                  <span className="bg-blue-50 text-blue-600 font-extrabold text-[10.5px] px-2.5 py-0.5 rounded-full border border-blue-100">
+                  <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[10.5px] px-2.5 py-0.5 rounded-full border border-emerald-100">
                     {doctorQueue.length} in queue
                   </span>
                 </div>
@@ -1394,7 +1699,7 @@ export function DoctorPortal({
                           onClick={() => setActivePatient(item)}
                           className={`p-2.5 rounded-xl flex items-center justify-between border transition-all cursor-pointer ${
                             isSelected
-                              ? "bg-blue-50/70 border-blue-300 shadow-xs"
+                              ? "bg-emerald-50/70 border-emerald-300 shadow-xs"
                               : "bg-white border-slate-100 hover:bg-slate-50/80"
                           }`}
                         >
@@ -1403,7 +1708,7 @@ export function DoctorPortal({
                             <div
                               className={`w-9 h-9 rounded-lg flex items-center justify-center font-black text-xs ${
                                 isSelected
-                                  ? "bg-blue-600 text-white shadow-xs"
+                                  ? "bg-[#064e3b] text-white shadow-xs"
                                   : "bg-slate-100 text-slate-600"
                               }`}
                             >
@@ -1431,7 +1736,7 @@ export function DoctorPortal({
                                 className={`px-3 py-1 font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1 cursor-pointer ${
                                   hasActiveConsultation
                                     ? "bg-slate-200 text-slate-400 cursor-not-allowed opacity-60"
-                                    : "bg-blue-600 hover:bg-blue-700 text-white active:scale-95"
+                                    : "bg-[#064e3b] hover:bg-[#043d2e] text-white active:scale-95"
                                 }`}
                               >
                                 <Phone size={12} />
@@ -1442,7 +1747,7 @@ export function DoctorPortal({
                                 className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
                                   statusStr === "Consulting"
                                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
-                                    : "bg-blue-50 text-blue-700 border border-blue-200/80"
+                                    : "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
                                 }`}
                               >
                                 {statusStr === "Consulting" ? "IN CONSULTATION" : statusStr}
@@ -1467,7 +1772,7 @@ export function DoctorPortal({
                     {/* 1. PATIENT INFORMATION CARD */}
                     <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
                       <div className="flex items-center gap-3.5">
-                        <div className="w-11 h-11 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center shrink-0">
+                        <div className="w-11 h-11 rounded-full bg-emerald-100 text-emerald-800 font-black text-sm flex items-center justify-center shrink-0">
                           {activePatient.name
                             .split(" ")
                             .map((n: string) => n[0])
@@ -1498,22 +1803,32 @@ export function DoctorPortal({
                             value={doctorInputAge}
                             onChange={(e) => setDoctorInputAge(e.target.value)}
                             placeholder="NA"
-                            className="w-20 px-2 py-0.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder:text-slate-400"
+                            className="w-20 px-2 py-0.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064e3b] focus:bg-white transition-all placeholder:text-slate-400"
                           />
                         </div>
                         <div>
                           <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">
                             Gender
                           </span>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-extrabold text-xs ${
-                            detectedGender === "Male"
-                              ? "bg-blue-50 text-blue-700 border border-blue-200/80"
-                              : detectedGender === "Female"
-                              ? "bg-pink-50 text-pink-700 border border-pink-200/80"
-                              : "bg-slate-100 text-slate-600 border border-slate-200"
-                          }`}>
-                            {detectedGender}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextGender = detectedGender === "Male" ? "Female" : "Male";
+                              setDoctorSelectedGender(nextGender);
+                              if (activePatient?.id) {
+                                updateDoc(doc(db, "patients", activePatient.id), { gender: nextGender }).catch(console.error);
+                              }
+                            }}
+                            title="Click to toggle between Male and Female"
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
+                              detectedGender === "Male"
+                                ? "bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100"
+                                : "bg-pink-50 text-pink-800 border border-pink-300 hover:bg-pink-100"
+                            }`}
+                          >
+                            <span>{detectedGender}</span>
+                            <span className="text-[10px] text-slate-400">⇄</span>
+                          </button>
                         </div>
                         <div>
                           <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">
@@ -1540,7 +1855,7 @@ export function DoctorPortal({
                     <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Activity size={16} className="text-blue-600" />
+                          <Activity size={16} className="text-[#065f46]" />
                           <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
                             Patient Vitals &amp; Diagnosis
                           </h3>
@@ -1548,7 +1863,7 @@ export function DoctorPortal({
                         <button
                           type="button"
                           onClick={() => setShowVitalsSection(!showVitalsSection)}
-                          className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+                          className="text-xs font-bold text-[#065f46] hover:text-[#065f46] bg-emerald-50 px-3 py-1 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
                         >
                           <Plus size={13} />
                           <span>Add / Edit Vitals</span>
@@ -1566,7 +1881,7 @@ export function DoctorPortal({
                             value={vitals.bp}
                             onChange={(e) => setVitals({ ...vitals, bp: e.target.value })}
                             placeholder="e.g. 120/80"
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                           />
                         </div>
                         <div>
@@ -1578,7 +1893,7 @@ export function DoctorPortal({
                             value={vitals.pulse}
                             onChange={(e) => setVitals({ ...vitals, pulse: e.target.value })}
                             placeholder="e.g. 72"
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                           />
                         </div>
                         <div>
@@ -1590,7 +1905,7 @@ export function DoctorPortal({
                             value={vitals.temperature}
                             onChange={(e) => setVitals({ ...vitals, temperature: e.target.value })}
                             placeholder="e.g. 98.6"
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                           />
                         </div>
                         <div>
@@ -1602,7 +1917,7 @@ export function DoctorPortal({
                             value={vitals.spo2}
                             onChange={(e) => setVitals({ ...vitals, spo2: e.target.value })}
                             placeholder="e.g. 98"
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                           />
                         </div>
                         <div>
@@ -1614,7 +1929,7 @@ export function DoctorPortal({
                             value={vitals.weight}
                             onChange={(e) => setVitals({ ...vitals, weight: e.target.value })}
                             placeholder="e.g. 70"
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                           />
                         </div>
                         <div>
@@ -1626,7 +1941,7 @@ export function DoctorPortal({
                             value={vitals.height}
                             onChange={(e) => setVitals({ ...vitals, height: e.target.value })}
                             placeholder="e.g. 175"
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                           />
                         </div>
                       </div>
@@ -1641,7 +1956,7 @@ export function DoctorPortal({
                           value={diagnosis}
                           onChange={(e) => setDiagnosis(e.target.value)}
                           placeholder="e.g. Acute Viral Bronchitis / Fever / Dental Caries"
-                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                         />
                       </div>
                     </div>
@@ -1651,12 +1966,12 @@ export function DoctorPortal({
                       <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Smile size={16} className="text-blue-600" />
+                            <Smile size={16} className="text-[#065f46]" />
                             <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
                               32-Teeth 4D FDI Dental Chart &amp; Procedure Billing
                             </h3>
                           </div>
-                          <span className="text-xs font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100 shadow-xs">
+                          <span className="text-xs font-black text-[#065f46] bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100 shadow-xs">
                             Procedure Total: ₹{totalDentalCharges}
                           </span>
                         </div>
@@ -1665,7 +1980,7 @@ export function DoctorPortal({
                         <div className="p-4 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl border border-slate-800 shadow-inner space-y-4">
                           {/* Upper Teeth Row (18-11 | 21-28) */}
                           <div>
-                            <div className="flex items-center justify-between text-[10px] font-extrabold text-sky-300 uppercase tracking-widest px-2 mb-2">
+                            <div className="flex items-center justify-between text-[10px] font-extrabold text-emerald-300 uppercase tracking-widest px-2 mb-2">
                               <span>UR (Upper Right)</span>
                               <span>Upper Arch (Maxillary Teeth 18-28)</span>
                               <span>UL (Upper Left)</span>
@@ -1716,7 +2031,7 @@ export function DoctorPortal({
 
                           {/* Lower Teeth Row (48-41 | 31-38) */}
                           <div>
-                            <div className="flex items-center justify-between text-[10px] font-extrabold text-sky-300 uppercase tracking-widest px-2 mb-2">
+                            <div className="flex items-center justify-between text-[10px] font-extrabold text-emerald-300 uppercase tracking-widest px-2 mb-2">
                               <span>LR (Lower Right)</span>
                               <span>Lower Arch (Mandibular Teeth 48-38)</span>
                               <span>LL (Lower Left)</span>
@@ -1766,10 +2081,10 @@ export function DoctorPortal({
 
                         {/* Selected Tooth 4D Surface Inspector Drawer */}
                         {selectedToothNum && (
-                          <div className="bg-gradient-to-r from-blue-50 via-slate-50 to-sky-50 border border-blue-200/80 rounded-2xl p-4 space-y-3 animate-fadeIn shadow-xs">
+                          <div className="bg-gradient-to-r from-emerald-50 via-slate-50 to-teal-50 border border-emerald-200/80 rounded-2xl p-4 space-y-3 animate-fadeIn shadow-xs">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-mono font-black text-xs flex items-center justify-center shadow-xs">
+                                <span className="w-6 h-6 rounded-full bg-[#064e3b] text-white font-mono font-black text-xs flex items-center justify-center shadow-xs">
                                   #{selectedToothNum}
                                 </span>
                                 <span className="text-xs font-black text-slate-900 font-display">
@@ -1855,7 +2170,7 @@ export function DoctorPortal({
                                         setDentalProcedures([...dentalProcedures, newProc]);
                                         showToast(`Added ${proc.name} (Tooth #${selectedToothNum}) - ₹${proc.cost}`);
                                       }}
-                                      className="px-2.5 py-1.5 bg-white border border-blue-200 hover:bg-blue-600 hover:text-white text-blue-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer shadow-xs"
+                                      className="px-2.5 py-1.5 bg-white border border-emerald-200 hover:bg-[#064e3b] hover:text-white text-[#065f46] text-[10px] font-bold rounded-lg transition-colors cursor-pointer shadow-xs"
                                     >
                                       + {proc.name} (₹{proc.cost})
                                     </button>
@@ -1866,8 +2181,8 @@ export function DoctorPortal({
 
                             {/* Added Procedures List */}
                             {dentalProcedures.filter((p) => p.tooth === `Tooth #${selectedToothNum}`).length > 0 && (
-                              <div className="pt-2 border-t border-blue-200/60">
-                                <span className="text-[10px] font-extrabold text-blue-900 uppercase tracking-wider block mb-1">
+                              <div className="pt-2 border-t border-emerald-200/60">
+                                <span className="text-[10px] font-extrabold text-emerald-950 uppercase tracking-wider block mb-1">
                                   Active Procedures for Tooth #{selectedToothNum}:
                                 </span>
                                 <div className="space-y-1">
@@ -1876,7 +2191,7 @@ export function DoctorPortal({
                                     .map((proc) => (
                                       <div
                                         key={proc.id}
-                                        className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-blue-100 text-xs font-bold text-slate-800 shadow-xs"
+                                        className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-emerald-100 text-xs font-bold text-slate-800 shadow-xs"
                                       >
                                         <span>{proc.name} ({proc.tooth})</span>
                                         <div className="flex items-center gap-2">
@@ -1904,7 +2219,7 @@ export function DoctorPortal({
                     {/* 3. CONSULTATION NOTES CARD */}
                     <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-2.5">
                       <div className="flex items-center gap-2">
-                        <FileText size={16} className="text-blue-600" />
+                        <FileText size={16} className="text-[#065f46]" />
                         <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
                           Consultation Notes
                         </h3>
@@ -1914,7 +2229,7 @@ export function DoctorPortal({
                         onChange={(e) => setConsultationNotes(e.target.value)}
                         rows={3}
                         placeholder="Write clinical observations, advice, or patient history..."
-                        className="w-full p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none leading-relaxed"
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all resize-none leading-relaxed"
                       />
                     </div>
 
@@ -1922,7 +2237,7 @@ export function DoctorPortal({
                     <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Pill size={16} className="text-blue-600" />
+                          <Pill size={16} className="text-[#065f46]" />
                           <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
                             Prescription
                           </h3>
@@ -1930,7 +2245,7 @@ export function DoctorPortal({
                         <button
                           type="button"
                           onClick={handleAddMedicine}
-                          className="text-xs font-extrabold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+                          className="text-xs font-extrabold text-[#065f46] hover:text-[#065f46] bg-emerald-50 px-3 py-1 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
                         >
                           <Plus size={13} />
                           <span>+ Add Medicine Row</span>
@@ -1960,7 +2275,7 @@ export function DoctorPortal({
                                     onChange={(e) => handleUpdateMedicine(idx, "medicine", e.target.value)}
                                     onFocus={() => setActiveMedicineSearchIdx(idx)}
                                     placeholder="Search medicine..."
-                                    className="w-full pl-7 pr-2.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                    className="w-full pl-7 pr-2.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                                   />
                                 </div>
                                 {activeMedicineSearchIdx === idx && (
@@ -1977,10 +2292,10 @@ export function DoctorPortal({
                                             key={cIdx}
                                             type="button"
                                             onClick={() => handleSelectCatalogMedicine(idx, catItem)}
-                                            className="w-full text-left p-2 hover:bg-blue-50 rounded-lg text-xs font-bold text-slate-800 transition-colors flex items-center justify-between cursor-pointer"
+                                            className="w-full text-left p-2 hover:bg-emerald-50 rounded-lg text-xs font-bold text-slate-800 transition-colors flex items-center justify-between cursor-pointer"
                                           >
                                             <span className="truncate pr-2">{catItem.name}</span>
-                                            <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-extrabold shrink-0">
+                                            <span className="text-[10px] text-[#065f46] bg-emerald-50 px-1.5 py-0.5 rounded font-extrabold shrink-0">
                                               {catItem.defaultDosage}
                                             </span>
                                           </button>
@@ -2001,7 +2316,7 @@ export function DoctorPortal({
                                   value={item.dosage}
                                   onChange={(e) => handleUpdateMedicine(idx, "dosage", e.target.value)}
                                   placeholder="1-0-1"
-                                  className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 text-center focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                  className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 text-center focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                                 />
                               </div>
 
@@ -2012,7 +2327,7 @@ export function DoctorPortal({
                                   value={item.duration}
                                   onChange={(e) => handleUpdateMedicine(idx, "duration", e.target.value)}
                                   placeholder="5 Days"
-                                  className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                  className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                                 />
                               </div>
 
@@ -2021,7 +2336,7 @@ export function DoctorPortal({
                                 <select
                                   value={item.instructions || "After food"}
                                   onChange={(e) => handleUpdateMedicine(idx, "instructions", e.target.value)}
-                                  className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+                                  className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] cursor-pointer"
                                 >
                                   <option value="After food">After food</option>
                                   <option value="Before food">Before food</option>
@@ -2060,7 +2375,7 @@ export function DoctorPortal({
                           type="button"
                           onClick={handleComplete}
                           disabled={isSubmitting}
-                          className="px-7 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                          className="px-7 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
                         >
                           <span>{isSubmitting ? "Completing Consultation..." : "Complete Consultation"}</span>
                           <ArrowRight size={15} />
@@ -2073,7 +2388,7 @@ export function DoctorPortal({
                   </>
                 ) : (
                   <div className="bg-white rounded-2xl p-16 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] text-center space-y-3">
-                    <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto font-bold">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto font-bold">
                       <Phone size={26} />
                     </div>
                     <h3 className="text-base font-black text-slate-900 font-display">
@@ -2099,11 +2414,11 @@ export function DoctorPortal({
 
               {/* Text content */}
               <div className="space-y-1 z-10 relative">
-                <p className="text-sm font-semibold text-sky-200 tracking-wide">Good Morning,</p>
+                <p className="text-sm font-semibold text-emerald-200 tracking-wide">Good Morning,</p>
                 <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-none drop-shadow-md">
                   {doctorDisplayName}
                 </h2>
-                <p className="text-sm font-bold text-sky-300 pt-1 tracking-wide">Better care. Healthier tomorrows.</p>
+                <p className="text-sm font-bold text-emerald-300 pt-1 tracking-wide">Better care. Healthier tomorrows.</p>
                 <p className="text-xs text-slate-200/90 font-medium max-w-lg hidden sm:block">
                   Welcome to MediTrack. Manage your patients, consultations and clinic with ease.
                 </p>
@@ -2114,7 +2429,7 @@ export function DoctorPortal({
                 <button
                   type="button"
                   onClick={() => setActiveTab("consultation")}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-blue-900/50 hover:shadow-blue-500/40 transition-all cursor-pointer flex items-center gap-2.5 border border-blue-400/30"
+                  className="px-6 py-3 bg-[#064e3b] hover:bg-[#043d2e] active:bg-[#032b21] text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-950/40 hover:shadow-emerald-900/40 transition-all cursor-pointer flex items-center gap-2.5 border border-emerald-600/30"
                 >
                   <span>Start Consultation</span>
                   <ArrowRight size={15} />
@@ -2129,7 +2444,7 @@ export function DoctorPortal({
                 onClick={() => setActiveTab("consultation")}
                 className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-4 group"
               >
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <Users size={22} />
                 </div>
                 <div>
@@ -2196,7 +2511,7 @@ export function DoctorPortal({
                     <h3 className="text-base font-extrabold text-slate-900">Patient Statistics</h3>
                     <p className="text-xs text-slate-400 font-medium mt-0.5">Number of patients (Last 7 Days)</p>
                   </div>
-                  <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                  <span className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
                     <Activity size={18} />
                   </span>
                 </div>
@@ -2208,9 +2523,9 @@ export function DoctorPortal({
                       <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} />
                       <Tooltip
                         contentStyle={{ backgroundColor: "#0f172a", borderRadius: "12px", border: "none", color: "#fff", fontSize: "12px", fontWeight: "bold" }}
-                        itemStyle={{ color: "#38bdf8" }}
+                        itemStyle={{ color: "#34d399" }}
                       />
-                      <Bar dataKey="patients" fill="#3b82f6" radius={[8, 8, 0, 0]} barSize={28} label={{ position: "top", fill: "#64748b", fontSize: 11, fontWeight: "bold" }} />
+                      <Bar dataKey="patients" fill="#059669" radius={[8, 8, 0, 0]} barSize={28} label={{ position: "top", fill: "#64748b", fontSize: 11, fontWeight: "bold" }} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -2294,7 +2609,7 @@ export function DoctorPortal({
               </div>
               <button
                 onClick={handleOpenAddModal}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
               >
                 <Plus size={16} />
                 <span>Add Medicine</span>
@@ -2310,7 +2625,7 @@ export function DoctorPortal({
                   value={medicineSearchQuery}
                   onChange={(e) => setMedicineSearchQuery(e.target.value)}
                   placeholder="Search medicines..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 shadow-2xs transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:border-[#064e3b] shadow-2xs transition-all"
                 />
               </div>
 
@@ -2318,7 +2633,7 @@ export function DoctorPortal({
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full sm:w-48 px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 shadow-2xs cursor-pointer"
+                  className="w-full sm:w-48 px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-[#064e3b] shadow-2xs cursor-pointer"
                 >
                   <option value="All Categories">All Categories</option>
                   <option value="Analgesic">Analgesic</option>
@@ -2397,7 +2712,7 @@ export function DoctorPortal({
 
               {filteredMedicines.length === 0 && (
                 <div className="col-span-full p-12 text-center bg-white rounded-2xl border border-slate-200/80 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto">
                     <Pill size={24} />
                   </div>
                   <div>
@@ -2453,7 +2768,7 @@ export function DoctorPortal({
                       placeholder="e.g. Paracetamol"
                       value={medicineFormData.name}
                       onChange={(e) => setMedicineFormData({ ...medicineFormData, name: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-blue-500 transition-all"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#064e3b] transition-all"
                     />
                   </div>
 
@@ -2468,7 +2783,7 @@ export function DoctorPortal({
                         required
                         value={medicineFormData.category}
                         onChange={(e) => setMedicineFormData({ ...medicineFormData, category: e.target.value })}
-                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-blue-500 transition-all cursor-pointer"
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] transition-all cursor-pointer"
                       >
                         <option value="">Select Category</option>
                         <option value="Analgesic">Analgesic</option>
@@ -2492,7 +2807,7 @@ export function DoctorPortal({
                         required
                         value={medicineFormData.form}
                         onChange={(e) => setMedicineFormData({ ...medicineFormData, form: e.target.value, type: e.target.value })}
-                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-blue-500 transition-all cursor-pointer"
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] transition-all cursor-pointer"
                       >
                         <option value="">Select Form</option>
                         <option value="Tablet">Tablet</option>
@@ -2519,12 +2834,12 @@ export function DoctorPortal({
                         placeholder="e.g. 500"
                         value={medicineFormData.strength}
                         onChange={(e) => setMedicineFormData({ ...medicineFormData, strength: e.target.value })}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-blue-500 transition-all"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#064e3b] transition-all"
                       />
                       <select
                         value={medicineFormData.unit}
                         onChange={(e) => setMedicineFormData({ ...medicineFormData, unit: e.target.value })}
-                        className="w-24 px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-blue-500 transition-all cursor-pointer"
+                        className="w-24 px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] transition-all cursor-pointer"
                       >
                         <option value="mg">mg</option>
                         <option value="g">g</option>
@@ -2545,7 +2860,7 @@ export function DoctorPortal({
                     </button>
                     <button
                       type="submit"
-                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                      className="px-6 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white font-semibold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
                     >
                       Save
                     </button>
@@ -2567,8 +2882,8 @@ export function DoctorPortal({
                     <div>
                       <p className="font-extrabold text-sm text-slate-900">{p.name}</p>
                       <p className="text-xs text-slate-400 font-medium">
-                        {p.phone} • Age: {p.age ? `${p.age} yrs` : "NA"} • Gender: {p.gender || "NA"} • Status: <strong className="text-slate-700">{p.status}</strong> • Billing:{" "}
-                        <strong className="text-blue-600">{p.billingStatus || "Pending"}</strong>
+                        {p.phone} • Age: {p.age ? `${p.age} yrs` : "NA"} • Gender: {p.gender || detectGenderFromName(p.name)} • Status: <strong className="text-slate-700">{p.status}</strong> • Billing:{" "}
+                        <strong className="text-[#065f46]">{p.billingStatus || "Pending"}</strong>
                       </p>
                     </div>
                     <button
@@ -2606,7 +2921,7 @@ export function DoctorPortal({
                           if (onFetchHistory) onFetchHistory(p.phone);
                           setIsHistoryOpen(true);
                         }}
-                        className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                        className="px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-xl transition-all cursor-pointer"
                       >
                         Review Rx
                       </button>
@@ -2640,12 +2955,12 @@ export function DoctorPortal({
               {/* Top Banner & Avatar */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-[#2563eb] text-white font-extrabold text-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
+                  <div className="w-16 h-16 rounded-full bg-[#064e3b] text-white font-extrabold text-xl flex items-center justify-center shadow-lg shadow-emerald-950/20">
                     {doctorInitials}
                   </div>
                   <div>
                     <h2 className="text-xl font-black text-slate-900">{doctorDisplayName}</h2>
-                    <p className="text-xs font-bold text-blue-600">{categoryLabel} • Doctor</p>
+                    <p className="text-xs font-bold text-[#065f46]">{categoryLabel} • Doctor</p>
                     <p className="text-xs text-slate-400 font-medium">{user?.email}</p>
                   </div>
                 </div>
@@ -2657,7 +2972,7 @@ export function DoctorPortal({
                     setProfilePhone(currentUserProfile?.contactNumber || currentUserProfile?.phone || "");
                     setIsEditProfileOpen(true);
                   }}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-all flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <Pencil size={14} />
                   <span>Edit Profile</span>
@@ -2708,7 +3023,7 @@ export function DoctorPortal({
                             setProfileFee(consultationFee);
                             setIsEditProfileOpen(true);
                           }}
-                          className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                          className="text-xs text-[#065f46] font-bold hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <Pencil size={12} />
                           <span>Edit</span>
@@ -2730,12 +3045,12 @@ export function DoctorPortal({
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
                     <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Clinic Name</label>
-                    <p className="text-sm font-black text-slate-900">{clinicInfo?.name || currentUserProfile?.clinicName || "Meditrack Healthcare Center"}</p>
+                    <p className="text-sm font-black text-slate-900">{clinicInfo?.name || currentUserProfile?.clinicName || "Clinic"}</p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 sm:col-span-2">
                     <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Clinic ID</label>
-                    <p className="text-sm font-mono font-black text-blue-600">{clinicInfo?.id || currentUserProfile?.clinicId || "CLINIC-001"}</p>
+                    <p className="text-sm font-mono font-black text-[#065f46]">{clinicInfo?.id || currentUserProfile?.clinicId || "—"}</p>
                   </div>
                 </div>
 
@@ -2768,49 +3083,55 @@ export function DoctorPortal({
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 10 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 10 }}
+              initial={{ scale: 0.95, y: 10, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 10, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-5"
+              style={{ maxWidth: "420px", width: "100%" }}
+              className="bg-white rounded-2xl p-5 shadow-2xl border border-slate-100 space-y-3.5 mx-auto"
             >
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="text-base font-black text-slate-900">Edit Profile</h3>
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <User size={15} />
+                  </div>
+                  <h3 className="text-sm font-black text-slate-900">Edit Profile</h3>
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsEditProfileOpen(false)}
-                  className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer"
+                  className="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer transition-colors"
                 >
-                  <X size={16} />
+                  <X size={15} />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveProfile} className="space-y-4">
+              <form onSubmit={handleSaveProfile} className="space-y-3">
                 {/* Editable Fields */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Full Name</label>
+                  <label className="text-[11px] font-bold text-slate-600 block">Full Name</label>
                   <input
                     type="text"
                     required
                     value={profileDisplayName}
                     onChange={(e) => setProfileDisplayName(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-[#064e3b] focus:bg-white transition-all"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Phone Number</label>
+                  <label className="text-[11px] font-bold text-slate-600 block">Phone Number</label>
                   <input
                     type="tel"
                     required
                     value={profilePhone}
                     onChange={(e) => setProfilePhone(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-[#064e3b] focus:bg-white transition-all"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Consultation Fee (Rs)</label>
+                  <label className="text-[11px] font-bold text-slate-600 block">Consultation Fee (Rs)</label>
                   <input
                     type="number"
                     required
@@ -2818,49 +3139,49 @@ export function DoctorPortal({
                     value={profileFee}
                     onChange={(e) => setProfileFee(Number(e.target.value))}
                     placeholder="e.g. 500"
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-[#064e3b] focus:bg-white transition-all"
                   />
                 </div>
 
                 {/* System Authorization Fields (Disabled / Controlled) */}
-                <div className="pt-2 border-t border-slate-100 space-y-3">
-                  <p className="text-[10.5px] font-bold text-amber-600 uppercase tracking-wider">
-                    🔒 System Controlled Authorization Fields (Read-Only)
+                <div className="pt-2 border-t border-slate-100 space-y-2">
+                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1">
+                    <span>🔒 System Controlled Authorization Fields</span>
                   </p>
 
-                  <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 block">Clinic ID</label>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Clinic ID</label>
                       <input
                         type="text"
                         disabled
-                        value={clinicInfo?.id || currentUserProfile?.clinicId || "CLINIC-001"}
-                        className="w-full p-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 cursor-not-allowed"
+                        value={clinicInfo?.id || currentUserProfile?.clinicId || ""}
+                        className="w-full py-1.5 px-2.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 cursor-not-allowed"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 block">Role</label>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Role</label>
                       <input
                         type="text"
                         disabled
                         value={currentUserProfile?.role || "Doctor"}
-                        className="w-full p-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 cursor-not-allowed"
+                        className="w-full py-1.5 px-2.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 cursor-not-allowed"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-3 flex items-center justify-between gap-3">
+                <div className="pt-2.5 flex items-center justify-between gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       handleDeleteFee();
                       setIsEditProfileOpen(false);
                     }}
-                    className="px-3.5 py-2 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-1.5 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1"
                   >
-                    <Trash2 size={13} />
+                    <Trash2 size={12} />
                     <span>Delete Fee</span>
                   </button>
 
@@ -2868,14 +3189,14 @@ export function DoctorPortal({
                     <button
                       type="button"
                       onClick={() => setIsEditProfileOpen(false)}
-                      className="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-extrabold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
+                      className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isSavingProfile}
-                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/20 cursor-pointer disabled:opacity-50"
+                      className="px-4 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs rounded-xl shadow-sm shadow-emerald-950/20 cursor-pointer disabled:opacity-50 transition-colors"
                     >
                       {isSavingProfile ? "Saving..." : "Save Changes"}
                     </button>
@@ -2907,7 +3228,7 @@ export function DoctorPortal({
             >
               <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black shrink-0">
                     <Clock size={18} />
                   </div>
                   <div>
@@ -2927,7 +3248,7 @@ export function DoctorPortal({
                 {medicalHistory.length > 0 ? (
                   medicalHistory.map((item, i) => (
                     <div key={i} className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 space-y-1.5">
-                      <div className="flex items-center justify-between text-xs font-bold text-blue-600">
+                      <div className="flex items-center justify-between text-xs font-bold text-[#065f46]">
                         <span>Visit #{i + 1}</span>
                         <span className="text-slate-400 text-[11px]">{item.date || "Recent"}</span>
                       </div>
@@ -2979,6 +3300,7 @@ export function DoctorPortal({
         setActiveTab={setActiveTab}
         waitingCount={doctorQueue.length}
         doctorCategory={category}
+        onOpenSidePanel={() => setIsMobileDrawerOpen(true)}
       />
     </div>
   );

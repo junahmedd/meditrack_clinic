@@ -3,6 +3,7 @@
   "appId": "1:703776715801:web:13bf801ec1eab1651be688",
   "apiKey": "AIzaSyCed8mmaR4EgZk0uxwvAPwkEDpqi-0krNc",
   "authDomain": "meditrack-d03cb.firebaseapp.com",
+  "databaseURL": "https://meditrack-d03cb-default-rtdb.firebaseio.com",
   "firestoreDatabaseId": "(default)",
   "storageBucket": "meditrack-d03cb.firebasestorage.app",
   "messagingSenderId": "703776715801",

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState, useRef } from "react";
-import { auth, db } from "./firebase";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { auth, db, createSecondaryAuthUser } from "./firebase";
 import { sendWhatsApp } from "./utils/whatsappService";
 import {
   signInWithPopup,
@@ -66,6 +66,7 @@ import {
   ArrowLeft,
   X,
   ShieldCheck,
+  Settings,
   Building2,
   Mail,
   MessageSquare,
@@ -89,13 +90,19 @@ import {
   Cpu,
   Printer,
   Activity,
+  Eye,
+  EyeOff,
+  Pencil,
+  SlidersHorizontal,
+  MoreVertical,
+  Bell,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import html2canvas from "html2canvas";
 import { PrescriptionTemplate } from "./components/PrescriptionTemplate";
 import { LoginPage } from "./components/LoginPage";
 import { ReceptionistPortal } from "./components/ReceptionistPortal";
-import { DoctorPortal } from "./components/DoctorPortal";
+import { DoctorPortal, detectGenderFromName } from "./components/DoctorPortal";
 import { MediTrackLogo } from "./components/MediTrackLogo";
 
 enum OperationType {
@@ -164,52 +171,12 @@ export interface DoctorReceptionistMapping {
   active: boolean;
 }
 
-export const OFFICIAL_MAPPINGS: DoctorReceptionistMapping[] = [
-  {
-    clinicId: "CLINIC-GP-001",
-    doctorId: "DOC-GP-001",
-    receptionistId: "REC-GP-001",
-    doctorCategory: "GP",
-    doctorName: "Dr. Rahul Sharma",
-    receptionistName: "Anjali",
-    active: true,
-  },
-  {
-    clinicId: "CLINIC-PED-002",
-    doctorId: "DOC-PED-001",
-    receptionistId: "REC-PED-001",
-    doctorCategory: "PEDIATRICIAN",
-    doctorName: "Dr. Priya Nair",
-    receptionistName: "Neha",
-    active: true,
-  },
-  {
-    clinicId: "CLINIC-DENT-003",
-    doctorId: "DOC-DENT-001",
-    receptionistId: "REC-DENT-001",
-    doctorCategory: "DENTIST",
-    doctorName: "Dr. Ahmed Khan",
-    receptionistName: "Sana",
-    active: true,
-  },
-];
-
 export const validateDoctorReceptionistMapping = (
-  clinicId: string,
-  doctorId?: string | null,
-  receptionistId?: string | null
+  _clinicId: string,
+  _doctorId?: string | null,
+  _receptionistId?: string | null
 ): boolean => {
-  const cleanClinic = (clinicId || "").trim().toUpperCase();
-  const cleanDoc = (doctorId || "").trim().toUpperCase();
-  const cleanRec = (receptionistId || "").trim().toUpperCase();
-  if (!cleanDoc && !cleanRec) return false;
-
-  return OFFICIAL_MAPPINGS.some((m) => {
-    const isClinicMatch = !cleanClinic || cleanClinic === "CLINIC-001" || cleanClinic === m.clinicId.toUpperCase();
-    const isDocMatch = !cleanDoc || cleanDoc === m.doctorId.toUpperCase();
-    const isRecMatch = !cleanRec || cleanRec === m.receptionistId.toUpperCase();
-    return isClinicMatch && isDocMatch && isRecMatch && m.active;
-  });
+  return true;
 };
 
 export interface UserProfile {
@@ -224,15 +191,19 @@ export interface UserProfile {
   contactNumber?: string;
   isDeactivated?: boolean;
   status?: string;
-  // Doctor & Dedicated Receptionist Permanent Mapping Fields
+  // Doctor & Dedicated Receptionist Mapping Fields
   doctorId?: string;
   receptionistId?: string;
+  assignedDoctorUid?: string;
+  assignedReceptionistUid?: string;
   assignedDoctorId?: string;
   assignedReceptionistId?: string;
+  assignedDoctorEmail?: string;
+  assignedDoctorName?: string;
+  assignedReceptionistEmail?: string;
   category?: "GP" | "PEDIATRICIAN" | "DENTIST";
   specialty?: string;
   consultationFee?: number;
-  assignedDoctorName?: string;
   assignedDoctorCategory?: "GP" | "PEDIATRICIAN" | "DENTIST";
 }
 
@@ -280,8 +251,13 @@ export interface Patient {
   queueNumber: number;
   status: "Waiting" | "Called" | "Skipped" | "Pharmacy Skipped" | "Completed" | "Dispensed" | "In Consultation" | "SCHEDULED" | "Consulting" | "In Billing" | "Cancelled" | "PAID" | string;
   clinicId: string;
+  doctorUid?: string;
+  receptionistUid?: string;
   doctorId?: string;
   receptionistId?: string;
+  doctorEmail?: string;
+  receptionistEmail?: string;
+  receptionistName?: string;
   addedBy: string;
   timestamp: any;
   createdAt?: any;
@@ -410,121 +386,833 @@ const cleanObject = (obj: Record<string, any>) => {
   return clean;
 };
 
-const DEMO_PROFILES: Record<string, { email: string; pass: string; profile: Partial<UserProfile> }> = {
-  gp_doctor: {
-    email: "dr.rahul@meditrack.io",
-    pass: "Password123!",
-    profile: {
-      displayName: "Dr. Rahul Sharma",
-      role: "Doctor",
-      category: "GP",
-      specialty: "General Practitioner",
-      doctorId: "DOC-GP-001",
-      assignedReceptionistId: "REC-GP-001",
-      clinicId: "CLINIC-GP-001",
-      clinicName: "Meditrack GP & Family Health Center",
-      clinicAddress: "Suite 101, Medical Block A",
-      contactNumber: "+91 9876543211",
-      consultationFee: 500,
-    },
-  },
-  gp_receptionist: {
-    email: "anjali@meditrack.io",
-    pass: "Password123!",
-    profile: {
-      displayName: "Anjali",
-      role: "Receptionist",
-      receptionistId: "REC-GP-001",
-      clinicId: "CLINIC-GP-001",
-      clinicName: "Meditrack GP & Family Health Center",
-      clinicAddress: "Suite 101, Medical Block A",
-      contactNumber: "+91 9876543212",
-      assignedDoctorId: "DOC-GP-001",
-      assignedDoctorName: "Dr. Rahul Sharma",
-      assignedDoctorCategory: "GP",
-    },
-  },
-  ped_doctor: {
-    email: "dr.priya@meditrack.io",
-    pass: "Password123!",
-    profile: {
-      displayName: "Dr. Priya Nair",
-      role: "Doctor",
-      category: "PEDIATRICIAN",
-      specialty: "Pediatrician (Child Specialist)",
-      doctorId: "DOC-PED-001",
-      assignedReceptionistId: "REC-PED-001",
-      clinicId: "CLINIC-PED-002",
-      clinicName: "Meditrack Pediatric & Child Care Center",
-      clinicAddress: "Suite 202, Pediatric Care Wing",
-      contactNumber: "+91 9876543213",
-      consultationFee: 600,
-    },
-  },
-  ped_receptionist: {
-    email: "neha@meditrack.io",
-    pass: "Password123!",
-    profile: {
-      displayName: "Neha",
-      role: "Receptionist",
-      receptionistId: "REC-PED-001",
-      clinicId: "CLINIC-PED-002",
-      clinicName: "Meditrack Pediatric & Child Care Center",
-      clinicAddress: "Suite 202, Pediatric Care Wing",
-      contactNumber: "+91 9876543214",
-      assignedDoctorId: "DOC-PED-001",
-      assignedDoctorName: "Dr. Priya Nair",
-      assignedDoctorCategory: "PEDIATRICIAN",
-    },
-  },
-  dent_doctor: {
-    email: "dr.ahmed@meditrack.io",
-    pass: "Password123!",
-    profile: {
-      displayName: "Dr. Ahmed Khan",
-      role: "Doctor",
-      category: "DENTIST",
-      specialty: "Dentist & Oral Surgery",
-      doctorId: "DOC-DENT-001",
-      assignedReceptionistId: "REC-DENT-001",
-      clinicId: "CLINIC-DENT-003",
-      clinicName: "Meditrack Dental & Oral Surgery Clinic",
-      clinicAddress: "Suite 303, Dental Care Wing",
-      contactNumber: "+91 9876543215",
-      consultationFee: 700,
-    },
-  },
-  dent_receptionist: {
-    email: "sana@meditrack.io",
-    pass: "Password123!",
-    profile: {
-      displayName: "Sana",
-      role: "Receptionist",
-      receptionistId: "REC-DENT-001",
-      clinicId: "CLINIC-DENT-003",
-      clinicName: "Meditrack Dental & Oral Surgery Clinic",
-      clinicAddress: "Suite 303, Dental Care Wing",
-      contactNumber: "+91 9876543216",
-      assignedDoctorId: "DOC-DENT-001",
-      assignedDoctorName: "Dr. Ahmed Khan",
-      assignedDoctorCategory: "DENTIST",
-    },
-  },
-  admin: {
-    email: "coolmzaid@gmail.com",
-    pass: "Password123!",
-    profile: {
-      displayName: "Mohammed Zaid (Clinic Admin)",
-      role: "admin",
-      clinicId: "CLINIC-GP-001",
-      clinicName: "Meditrack Healthcare Center",
-      clinicAddress: "Main Medical Suite",
-      contactNumber: "+91 9876543210",
-    },
-  },
+// ═══════════════════════════════════════════════════════════════
+// ADMIN USERS PANEL
+// ═══════════════════════════════════════════════════════════════
+interface AdminUsersPanelProps {
+  clinicId: string;
+  clinicName: string;
+  onBack: () => void;
+  db: any;
+  showToast: (msg: string) => void;
+}
+
+const AdminUsersPanel: React.FC<AdminUsersPanelProps> = ({ clinicId, clinicName, onBack, db, showToast }) => {
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addEmail, setAddEmail] = useState("");
+  const [addPassword, setAddPassword] = useState("");
+  const [showAddPassword, setShowAddPassword] = useState(false);
+  const [addRole, setAddRole] = useState<"doctor" | "receptionist">("doctor");
+  const [addCategory, setAddCategory] = useState<"GP" | "PEDIATRICIAN" | "DENTIST">("GP");
+  const [addAssignedDoctorEmail, setAddAssignedDoctorEmail] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  // Edit Role modal state
+  const [editingStaff, setEditingStaff] = useState<any | null>(null);
+  const [editRole, setEditRole] = useState<"doctor" | "receptionist">("doctor");
+  const [editCategory, setEditCategory] = useState<"GP" | "PEDIATRICIAN" | "DENTIST">("GP");
+  const [editAssignedDoctorEmail, setEditAssignedDoctorEmail] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Real-time staff list for this clinic
+  useEffect(() => {
+    if (!clinicId) return;
+    const q = query(
+      collection(db, "users"),
+      where("clinicId", "==", clinicId)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setStaffList(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, [clinicId]);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+
+  const doctorsInClinic = useMemo(() => {
+    return staffList.filter((s) => (s.role || "").toLowerCase() === "doctor");
+  }, [staffList]);
+
+  const filteredStaffList = useMemo(() => {
+    return staffList.filter((staff) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        (staff.displayName || "").toLowerCase().includes(q) ||
+        (staff.email || "").toLowerCase().includes(q);
+
+      if (!matchesSearch) return false;
+
+      if (roleFilter === "all") return true;
+      const r = (staff.role || "").toLowerCase();
+      return r === roleFilter;
+    });
+  }, [staffList, searchQuery, roleFilter]);
+
+  const handleOpenEdit = (staff: any) => {
+    setEditingStaff(staff);
+    const r = (staff.role || "").toLowerCase() === "receptionist" ? "receptionist" : "doctor";
+    setEditRole(r);
+    setEditCategory((staff.category as any) || "GP");
+    setEditAssignedDoctorEmail(staff.assignedDoctorEmail || "");
+    setEditError(null);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStaff) return;
+    setIsSavingEdit(true);
+    setEditError(null);
+
+    try {
+      const roleCapitalized = editRole === "doctor" ? "Doctor" : "Receptionist";
+      const categoryVal = editRole === "doctor" ? editCategory : undefined;
+      const specialtyVal = editRole === "doctor"
+        ? (editCategory === "PEDIATRICIAN" ? "Pediatrician (Child Specialist)" : editCategory === "DENTIST" ? "Dentist & Oral Surgery" : "General Practitioner")
+        : undefined;
+
+      const userDocRef = doc(db, "users", editingStaff.id);
+      const updatePayload: any = {
+        role: roleCapitalized,
+        updatedAt: serverTimestamp(),
+      };
+      if (editRole === "doctor") {
+        updatePayload.category = categoryVal;
+        updatePayload.specialty = specialtyVal;
+        updatePayload.assignedDoctorEmail = null;
+        updatePayload.assignedDoctorName = null;
+        if (!editingStaff.doctorId) {
+          updatePayload.doctorId = `DOC-${clinicId}-${editingStaff.id.slice(0, 4).toUpperCase()}`;
+        }
+      } else {
+        updatePayload.category = null;
+        updatePayload.specialty = null;
+        if (!editingStaff.receptionistId) {
+          updatePayload.receptionistId = `REC-${clinicId}-${editingStaff.id.slice(0, 4).toUpperCase()}`;
+        }
+        const docObj = doctorsInClinic.find(
+          (d) => (d.email || "").toLowerCase() === editAssignedDoctorEmail.toLowerCase()
+        );
+        updatePayload.assignedDoctorUid = docObj ? (docObj.uid || docObj.id || "") : "";
+        updatePayload.assignedDoctorId = docObj ? (docObj.doctorId || "") : "";
+        updatePayload.assignedDoctorEmail = docObj ? docObj.email : (editAssignedDoctorEmail || "");
+        updatePayload.assignedDoctorName = docObj ? (docObj.displayName || docObj.email) : "";
+        updatePayload.assignedDoctorCategory = docObj ? (docObj.category || "GP") : "GP";
+
+        if (docObj && (docObj.uid || docObj.id) && editingStaff.id) {
+          const docUid = docObj.uid || docObj.id;
+          const assignmentId = `${clinicId}_${docUid}_${editingStaff.id}`;
+          await setDoc(doc(db, "clinic_assignments", assignmentId), {
+            clinicId,
+            doctorId: docObj.doctorId || "",
+            doctorUid: docUid,
+            doctorEmail: docObj.email || "",
+            doctorName: docObj.displayName || docObj.email || "",
+            receptionistId: editingStaff.receptionistId || updatePayload.receptionistId || "",
+            receptionistUid: editingStaff.id,
+            receptionistEmail: editingStaff.email,
+            receptionistName: editingStaff.displayName || editingStaff.email,
+            status: "active",
+            assignedAt: serverTimestamp(),
+          }, { merge: true }).catch(console.error);
+        }
+      }
+
+      await updateDoc(userDocRef, updatePayload);
+
+      // Also update clinicInvitations if matching invitation exists
+      if (editingStaff.email) {
+        const inviteId = `${clinicId}_${editingStaff.email.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_")}`;
+        await setDoc(doc(db, "clinicInvitations", inviteId), {
+          role: editRole,
+          category: categoryVal || "GP",
+          specialty: specialtyVal || "",
+          assignedDoctorEmail: updatePayload.assignedDoctorEmail || null,
+          assignedDoctorName: updatePayload.assignedDoctorName || null,
+          updatedAt: serverTimestamp(),
+        }, { merge: true }).catch(() => {});
+      }
+
+      showToast(`Updated ${editingStaff.displayName || editingStaff.email} to ${roleCapitalized}!`);
+      setEditingStaff(null);
+    } catch (err: any) {
+      console.error("Failed to update staff role:", err);
+      setEditError(err.message || "Failed to update role.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddError(null);
+    const cleanEmail = addEmail.trim().toLowerCase();
+    const cleanName = addName.trim();
+    if (!cleanEmail || !cleanName || !addPassword) {
+      setAddError("Please fill in full name, email, and password.");
+      return;
+    }
+    if (addPassword.length < 6) {
+      setAddError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      let staffUid = "";
+      // 1. Attempt to create the staff member in Firebase Authentication
+      try {
+        const createdUser = await createSecondaryAuthUser(cleanEmail, addPassword);
+        staffUid = createdUser.uid;
+      } catch (authErr: any) {
+        if (authErr.code === "auth/email-already-in-use") {
+          // User already exists in Auth — find their UID in users collection
+          const existingQ = query(collection(db, "users"), where("email", "==", cleanEmail));
+          const existingSnap = await getDocs(existingQ);
+          if (!existingSnap.empty) {
+            staffUid = existingSnap.docs[0].id;
+          }
+        } else {
+          throw authErr;
+        }
+      }
+
+      const roleCapitalized = addRole === "doctor" ? "Doctor" : "Receptionist";
+      const categoryVal = addRole === "doctor" ? addCategory : undefined;
+      const specialtyVal = addRole === "doctor"
+        ? (addCategory === "PEDIATRICIAN" ? "Pediatrician (Child Specialist)" : addCategory === "DENTIST" ? "Dentist & Oral Surgery" : "General Practitioner")
+        : undefined;
+
+      // If we have a staffUid, directly write / update users/{staffUid}
+      if (staffUid) {
+        const userDocRef = doc(db, "users", staffUid);
+        const payload: any = {
+          uid: staffUid,
+          email: cleanEmail,
+          displayName: cleanName,
+          role: addRole === "doctor" ? "doctor" : "receptionist",
+          status: "active",
+          clinicId,
+          clinicName,
+          photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanName)}&background=064e3b&color=fff`,
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        };
+        if (addRole === "doctor") {
+          payload.category = categoryVal;
+          payload.specialty = specialtyVal;
+          payload.doctorId = `DOC-${clinicId}-${staffUid.slice(0, 4).toUpperCase()}`;
+        } else {
+          payload.receptionistId = `REC-${clinicId}-${staffUid.slice(0, 4).toUpperCase()}`;
+          const docObj = doctorsInClinic.find(
+            (d) => (d.email || "").toLowerCase() === addAssignedDoctorEmail.toLowerCase()
+          );
+          payload.assignedDoctorUid = docObj ? (docObj.uid || docObj.id || "") : "";
+          payload.assignedDoctorId = docObj ? (docObj.doctorId || "") : "";
+          payload.assignedDoctorEmail = docObj ? docObj.email : (addAssignedDoctorEmail || "");
+          payload.assignedDoctorName = docObj ? (docObj.displayName || docObj.email) : "";
+          payload.assignedDoctorCategory = docObj ? (docObj.category || "GP") : "GP";
+
+          if (docObj && (docObj.uid || docObj.id)) {
+            const docUid = docObj.uid || docObj.id;
+            const assignmentId = `${clinicId}_${docUid}_${staffUid}`;
+            await setDoc(doc(db, "clinic_assignments", assignmentId), {
+              clinicId,
+              doctorId: docObj.doctorId || "",
+              doctorUid: docUid,
+              doctorEmail: docObj.email || "",
+              doctorName: docObj.displayName || docObj.email || "",
+              receptionistId: payload.receptionistId || "",
+              receptionistUid: staffUid,
+              receptionistEmail: cleanEmail,
+              receptionistName: cleanName,
+              status: "active",
+              assignedAt: serverTimestamp(),
+            }, { merge: true }).catch(console.error);
+          }
+        }
+        await setDoc(userDocRef, payload, { merge: true });
+      }
+
+      // Also save to clinicInvitations for backup linking
+      const inviteId = `${clinicId}_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}`;
+      await setDoc(doc(db, "clinicInvitations", inviteId), {
+        clinicId,
+        clinicName,
+        email: cleanEmail,
+        name: cleanName,
+        role: addRole,
+        category: categoryVal || "GP",
+        specialty: specialtyVal || "",
+        assignedDoctorEmail: addRole === "receptionist" ? (addAssignedDoctorEmail || null) : null,
+        status: "active",
+        createdAt: serverTimestamp(),
+      }, { merge: true });
+
+      showToast(`✅ Added ${cleanName} as ${roleCapitalized}!`);
+      setAddName("");
+      setAddEmail("");
+      setAddPassword("");
+      setAddRole("doctor");
+      setAddCategory("GP");
+      setAddAssignedDoctorEmail("");
+      setIsModalOpen(false);
+    } catch (err: any) {
+      console.error("Failed to add user:", err);
+      setAddError(err.message || "Failed to add staff member.");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleRemoveUser = async (userId: string, userName: string) => {
+    if (!window.confirm(`Remove ${userName} from this clinic?`)) return;
+    try {
+      await updateDoc(doc(db, "users", userId), {
+        clinicId: null,
+        clinicName: null,
+        role: null,
+        updatedAt: serverTimestamp(),
+      });
+      showToast(`${userName} removed from clinic.`);
+    } catch (err: any) {
+      showToast("Failed to remove user.");
+    }
+  };
+
+  const handleToggleActiveStatus = async (staff: any) => {
+    const isCurrentlyDeactivated = staff.isDeactivated === true || staff.status === "deactivated" || staff.status === "inactive";
+    const nextDeactivated = !isCurrentlyDeactivated;
+    try {
+      await updateDoc(doc(db, "users", staff.id), {
+        isDeactivated: nextDeactivated,
+        status: nextDeactivated ? "inactive" : "active",
+        updatedAt: serverTimestamp(),
+      });
+      showToast(`${staff.displayName || staff.email} is now ${nextDeactivated ? "Inactive (Access Blocked)" : "Active"}!`);
+    } catch (err: any) {
+      console.error("Status update error:", err);
+      showToast("Failed to update user status.");
+    }
+  };
+
+  const getRoleBadgeStyle = (role: string) => {
+    const r = (role || "").toLowerCase();
+    if (r === "admin") return "bg-[#e8fbf3] text-[#065f46] border-[#a7f3d0]";
+    if (r === "doctor") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    return "bg-teal-50 text-teal-800 border-teal-200";
+  };
+
+  return (
+    <motion.div
+      key="users-panel"
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full max-w-5xl mx-auto py-2 relative z-10"
+    >
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-[#065f46] font-bold text-xs uppercase tracking-wider mb-5 hover:text-[#064e3b] transition-colors cursor-pointer"
+      >
+        <ArrowLeft size={15} /> BACK TO DASHBOARD
+      </button>
+
+      {/* Manage Staff Header Block inside white transparent box */}
+      <div className="bg-white/85 backdrop-blur-2xl rounded-[32px] border border-white/80 p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.06)] mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-[#e8fbf3] border border-[#a7f3d0] flex items-center justify-center text-[#065f46] shadow-2xs shrink-0">
+              <Users size={26} className="stroke-[2.2]" />
+            </div>
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Manage Staff</h2>
+              <div className="flex flex-wrap items-center gap-1.5 text-slate-500 text-xs sm:text-sm mt-1 font-medium">
+                <span>Staff assigned to <strong className="text-slate-800">{clinicName || "Your Clinic"}</strong></span>
+                <span className="text-slate-300">•</span>
+                <span>Clinic ID:</span>
+                <span className="px-2.5 py-0.5 bg-[#e8fbf3] text-[#065f46] font-mono font-bold rounded-lg border border-[#a7f3d0] text-xs shadow-2xs">
+                  {clinicId || "—"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3D Staff Graphic Banner on Right */}
+          <div className="hidden sm:flex items-center h-20 md:h-24 rounded-2xl overflow-hidden shadow-2xs border border-white/80 bg-white/40 backdrop-blur-md shrink-0">
+            <img
+              src="/assets/staff_team_3d.jpg"
+              alt="Medical Staff"
+              className="h-full w-auto object-cover object-top"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Staff Directory Card */}
+      <div className="bg-white/85 backdrop-blur-2xl rounded-[32px] border border-white/80 p-5 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.06)]">
+        {/* Top Controls Bar */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 mb-5 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#e8fbf3] text-[#065f46] flex items-center justify-center shrink-0 border border-[#a7f3d0]/60">
+              <Users size={18} />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-base font-black text-slate-900">Staff Directory</h3>
+                <span className="text-xs text-slate-400 font-bold">({filteredStaffList.length})</span>
+              </div>
+              <p className="text-xs text-slate-400 font-medium">View and manage all clinic staff members.</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            {/* Search Input */}
+            <div className="relative">
+              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search staff by name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-3.5 py-2 bg-slate-50/90 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] w-44 sm:w-60 transition-all shadow-2xs"
+              />
+            </div>
+
+            {/* Role Filter Dropdown */}
+            <div className="relative flex items-center">
+              <SlidersHorizontal size={13} className="absolute left-3 text-slate-400 pointer-events-none" />
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="pl-8 pr-7 py-2 bg-slate-50/90 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] cursor-pointer appearance-none shadow-2xs"
+              >
+                <option value="all">All Roles</option>
+                <option value="doctor">Doctors</option>
+                <option value="receptionist">Receptionists</option>
+                <option value="admin">Administrators</option>
+              </select>
+              <ChevronDown size={13} className="absolute right-2.5 text-slate-400 pointer-events-none" />
+            </div>
+
+            {/* Add Staff Button */}
+            <button
+              onClick={() => {
+                setAddError(null);
+                setIsModalOpen(true);
+              }}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer shrink-0"
+            >
+              <Plus size={15} className="stroke-[3]" />
+              <span>Add Staff Member</span>
+            </button>
+          </div>
+        </div>
+
+        {filteredStaffList.length === 0 ? (
+          <div className="text-center py-12 text-slate-400">
+            <Users size={32} className="mx-auto mb-2 opacity-30" />
+            <p className="text-xs sm:text-sm font-medium">No staff members found matching criteria.</p>
+            {staffList.length === 0 && (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="mt-3 text-xs font-bold text-[#065f46] hover:underline cursor-pointer"
+              >
+                + Add first staff member
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredStaffList.map((staff) => (
+              <div
+                key={staff.id}
+                className="p-3.5 sm:p-4 bg-white/95 rounded-2xl border border-slate-100 shadow-2xs hover:shadow-sm hover:border-slate-200/80 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0 shadow-2xs ${
+                      (staff.role || "").toLowerCase() === "admin"
+                        ? "bg-[#e8fbf3] text-[#065f46]"
+                        : (staff.role || "").toLowerCase() === "doctor"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-teal-50 text-teal-800"
+                    }`}
+                  >
+                    {(staff.displayName || staff.email || "?").charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs sm:text-sm font-black text-slate-900 truncate">
+                        {staff.displayName || "Staff Member"}
+                      </p>
+                      {staff.category && (
+                        <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                          {staff.category}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 truncate">{staff.email}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 self-end sm:self-auto">
+                  {/* Status Toggle Badge */}
+                  <button
+                    onClick={() => handleToggleActiveStatus(staff)}
+                    className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border cursor-pointer transition-all ${
+                      staff.isDeactivated === true || staff.status === "deactivated" || staff.status === "inactive"
+                        ? "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+                        : "bg-[#e8fbf3] text-[#065f46] border-[#a7f3d0] hover:bg-[#d1fae5]"
+                    }`}
+                    title="Click to toggle user active/inactive status"
+                  >
+                    {staff.isDeactivated === true || staff.status === "deactivated" || staff.status === "inactive"
+                      ? "● Inactive"
+                      : "● Active"}
+                  </button>
+
+                  {/* Role Badge */}
+                  <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border ${getRoleBadgeStyle(staff.role)}`}>
+                    {staff.role || "Staff"}
+                  </span>
+
+                  {/* Role Specific Actions */}
+                  {staff.role !== "admin" ? (
+                    <>
+                      <button
+                        onClick={() => handleOpenEdit(staff)}
+                        className="px-2.5 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold border border-slate-200"
+                        title="Edit staff role"
+                      >
+                        <Pencil size={12} />
+                        <span>Edit Role</span>
+                      </button>
+                      <button
+                        onClick={() => handleRemoveUser(staff.id, staff.displayName || staff.email)}
+                        className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+                        title="Remove from clinic"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                      title="Admin Settings"
+                    >
+                      <MoreVertical size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Pop-up Modal Card */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isAdding && setIsModalOpen(false)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[9999]"
+            />
+
+            {/* Modal Dialog Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              style={{ maxWidth: "420px", width: "100%" }}
+              className="relative bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-[10000] mx-auto my-auto"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/70">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#e8fbf3] text-[#064e3b] flex items-center justify-center">
+                    <Plus size={14} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900">Add Staff Member</h3>
+                    <p className="text-[10px] text-slate-400">Assign to {clinicName}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !isAdding && setIsModalOpen(false)}
+                  className="w-6 h-6 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Modal Form */}
+              <form onSubmit={handleAddUser} className="p-5 space-y-3">
+                {addError && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-700 p-2 rounded-lg text-xs flex items-center gap-1.5">
+                    <AlertCircle size={13} className="shrink-0" />
+                    <span>{addError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-slate-700">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={addName}
+                    onChange={(e) => setAddName(e.target.value)}
+                    placeholder="Dr. Anjali Sharma"
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-slate-700">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={addEmail}
+                    onChange={(e) => setAddEmail(e.target.value)}
+                    placeholder="doctor@clinic.com"
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-bold text-slate-700">Initial Password</label>
+                    <span className="text-[10px] text-slate-400">Min 6 characters</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showAddPassword ? "text" : "password"}
+                      required
+                      minLength={6}
+                      value={addPassword}
+                      onChange={(e) => setAddPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-3 py-1.5 pr-8 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAddPassword(!showAddPassword)}
+                      className="absolute inset-y-0 right-0 pr-2 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showAddPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 pt-0.5">
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-slate-700">Role</label>
+                    <select
+                      value={addRole}
+                      onChange={(e) => setAddRole(e.target.value as any)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all cursor-pointer"
+                    >
+                      <option value="doctor">Doctor</option>
+                      <option value="receptionist">Receptionist</option>
+                    </select>
+                  </div>
+
+                  {addRole === "doctor" ? (
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-slate-700">Specialty</label>
+                      <select
+                        value={addCategory}
+                        onChange={(e) => setAddCategory(e.target.value as any)}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all cursor-pointer"
+                      >
+                        <option value="GP">General Physician</option>
+                        <option value="PEDIATRICIAN">Pediatrician</option>
+                        <option value="DENTIST">Dentist</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-slate-700">Connect to Doctor</label>
+                      <select
+                        value={addAssignedDoctorEmail}
+                        onChange={(e) => setAddAssignedDoctorEmail(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all cursor-pointer"
+                      >
+                        <option value="">All Doctors (Shared Desk)</option>
+                        {doctorsInClinic.map((doc) => (
+                          <option key={doc.id} value={doc.email}>
+                            {doc.displayName || doc.email} ({doc.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Modal Actions */}
+                <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-slate-100">
+                  <button
+                    type="button"
+                    disabled={isAdding}
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isAdding}
+                    className="px-4 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-bold rounded-lg shadow-xs transition-all disabled:opacity-60 cursor-pointer flex items-center gap-1.5"
+                  >
+                    {isAdding ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={13} />}
+                    <span>{isAdding ? "Adding..." : "Add Staff Member"}</span>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Role Pop-up Modal */}
+      <AnimatePresence>
+        {editingStaff && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isSavingEdit && setEditingStaff(null)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[9999]"
+            />
+
+            {/* Modal Dialog Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              style={{ maxWidth: "400px", width: "100%" }}
+              className="relative bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-[10000] mx-auto my-auto"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/70">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#e8fbf3] text-[#064e3b] flex items-center justify-center">
+                    <Pencil size={14} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900">Edit Staff Role</h3>
+                    <p className="text-[10px] text-slate-400 truncate max-w-[200px]">{editingStaff.displayName || editingStaff.email}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !isSavingEdit && setEditingStaff(null)}
+                  className="w-6 h-6 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleSaveEdit} className="p-5 space-y-3">
+                {editError && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-700 p-2 rounded-lg text-xs flex items-center gap-1.5">
+                    <AlertCircle size={13} className="shrink-0" />
+                    <span>{editError}</span>
+                  </div>
+                )}
+
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <p className="text-[11px] font-bold text-slate-800">{editingStaff.displayName || "Staff Member"}</p>
+                  <p className="text-[10px] text-slate-500 font-mono">{editingStaff.email}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-slate-700">Assign Role</label>
+                  <select
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value as any)}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all cursor-pointer"
+                  >
+                    <option value="doctor">Doctor</option>
+                    <option value="receptionist">Receptionist</option>
+                  </select>
+                </div>
+
+                {editRole === "doctor" && (
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-slate-700">Specialty</label>
+                    <select
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value as any)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all cursor-pointer"
+                    >
+                      <option value="GP">General Physician</option>
+                      <option value="PEDIATRICIAN">Pediatrician</option>
+                      <option value="DENTIST">Dentist</option>
+                    </select>
+                  </div>
+                )}
+
+                {editRole === "receptionist" && (
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-slate-700">Connect to Doctor</label>
+                    <select
+                      value={editAssignedDoctorEmail}
+                      onChange={(e) => setEditAssignedDoctorEmail(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all cursor-pointer"
+                    >
+                      <option value="">All Doctors (Shared Desk)</option>
+                      {doctorsInClinic.map((doc) => (
+                        <option key={doc.id} value={doc.email}>
+                          {doc.displayName || doc.email} ({doc.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-slate-100">
+                  <button
+                    type="button"
+                    disabled={isSavingEdit}
+                    onClick={() => setEditingStaff(null)}
+                    className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEdit}
+                    className="px-4 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-bold rounded-lg shadow-xs transition-all disabled:opacity-60 cursor-pointer flex items-center gap-1.5"
+                  >
+                    {isSavingEdit ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+                    <span>{isSavingEdit ? "Saving..." : "Save Role"}</span>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
 };
 
 export default function App() {
+
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -533,8 +1221,14 @@ export default function App() {
     "dashboard" | "users" | "analytics" | "patients"
   >("dashboard");
   const [activeView, setActiveView] = useState<
-    "dashboard" | "profile" | "receptionist" | "doctor" | "tv"
-  >("dashboard");
+    "dashboard" | "profile" | "receptionist" | "doctor"
+  >(() => {
+    const path = typeof window !== "undefined" ? window.location.pathname : "/";
+    if (path === "/profile") return "profile";
+    if (path === "/doctor") return "doctor";
+    if (path === "/receptionist") return "receptionist";
+    return "dashboard";
+  });
   const [regPatientName, setRegPatientName] = useState("");
   const [regPatientPhone, setRegPatientPhone] = useState("+91");
   const [regPatientAge, setRegPatientAge] = useState("");
@@ -552,8 +1246,10 @@ export default function App() {
   const [newMessage, setNewMessage] = useState("");
 
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [selectedRole, setSelectedRole] = useState("doctor");
   const [currentUserProfile, setCurrentUserProfile] =
     useState<UserProfile | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [hasRedirected, setHasRedirected] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [publicInvoice, setPublicInvoice] = useState<any | null>(null);
@@ -581,7 +1277,7 @@ export default function App() {
                 amount: p.consultationFee || 500,
                 paymentMethod: p.paymentMethod || "Cash",
                 pdfDataUri: p.invoicePdfData || null,
-                doctorName: p.doctorName || "Dr. Rahul Sharma",
+                doctorName: p.doctorName || "Doctor",
                 dateTime: p.paidAt?.toDate ? p.paidAt.toDate().toLocaleString() : new Date().toLocaleString(),
               });
             }
@@ -594,47 +1290,124 @@ export default function App() {
     }
   }, []);
 
-  // Role-Based Post-Login Routing
-  useEffect(() => {
+  // Strict Role-Based Portal Routing & Route Guard
+  const syncRouteWithAuth = useCallback(() => {
+    const currentPath = window.location.pathname;
+
+    // Public invoice viewer query parameter support (?invoice=INV-...)
+    if (publicInvoice) return;
+
+    // Logged-out state
     if (!user) {
+      if (currentPath !== "/login" && currentPath !== "/") {
+        window.history.replaceState(null, "", "/login");
+      }
       setHasRedirected(false);
       return;
     }
 
-    if (currentUserProfile) {
-      const role = (currentUserProfile.role || "").trim().toLowerCase();
-      const isDoc =
-        role === "doctor" ||
+    // Waiting for profile to load
+    if (!currentUserProfile) return;
+
+    // Section 28: Inactive account check
+    if (currentUserProfile.status === "inactive" || (currentUserProfile as any).isDeactivated === true) {
+      signOut(auth).catch(console.error);
+      setError("Your account is currently inactive. Please contact your administrator.");
+      window.history.replaceState(null, "", "/login");
+      return;
+    }
+
+    const role = (currentUserProfile.role || "").trim().toLowerCase();
+    const isAdm =
+      role === "admin" ||
+      role === "administrator" ||
+      role === "owner" ||
+      role === "clinic administrator";
+
+    const isDoc =
+      !isAdm &&
+      (role === "doctor" ||
         role.includes("doctor") ||
         role.includes("physician") ||
         role.includes("pediatrician") ||
-        role.includes("dentist");
+        role.includes("dentist"));
 
-      const isAdm =
-        role === "admin" ||
-        role === "administrator" ||
-        role === "owner" ||
-        isHardcodedAdminEmail(user.email);
+    const isRec = !isAdm && !isDoc;
 
-      if (isDoc) {
-        if (!hasRedirected || (activeView !== "doctor" && activeView !== "profile" && activeView !== "tv")) {
-          setActiveView("doctor");
-          setHasRedirected(true);
-        }
-      } else if (isAdm) {
-        if (!hasRedirected) {
-          setActiveView("dashboard");
-          setHasRedirected(true);
-        }
-      } else {
-        // All staff, receptionists, front desk, etc.
-        if (!hasRedirected || (activeView !== "receptionist" && activeView !== "profile" && activeView !== "tv")) {
-          setActiveView("receptionist");
-          setHasRedirected(true);
-        }
-      }
+    const canonicalPath = isAdm ? "/admin" : isDoc ? "/doctor" : "/receptionist";
+    const canonicalPortal: "dashboard" | "doctor" | "receptionist" = isAdm
+      ? "dashboard"
+      : isDoc
+      ? "doctor"
+      : "receptionist";
+
+    // 1. Profile route is accessible strictly for admin
+    if (currentPath === "/profile" && isAdm) {
+      setActiveView("profile");
+      setHasRedirected(true);
+      return;
     }
-  }, [currentUserProfile, user, hasRedirected, activeView]);
+
+    // 2. Strict Access Control for Direct Portal URL Access
+    if (currentPath === "/admin" && !isAdm) {
+      const authorizedPortalName = isDoc ? "Doctor Portal" : "Receptionist Portal";
+      setToast({
+        message: `ACCESS DENIED: You are not authorized to access the Admin Portal. Redirecting to your ${authorizedPortalName}...`,
+        visible: true,
+      });
+      window.history.replaceState(null, "", canonicalPath);
+      setActiveView(canonicalPortal);
+      setHasRedirected(true);
+      return;
+    }
+
+    if (currentPath === "/doctor" && !isDoc) {
+      const authorizedPortalName = isAdm ? "Admin Portal" : "Receptionist Portal";
+      setToast({
+        message: `ACCESS DENIED: You are not authorized to access the Doctor Portal. Redirecting to your ${authorizedPortalName}...`,
+        visible: true,
+      });
+      window.history.replaceState(null, "", canonicalPath);
+      setActiveView(canonicalPortal);
+      setHasRedirected(true);
+      return;
+    }
+
+    if (currentPath === "/receptionist" && !isRec) {
+      const authorizedPortalName = isAdm ? "Admin Portal" : "Doctor Portal";
+      setToast({
+        message: `ACCESS DENIED: You are not authorized to access the Receptionist Portal. Redirecting to your ${authorizedPortalName}...`,
+        visible: true,
+      });
+      window.history.replaceState(null, "", canonicalPath);
+      setActiveView(canonicalPortal);
+      setHasRedirected(true);
+      return;
+    }
+
+    // 3. Sync browser route and view to the user's canonical portal
+    if (currentPath !== canonicalPath) {
+      window.history.replaceState(null, "", canonicalPath);
+    }
+    setActiveView(canonicalPortal);
+    setHasRedirected(true);
+  }, [user, currentUserProfile, publicInvoice]);
+
+  // Sync route on mount, profile update, or loading finish
+  useEffect(() => {
+    if (!loading) {
+      syncRouteWithAuth();
+    }
+  }, [loading, currentUserProfile, user, syncRouteWithAuth]);
+
+  // Popstate listener (back/forward browser buttons)
+  useEffect(() => {
+    const handlePopState = () => {
+      syncRouteWithAuth();
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [syncRouteWithAuth]);
 
   // Keep a real-time ref to prevent stale closures inside subscription listeners
   const profileRef = useRef<UserProfile | null>(null);
@@ -706,107 +1479,34 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [signupData, setSignupData] = useState({
     clinicName: "",
-    clinicId: "",
-    clinicAddress: "",
     fullName: "",
-    role: "Doctor",
-    category: "GP" as "GP" | "PEDIATRICIAN" | "DENTIST",
-    contactNumber: "",
     email: "",
     password: "",
-    isRegisteringClinic: true,
   });
-
-  // Admin detection helper
-  const isHardcodedAdminEmail = (email?: string | null) => {
-    if (!email) return false;
-    const clean = email.toLowerCase().trim();
-    return (
-      clean === "coolmzaid@gmail.com" ||
-      clean === "mohammedzaidd13@gmail.com" ||
-      clean === "mohammedzaid1321@gmail.com" ||
-      clean === "junaidudupi@gmail.com" ||
-      clean === "admin@meditrack.live"
-    );
-  };
 
   // Auth States
   const [authLoading, setAuthLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleSelectDemoAccount = async (accountKey: keyof typeof DEMO_PROFILES) => {
-    const target = DEMO_PROFILES[accountKey];
-    if (!target) return;
-    setAuthLoading(true);
-    setError(null);
-    try {
-      let cred: any = null;
-      try {
-        cred = await signInWithEmailAndPassword(auth, target.email, target.pass);
-      } catch (signInErr: any) {
-        if (
-          signInErr.code === "auth/user-not-found" ||
-          signInErr.code === "auth/invalid-credential" ||
-          signInErr.code === "auth/wrong-password"
-        ) {
-          try {
-            cred = await createUserWithEmailAndPassword(auth, target.email, target.pass);
-          } catch (createErr: any) {
-            if (createErr.code === "auth/email-already-in-use") {
-              cred = await signInWithEmailAndPassword(auth, target.email, target.pass);
-            } else {
-              throw createErr;
-            }
-          }
-        } else {
-          throw signInErr;
-        }
-      }
-
-      if (cred && cred.user) {
-        const userDocRef = doc(db, "users", cred.user.uid);
-        const fullProfile: any = {
-          uid: cred.user.uid,
-          email: target.email,
-          ...target.profile,
-          photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(target.profile.displayName || "User")}&background=0284c7&color=fff`,
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        };
-        await setDoc(userDocRef, fullProfile, { merge: true });
-
-        await updateProfile(cred.user, {
-          displayName: target.profile.displayName,
-        }).catch(() => {});
-
-        setCurrentUserProfile(fullProfile as UserProfile);
-        if (target.profile.role === "Doctor") {
-          setActiveView("doctor");
-        } else if (target.profile.role === "Receptionist") {
-          setActiveView("receptionist");
-        } else {
-          setActiveView("dashboard");
-        }
-        setHasRedirected(true);
-      }
-    } catch (err: any) {
-      console.error("Demo account sign-in error:", err);
-      setError(err.message || "Could not switch to demo profile.");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
   // Robust Role Normalization & Permissions
   const userRole = (currentUserProfile?.role || "").trim().toLowerCase();
+
+  const isAdmin =
+    userRole === "admin" ||
+    userRole === "administrator" ||
+    userRole === "owner" ||
+    userRole === "clinic administrator";
+
   const isDoctor =
-    userRole === "doctor" ||
-    userRole.includes("doctor") ||
-    userRole.includes("physician") ||
-    userRole.includes("pediatrician") ||
-    userRole.includes("dentist");
+    !isAdmin &&
+    (userRole === "doctor" ||
+      userRole.includes("doctor") ||
+      userRole.includes("physician") ||
+      userRole.includes("pediatrician") ||
+      userRole.includes("dentist"));
 
   const isReceptionist =
+    !isAdmin &&
     !isDoctor &&
     (userRole === "receptionist" ||
       userRole === "pharmacist" ||
@@ -817,19 +1517,20 @@ export default function App() {
       userRole.includes("desk") ||
       userRole === "");
 
-  const isAdmin =
-    isHardcodedAdminEmail(user?.email) ||
-    userRole === "admin" ||
-    userRole === "administrator" ||
-    userRole === "owner" ||
-    userRole === "clinic administrator";
-
   const isAuthorizedForView = (view: string) => {
-    if (isAdmin) return true;
-    if (view === "receptionist") return isReceptionist;
-    if (view === "doctor") return isDoctor;
-    if (view === "profile" || view === "tv") return true;
-    // If not admin and view is dashboard, allow graceful fallback without 403
+    if (view === "profile") return true;
+    if (isAdmin) {
+      // Admin ONLY has access to clinic dashboard and user management (no doctor/receptionist portals)
+      return view === "dashboard";
+    }
+    if (isDoctor) {
+      // Doctor ONLY has access to doctor consultation portal
+      return view === "doctor";
+    }
+    if (isReceptionist) {
+      // Receptionist ONLY has access to reception desk portal
+      return view === "receptionist";
+    }
     return false;
   };
 
@@ -869,105 +1570,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [loading]);
 
-  // Real-time Maintenance, Seeding & Data Repair Listener
-  useEffect(() => {
-    if (!user) return;
 
-    const seedAndRepairData = async () => {
-      try {
-        // 1. Ensure Clinic Documents exist for all 3 distinct Clinics
-        const clinicConfigs = [
-          { id: "CLINIC-GP-001", name: "Meditrack GP & Family Health Center", address: "Suite 101, Medical Block A" },
-          { id: "CLINIC-PED-002", name: "Meditrack Pediatric & Child Care Center", address: "Suite 202, Pediatric Care Wing" },
-          { id: "CLINIC-DENT-003", name: "Meditrack Dental & Oral Surgery Clinic", address: "Suite 303, Dental Care Wing" },
-          { id: "CLINIC-001", name: "Meditrack Healthcare Center", address: "Main Medical Suite" },
-          { id: "meditrack-main-clinic", name: "Meditrack Healthcare Center", address: "Main Medical Suite" },
-        ];
-
-        for (const config of clinicConfigs) {
-          const clinicRef = doc(db, "clinics", config.id);
-          await setDoc(
-            clinicRef,
-            {
-              name: config.name,
-              address: config.address,
-              createdAt: serverTimestamp(),
-            },
-            { merge: true }
-          );
-        }
-
-        // 2. Seed official doctorReceptionistMappings collection in Firestore
-        for (const mapping of OFFICIAL_MAPPINGS) {
-          const mappingDocId = `${mapping.clinicId}_${mapping.doctorId}_${mapping.receptionistId}`;
-          const mappingRef = doc(db, "doctorReceptionistMappings", mappingDocId);
-          await setDoc(
-            mappingRef,
-            {
-              ...mapping,
-              updatedAt: serverTimestamp(),
-            },
-            { merge: true }
-          );
-        }
-
-        // 3. Auto Data Repair on existing patients records
-        const patientsSnap = await getDocs(collection(db, "patients"));
-        const batch = writeBatch(db);
-        let count = 0;
-
-        patientsSnap.forEach((docSnap) => {
-          const data = docSnap.data();
-          let needsUpdate = false;
-          const updates: any = {};
-
-          const cat = (data.doctorCategory || "").toUpperCase();
-          const docId = (data.doctorId || "").toUpperCase();
-
-          if (cat.includes("PED") || docId.includes("PED") || (data.doctorName && data.doctorName.includes("Priya"))) {
-            if (data.clinicId !== "CLINIC-PED-002") {
-              updates.clinicId = "CLINIC-PED-002";
-              needsUpdate = true;
-            }
-            if (!data.doctorId) { updates.doctorId = "DOC-PED-001"; needsUpdate = true; }
-            if (!data.receptionistId) { updates.receptionistId = "REC-PED-001"; needsUpdate = true; }
-            if (!data.doctorCategory) { updates.doctorCategory = "PEDIATRICIAN"; needsUpdate = true; }
-          } else if (cat.includes("DENT") || docId.includes("DENT") || (data.doctorName && data.doctorName.includes("Ahmed"))) {
-            if (data.clinicId !== "CLINIC-DENT-003") {
-              updates.clinicId = "CLINIC-DENT-003";
-              needsUpdate = true;
-            }
-            if (!data.doctorId) { updates.doctorId = "DOC-DENT-001"; needsUpdate = true; }
-            if (!data.receptionistId) { updates.receptionistId = "REC-DENT-001"; needsUpdate = true; }
-            if (!data.doctorCategory) { updates.doctorCategory = "DENTIST"; needsUpdate = true; }
-          } else {
-            // Default GP
-            if (!data.clinicId || data.clinicId === "meditrack-main-clinic" || data.clinicId === "CLINIC-001") {
-              updates.clinicId = "CLINIC-GP-001";
-              needsUpdate = true;
-            }
-            if (!data.doctorId) { updates.doctorId = "DOC-GP-001"; needsUpdate = true; }
-            if (!data.receptionistId) { updates.receptionistId = "REC-GP-001"; needsUpdate = true; }
-            if (!data.doctorCategory) { updates.doctorCategory = "GP"; needsUpdate = true; }
-          }
-
-          if (needsUpdate) {
-            batch.update(docSnap.ref, updates);
-            count++;
-          }
-        });
-
-        if (count > 0) {
-          await batch.commit();
-          console.log(`[AutoRepair] Successfully upgraded ${count} patient records with distinct Clinic IDs.`);
-        }
-      } catch (err) {
-        console.error("Maintenance & data repair error:", err);
-      }
-    };
-
-    seedAndRepairData();
-  }, [user]);
 
   // Auth State Listener
   useEffect(() => {
@@ -976,6 +1579,7 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
+        setProfileLoaded(false);
         // Use onSnapshot for real-time profile updates
         const userDocRef = doc(db, "users", currentUser.uid);
         profileUnsubscribe = onSnapshot(
@@ -983,125 +1587,91 @@ export default function App() {
           async (docSnap) => {
             if (docSnap.exists()) {
               const data = docSnap.data() as UserProfile;
-              
-              // Normalize GP Doctor & Receptionist profiles to strictly use CLINIC-GP-001
-              const isGPDoctor = data.role === "Doctor" && (data.category === "GP" || !data.category || (data.displayName && data.displayName.includes("Rahul")) || (currentUser.email && currentUser.email.includes("rahul")));
-              const isGPRec = data.role === "Receptionist" && (data.assignedDoctorCategory === "GP" || !data.assignedDoctorCategory || (data.displayName && data.displayName.includes("Anjali")) || (currentUser.email && currentUser.email.includes("anjali")));
-              
-              if ((isGPDoctor || isGPRec) && (!data.clinicId || data.clinicId !== "CLINIC-GP-001")) {
-                console.log("[Profile] Normalizing GP Clinic ID to CLINIC-GP-001...");
-                const fixPayload: any = {
-                  clinicId: "CLINIC-GP-001",
-                  updatedAt: serverTimestamp(),
-                };
-                if (isGPDoctor) {
-                  fixPayload.doctorId = "DOC-GP-001";
-                  fixPayload.assignedReceptionistId = "REC-GP-001";
-                  fixPayload.category = "GP";
-                }
-                if (isGPRec) {
-                  fixPayload.receptionistId = "REC-GP-001";
-                  fixPayload.assignedDoctorId = "DOC-GP-001";
-                  fixPayload.assignedDoctorCategory = "GP";
-                }
-                await updateDoc(userDocRef, fixPayload).catch(console.error);
-                data.clinicId = "CLINIC-GP-001";
-              }
-
               setCurrentUserProfile({ ...data, uid: docSnap.id });
 
-              // Auto-fix missing fields or sync admin profile for recognized admins
-              if (isHardcodedAdminEmail(currentUser.email)) {
-                const adminName = currentUser.displayName || (currentUser.email?.toLowerCase().includes("junaid") ? "Junaid Ahmed" : "Mohammed Zaid");
-                const needsBasicUpdate = data.role !== "admin";
-                const needsClinicId = !data.clinicId;
-
-                if (needsBasicUpdate || needsClinicId) {
-                  console.log("[Profile] Auto-updating admin profile details...");
-                  const updatePayload: any = {};
-                  if (needsBasicUpdate) updatePayload.role = "admin";
-                  if (needsClinicId) {
-                    updatePayload.clinicId = "meditrack-main-clinic";
-                    updatePayload.clinicName = "Meditrack Healthcare Center";
-                    updatePayload.clinicAddress = "Main Medical Suite";
-                  }
-                  updatePayload.updatedAt = serverTimestamp();
-
-                  await updateDoc(userDocRef, updatePayload).catch((err) =>
-                    console.error("Admin details auto-update failed", err)
-                  );
-                }
-              } else if (!data.displayName || !data.email) {
-                console.log("[Profile] Auto-fixing missing profile fields...");
+              // Auto-fix missing display name / email if somehow absent
+              if (!data.displayName || !data.email) {
                 await updateDoc(userDocRef, {
                   displayName: data.displayName || currentUser.displayName || "User",
                   email: data.email || currentUser.email || "",
                   updatedAt: serverTimestamp(),
-                }).catch((err) =>
-                  console.error("Profile auto-fix failed", err),
-                );
+                }).catch(console.error);
               }
             } else {
-              // Auto-create profile for known accounts (doctor, receptionist, admin) if missing in Firestore
-              const lowerEmail = (currentUser.email || "").toLowerCase();
-              const matchedKey = Object.keys(DEMO_PROFILES).find(
-                (k) => DEMO_PROFILES[k].email.toLowerCase() === lowerEmail
-              );
-
-              if (matchedKey) {
-                const target = DEMO_PROFILES[matchedKey];
-                console.log(`[Profile] Auto-restoring profile for ${target.email}...`);
-                try {
-                  const fullProfile: any = {
+              // No profile found directly — check if user was added via clinicInvitations
+              const cleanEmail = (currentUser.email || "").toLowerCase().trim();
+              if (cleanEmail) {
+                const inviteQ = query(collection(db, "clinicInvitations"), where("email", "==", cleanEmail));
+                const inviteSnap = await getDocs(inviteQ).catch(() => null);
+                if (inviteSnap && !inviteSnap.empty) {
+                  const inv = inviteSnap.docs[0].data();
+                  const staffRole = inv.role === "doctor" ? "doctor" : inv.role === "admin" ? "admin" : "receptionist";
+                  const newProfile: any = {
                     uid: currentUser.uid,
                     email: currentUser.email,
-                    ...target.profile,
-                    photoURL: currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(target.profile.displayName || "User")}&background=0284c7&color=fff`,
+                    displayName: inv.name || currentUser.displayName || "Staff Member",
+                    photoURL: currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(inv.name || "Staff")}&background=064e3b&color=fff`,
+                    role: staffRole,
+                    status: "active",
+                    category: inv.category || "GP",
+                    specialty: inv.specialty || "",
+                    clinicId: inv.clinicId,
+                    clinicName: inv.clinicName,
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                   };
-                  await setDoc(userDocRef, fullProfile, { merge: true });
-                } catch (e) {
-                  console.error("[Profile] Profile auto-restoration failed:", e);
-                  setCurrentUserProfile(null);
-                }
-              } else if (isHardcodedAdminEmail(currentUser.email)) {
-                console.log("[Profile] Auto-creating admin profile...");
-                try {
-                  const adminName = currentUser.displayName || (currentUser.email?.toLowerCase().includes("junaid") ? "Junaid Ahmed" : "Mohammed Zaid");
-                  const clinicId = "meditrack-main-clinic";
-                  const clinicName = "Meditrack Healthcare Center";
-                  const clinicAddress = "Main Medical Suite";
-
-                  await setDoc(doc(db, "clinics", clinicId), {
-                    name: clinicName,
-                    address: clinicAddress,
-                    adminId: currentUser.uid,
-                    createdAt: serverTimestamp(),
-                  }, { merge: true });
-
-                  await setDoc(userDocRef, {
+                  if (staffRole === "doctor") {
+                    newProfile.doctorId = `DOC-${inv.clinicId}-${currentUser.uid.slice(0, 4).toUpperCase()}`;
+                  } else if (staffRole === "receptionist") {
+                    newProfile.receptionistId = `REC-${inv.clinicId}-${currentUser.uid.slice(0, 4).toUpperCase()}`;
+                    newProfile.assignedDoctorCategory = "GP";
+                    if (inv.assignedDoctorEmail) {
+                      newProfile.assignedDoctorEmail = inv.assignedDoctorEmail;
+                      newProfile.assignedDoctorName = inv.assignedDoctorName || "";
+                    }
+                  }
+                  await setDoc(userDocRef, newProfile).catch(console.error);
+                  setCurrentUserProfile({ ...newProfile, uid: currentUser.uid });
+                  setProfileLoaded(true);
+                  setLoading(false);
+                  return;
+                } else {
+                  // Fallback: auto-create profile for authenticated user so they are never stranded
+                  const isDoctorEmail = cleanEmail.includes("dr") || cleanEmail.includes("doc");
+                  const isRecEmail = cleanEmail.includes("rec") || cleanEmail.includes("front") || cleanEmail.includes("reception");
+                  const staffRole = isDoctorEmail ? "doctor" : isRecEmail ? "receptionist" : "admin";
+                  const defaultName = cleanEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+                  const autoProfile: any = {
                     uid: currentUser.uid,
-                    email: currentUser.email,
-                    displayName: adminName,
-                    photoURL: currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}`,
-                    role: "admin",
-                    clinicName,
-                    clinicId,
-                    clinicAddress,
-                    contactNumber: "+91 9876543210",
+                    email: cleanEmail,
+                    displayName: currentUser.displayName || defaultName,
+                    photoURL: currentUser.photoURL || `/assets/admin_doctor_avatar.png`,
+                    role: staffRole,
+                    status: "active",
+                    category: "GP",
+                    specialty: staffRole === "doctor" ? "General Practitioner" : "",
+                    clinicId: "MT0001",
+                    clinicName: "MedPlus HealthCare",
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
-                  }, { merge: true });
-                  console.log("[Profile] Admin profile auto-created successfully.");
-                } catch (e) {
-                  console.error("[Profile] Admin profile auto-creation failed:", e);
-                  setCurrentUserProfile(null);
+                  };
+                  if (staffRole === "doctor") {
+                    autoProfile.doctorId = `DOC-MT0001-${currentUser.uid.slice(0, 4).toUpperCase()}`;
+                  } else if (staffRole === "receptionist") {
+                    autoProfile.receptionistId = `REC-MT0001-${currentUser.uid.slice(0, 4).toUpperCase()}`;
+                  }
+                  await setDoc(userDocRef, autoProfile).catch(console.error);
+                  setCurrentUserProfile({ ...autoProfile, uid: currentUser.uid });
+                  setProfileLoaded(true);
+                  setLoading(false);
+                  return;
                 }
-              } else {
-                setCurrentUserProfile(null);
               }
+
+              console.warn("[Profile] No Firestore profile found for", currentUser.uid);
+              setCurrentUserProfile(null);
             }
+            setProfileLoaded(true);
             setLoading(false);
           },
           (err) => {
@@ -1114,6 +1684,7 @@ export default function App() {
             } catch (e: any) {
               setError(e.message);
             }
+            setProfileLoaded(true);
             setLoading(false);
           },
         );
@@ -1121,6 +1692,7 @@ export default function App() {
         setCurrentUserProfile(null);
         setPatients([]);
         setLoading(false);
+        setProfileLoaded(false);
         if (profileUnsubscribe) profileUnsubscribe();
       }
     });
@@ -1222,6 +1794,26 @@ export default function App() {
     return () => unsubscribe();
   }, [currentUserProfile?.clinicId]);
 
+  // Real-time clinic doctors list (to connect receptionists and doctors by email)
+  const [clinicDoctors, setClinicDoctors] = useState<any[]>([]);
+  useEffect(() => {
+    if (!currentUserProfile?.clinicId) {
+      setClinicDoctors([]);
+      return;
+    }
+    const q = query(
+      collection(db, "users"),
+      where("clinicId", "==", currentUserProfile.clinicId)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const docs = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((u: any) => (u.role || "").toLowerCase() === "doctor");
+      setClinicDoctors(docs);
+    });
+    return () => unsub();
+  }, [currentUserProfile?.clinicId]);
+
   // Real-time patients listener (STRICT DATA ISOLATION FOR MULTI-USER OPERATION)
   useEffect(() => {
     if (!user || !currentUserProfile?.clinicId) return;
@@ -1243,32 +1835,42 @@ export default function App() {
         const filteredList = pList.filter((p: any) => {
           if (isAdmin) return true;
 
-          const targetDocId = currentUserProfile.doctorId || currentUserProfile.assignedDoctorId;
-          const targetCategory = (currentUserProfile.category || currentUserProfile.assignedDoctorCategory || "").toUpperCase();
+          const userEmail = (user?.email || "").toLowerCase().trim();
+          const pDocEmail = (p.doctorEmail || "").toLowerCase().trim();
 
-          // 1. Direct Doctor ID Match
-          if (targetDocId && p.doctorId) {
-            const cleanTarget = String(targetDocId).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-            const cleanPatientDoc = String(p.doctorId).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-            if (cleanTarget === cleanPatientDoc) return true;
-          }
-
-          // 2. Doctor Category Match (GP vs PEDIATRICIAN vs DENTIST)
-          if (targetCategory && p.doctorCategory) {
-            const cleanCat = String(p.doctorCategory).toUpperCase();
-            if (cleanCat === targetCategory) return true;
-            if (targetCategory.includes("DENT") && cleanCat.includes("DENT")) return true;
-            if (targetCategory.includes("GP") && cleanCat.includes("GP")) return true;
-            if (targetCategory.includes("PED") && cleanCat.includes("PED")) return true;
-          }
-
-          // 3. Fallback matching for legacy un-categorized records
-          if (!p.doctorCategory && !p.doctorId) {
-            if (targetCategory === "GP" || !targetCategory) return true;
+          // 1. If current user is a Doctor, match their UID, Email, or DoctorID
+          if (isDoctor) {
+            if (p.doctorUid && p.doctorUid === user.uid) return true;
+            if (pDocEmail && userEmail && pDocEmail === userEmail) return true;
+            if (p.doctorId && currentUserProfile.doctorId && p.doctorId === currentUserProfile.doctorId) return true;
+            if (p.doctorName && currentUserProfile.displayName) {
+              return p.doctorName.toLowerCase().includes(currentUserProfile.displayName.toLowerCase().replace("dr. ", ""));
+            }
+            if (!pDocEmail && !p.doctorName && !p.doctorUid) return true;
             return false;
           }
 
-          return false;
+          // 2. If Receptionist, match strictly to their assigned doctor
+          if (isReceptionist) {
+            const assignedDocUid = currentUserProfile.assignedDoctorUid || "";
+            const assignedDocEmail = (currentUserProfile.assignedDoctorEmail || "").toLowerCase().trim();
+            const assignedDocId = currentUserProfile.assignedDoctorId || "";
+            const assignedDocName = (currentUserProfile.assignedDoctorName || "").toLowerCase().trim();
+
+            if (assignedDocUid && p.doctorUid && p.doctorUid === assignedDocUid) return true;
+            if (assignedDocEmail && pDocEmail && pDocEmail === assignedDocEmail) return true;
+            if (assignedDocId && p.doctorId && p.doctorId === assignedDocId) return true;
+            if (assignedDocName && p.doctorName) {
+              const cleanP = p.doctorName.toLowerCase().replace("dr. ", "").replace("dr ", "").trim();
+              const cleanT = assignedDocName.replace("dr. ", "").replace("dr ", "").trim();
+              if (cleanP && cleanT && (cleanP.includes(cleanT) || cleanT.includes(cleanP))) return true;
+            }
+            // If receptionist is not yet linked to any doctor, show clinic queue
+            if (!assignedDocUid && !assignedDocEmail && !assignedDocId && !assignedDocName) return true;
+            if (!pDocEmail && !p.doctorName && !p.doctorUid) return true;
+            return false;
+          }
+          return true;
         });
 
         const sortedList = filteredList.sort((a, b) => {
@@ -1289,7 +1891,7 @@ export default function App() {
     );
 
     return () => unsubscribe();
-  }, [user, currentUserProfile?.clinicId, currentUserProfile?.doctorId, currentUserProfile?.assignedDoctorId, currentUserProfile?.category, currentUserProfile?.assignedDoctorCategory, isAdmin]);
+  }, [user, currentUserProfile, isDoctor, isReceptionist, isAdmin]);
 
   // Real-time medical history listener
   useEffect(() => {
@@ -1356,47 +1958,62 @@ export default function App() {
           ? Math.max(...patients.map((p) => p.queueNumber)) + 1
           : 1;
 
+      const isDoc = (currentUserProfile.role || "").toLowerCase() === "doctor";
+
+      const assignedDoctorUid =
+        currentUserProfile.assignedDoctorUid ||
+        (isDoc ? user.uid : (clinicDoctors[0]?.uid || clinicDoctors[0]?.id || ""));
+
       const assignedDoctorId =
         currentUserProfile.assignedDoctorId ||
-        (currentUserProfile.role === "Doctor"
+        (isDoc
           ? currentUserProfile.doctorId || user.uid
-          : "DOC-GP-001");
+          : (clinicDoctors[0]?.doctorId || clinicDoctors[0]?.id || ""));
+
+      const assignedDoctorEmail =
+        currentUserProfile.assignedDoctorEmail ||
+        (isDoc
+          ? user.email
+          : (clinicDoctors[0]?.email || ""));
 
       const assignedDoctorName =
         currentUserProfile.assignedDoctorName ||
-        (currentUserProfile.role === "Doctor"
+        (isDoc
           ? currentUserProfile.displayName
-          : "Dr. Rahul Sharma");
+          : (clinicDoctors[0]?.displayName || "Doctor"));
 
       const assignedDoctorCategory =
         currentUserProfile.assignedDoctorCategory ||
-        (currentUserProfile.role === "Doctor"
+        (isDoc
           ? currentUserProfile.category
-          : "GP") || "GP";
+          : (clinicDoctors[0]?.category || "GP")) || "GP";
 
       const assignedReceptionistId =
         currentUserProfile.receptionistId ||
         currentUserProfile.assignedReceptionistId ||
-        (assignedDoctorId === "DOC-PED-001"
-          ? "REC-PED-001"
-          : assignedDoctorId === "DOC-DENT-001"
-          ? "REC-DENT-001"
-          : "REC-GP-001");
+        `REC-${currentUserProfile.clinicId || "CLI"}-${user.uid.slice(0, 4).toUpperCase()}`;
 
       // CLEAN OBJECT: Scoped to assigned doctor and receptionist
       const patientData: any = {
         name: regPatientName.trim(),
         phone: regPatientPhone.trim(),
         age: regPatientAge.trim(),
+        gender: detectGenderFromName(regPatientName.trim()),
         queueNumber: Number(nextQueueNumber),
         status: "Waiting",
         clinicId: String(currentUserProfile.clinicId),
-        doctorId: String(assignedDoctorId),
-        receptionistId: String(assignedReceptionistId),
-        doctorName: String(assignedDoctorName),
-        doctorCategory: String(assignedDoctorCategory),
+        doctorUid: String(assignedDoctorUid || ""),
+        doctorId: String(assignedDoctorId || ""),
+        doctorEmail: String(assignedDoctorEmail || "").toLowerCase().trim(),
+        doctorName: String(assignedDoctorName || ""),
+        doctorCategory: String(assignedDoctorCategory || "GP"),
+        receptionistUid: String(user.uid),
+        receptionistId: String(assignedReceptionistId || ""),
+        receptionistEmail: String(user.email || "").toLowerCase().trim(),
+        receptionistName: String(currentUserProfile.displayName || "Front Desk"),
         addedBy: String(user.uid),
         timestamp: serverTimestamp(),
+        createdAt: serverTimestamp(),
       };
 
       await addDoc(collection(db, "patients"), patientData);
@@ -1419,9 +2036,9 @@ export default function App() {
   const handleCallPatient = async (patient: Patient) => {
     if (!user) return;
     try {
-      const docId = patient.doctorId || currentUserProfile?.doctorId || currentUserProfile?.assignedDoctorId || "DOC-GP-001";
-      const recId = patient.receptionistId || currentUserProfile?.receptionistId || currentUserProfile?.assignedReceptionistId || "REC-GP-001";
-      const clinicId = patient.clinicId || currentUserProfile?.clinicId || "CLINIC-001";
+      const docId = patient.doctorId || currentUserProfile?.doctorId || currentUserProfile?.assignedDoctorId || "";
+      const recId = patient.receptionistId || currentUserProfile?.receptionistId || currentUserProfile?.assignedReceptionistId || "";
+      const clinicId = patient.clinicId || currentUserProfile?.clinicId || "";
 
       validateDoctorReceptionistMapping(clinicId, docId, recId);
 
@@ -1889,9 +2506,9 @@ export default function App() {
 
       const invoiceNumber = `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-      const docId = patient.doctorId || currentUserProfile.doctorId || currentUserProfile.assignedDoctorId || "DOC-GP-001";
-      const recId = patient.receptionistId || currentUserProfile.receptionistId || currentUserProfile.assignedReceptionistId || "REC-GP-001";
-      const clinicId = patient.clinicId || currentUserProfile.clinicId || "CLINIC-001";
+      const docId = patient.doctorId || currentUserProfile.doctorId || currentUserProfile.assignedDoctorId || "";
+      const recId = patient.receptionistId || currentUserProfile.receptionistId || currentUserProfile.assignedReceptionistId || "";
+      const clinicId = patient.clinicId || currentUserProfile.clinicId || "";
 
       validateDoctorReceptionistMapping(clinicId, docId, recId);
 
@@ -1903,21 +2520,21 @@ export default function App() {
         consultationCompletedAt: serverTimestamp(),
         billedAt: serverTimestamp(),
         consultationFee: consultationFee || 500,
-        invoiceNumber,
+        invoiceNumber: invoiceNumber || "",
         notes: notes || "",
         diagnosis: diagnosisStr || "",
-        prescription: JSON.stringify(prescriptionList),
+        prescription: JSON.stringify(prescriptionList || []),
         vitals: vitalsObj || {},
         followUpDate: followUpObj?.date || "",
         followUpNotes: followUpObj?.notes || "",
-        addedBy: patient.addedBy,
-        clinicId,
-        doctorId: docId,
-        receptionistId: recId,
+        addedBy: patient.addedBy || user.uid,
+        clinicId: clinicId || "",
+        doctorId: docId || "",
+        receptionistId: recId || "",
       };
 
-      if (patient.age !== undefined) updateData.age = patient.age;
-      if (patient.gender !== undefined) updateData.gender = patient.gender;
+      if (patient.age !== undefined && patient.age !== null) updateData.age = patient.age;
+      if (patient.gender !== undefined && patient.gender !== null) updateData.gender = patient.gender;
 
       if (specialtyData && (specialtyData.procedure || specialtyData.toothArea || specialtyData.complaint)) {
         updateData.dentalTreatment = specialtyData;
@@ -1928,19 +2545,19 @@ export default function App() {
       // Save to consultations collection for history
       const consultationRef = doc(collection(db, "consultations"));
       batch.set(consultationRef, {
-        patientPhone: patient.phone,
-        patientName: patient.name,
-        clinicId,
-        doctorId: docId,
-        receptionistId: recId,
-        doctorName: currentUserProfile.displayName || "Dr. Sharma",
+        patientPhone: patient.phone || "",
+        patientName: patient.name || "",
+        clinicId: clinicId || "",
+        doctorId: docId || "",
+        receptionistId: recId || "",
+        doctorName: currentUserProfile.displayName || "Doctor",
         notes: notes || "",
         diagnosis: diagnosisStr || "",
-        prescription: JSON.stringify(prescriptionList),
+        prescription: JSON.stringify(prescriptionList || []),
         vitals: vitalsObj || {},
         specialtyData: specialtyData || null,
         consultationFee: consultationFee || 500,
-        invoiceNumber,
+        invoiceNumber: invoiceNumber || "",
         followUpDate: followUpObj?.date || "",
         followUpNotes: followUpObj?.notes || "",
         timestamp: serverTimestamp(),
@@ -1990,9 +2607,9 @@ export default function App() {
       const patientRef = doc(db, "patients", patient.id);
       const invoiceNumber = invoiceNo || patient.invoiceNumber || `INV-${new Date().getFullYear()}-${String(Math.floor(100000 + Math.random() * 900000))}`;
 
-      const docId = patient.doctorId || currentUserProfile?.assignedDoctorId || currentUserProfile?.doctorId || "DOC-GP-001";
-      const recId = patient.receptionistId || currentUserProfile?.receptionistId || currentUserProfile?.assignedReceptionistId || "REC-GP-001";
-      const clinicId = patient.clinicId || currentUserProfile?.clinicId || "CLINIC-001";
+      const docId = patient.doctorId || currentUserProfile?.assignedDoctorId || currentUserProfile?.doctorId || "";
+      const recId = patient.receptionistId || currentUserProfile?.receptionistId || currentUserProfile?.assignedReceptionistId || "";
+      const clinicId = patient.clinicId || currentUserProfile?.clinicId || "";
 
       const paymentRef = doc(collection(db, "payments"));
       const invoiceRef = doc(db, "invoices", invoiceNumber);
@@ -2014,33 +2631,33 @@ export default function App() {
       batch.update(patientRef, {
         status: "PAID",
         billingStatus: "Paid",
-        paymentMethod,
-        consultationFee: amount,
+        paymentMethod: paymentMethod || "Cash",
+        consultationFee: amount || 0,
         paidAt: serverTimestamp(),
         paymentId: paymentRef.id,
         invoiceId: invoiceNumber,
         invoiceNumber,
         invoicePdfData: pdfDataUri || null,
         updatedAt: serverTimestamp(),
-        clinicId,
-        doctorId: docId,
-        receptionistId: recId,
+        clinicId: clinicId || "",
+        doctorId: docId || "",
+        receptionistId: recId || "",
       });
 
       // 2. Invoice document -> status = "PAID", paymentStatus = "PAID"
       batch.set(
         invoiceRef,
         {
-          invoiceNumber,
-          patientId: patient.id,
-          patientName: patient.name,
-          patientPhone: patient.phone,
-          amount,
-          paymentMethod,
+          invoiceNumber: invoiceNumber || "",
+          patientId: patient.id || "",
+          patientName: patient.name || "",
+          patientPhone: patient.phone || "",
+          amount: amount || 0,
+          paymentMethod: paymentMethod || "Cash",
           pdfDataUri: pdfDataUri || null,
-          clinicId,
-          doctorId: docId,
-          receptionistId: recId,
+          clinicId: clinicId || "",
+          doctorId: docId || "",
+          receptionistId: recId || "",
           status: "PAID",
           paymentStatus: "PAID",
           paidAt: serverTimestamp(),
@@ -2053,16 +2670,16 @@ export default function App() {
       // 3. Payment document -> status = "SUCCESS"
       batch.set(paymentRef, {
         paymentId: paymentRef.id,
-        invoiceId: invoiceNumber,
-        clinicId,
-        doctorId: docId,
-        receptionistId: recId,
-        patientId: patient.id,
-        patientName: patient.name,
-        patientPhone: patient.phone,
-        amount,
-        method: paymentMethod,
-        paymentMethod,
+        invoiceId: invoiceNumber || "",
+        clinicId: clinicId || "",
+        doctorId: docId || "",
+        receptionistId: recId || "",
+        patientId: patient.id || "",
+        patientName: patient.name || "",
+        patientPhone: patient.phone || "",
+        amount: amount || 0,
+        method: paymentMethod || "Cash",
+        paymentMethod: paymentMethod || "Cash",
         pdfDataUri: pdfDataUri || null,
         status: "SUCCESS",
         paidAt: serverTimestamp(),
@@ -2126,9 +2743,9 @@ export default function App() {
         mediaBase64 = canvas.toDataURL("image/png");
       }
 
-      const clinicName = clinicInfo?.name || currentUserProfile?.clinicName || "MediTrack GP & Family Health Center";
+      const clinicName = clinicInfo?.name || currentUserProfile?.clinicName || "Clinic";
       const invoiceUrl = `https://meditrack-d03cb.web.app/?invoice=${invoiceNumber}`;
-      const message = `🏥 ${clinicName}\n\nHello ${patient.name},\n\nYour payment of ₹${amount} has been received successfully. ✅\n🧾 Invoice: ${invoiceNumber}\n💳 Payment: ${paymentMethod}\n📌 Status: PAID\n📄 View & Download Invoice:\n${invoiceUrl}\n\nThank you for choosing MediTrack.`;
+      const message = `🏥 ${clinicName}\n\nHello ${patient.name},\n\nYour payment of ₹${amount} has been received successfully. ✅\n🧾 Invoice: ${invoiceNumber}\n💳 Payment: ${paymentMethod}\n📌 Status: PAID\n📄 View & Download Invoice:\n${invoiceUrl}\n\nThank you for choosing ${clinicName}.`;
 
       // Normalize phone number for direct WhatsApp link
       const rawDigits = patient.phone ? patient.phone.replace(/\D/g, "") : "";
@@ -2213,7 +2830,17 @@ export default function App() {
     });
   };
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = async () => {
+    setHasRedirected(false);
+    setCurrentUserProfile(null);
+    setActiveView("dashboard");
+    window.history.replaceState(null, "", "/login");
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error("Sign out error", e);
+    }
+  };
 
   const handleDeletePatient = async (patient: Patient) => {
     setCustomModal({
@@ -2459,12 +3086,12 @@ export default function App() {
   };
 
   // AUTH & ROLE LOADING VIEW
-  if (loading || authLoading) {
+  if (loading || authLoading || (user && !profileLoaded && !currentUserProfile)) {
     return (
       <div className="min-h-screen bg-[#030812] flex flex-col items-center justify-center p-6 text-center select-none">
         <div className="flex flex-col items-center gap-4">
           <MediTrackLogo size="lg" theme="dark" showBadge={false} />
-          <div className="w-9 h-9 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin mt-2" />
+          <div className="w-9 h-9 border-3 border-emerald-400 border-t-transparent rounded-full animate-spin mt-2" />
           <div className="space-y-1">
             <p className="text-white font-bold text-xs uppercase tracking-wider">
               {authLoading ? "Authenticating Staff Credentials..." : "Loading Authorized Workspace..."}
@@ -2479,7 +3106,7 @@ export default function App() {
   }
 
   // DEACTIVATED ACCOUNT VIEW
-  if (user && currentUserProfile && (currentUserProfile.isDeactivated || currentUserProfile.status === "deactivated")) {
+  if (user && currentUserProfile && (currentUserProfile.isDeactivated === true || currentUserProfile.status === "deactivated" || currentUserProfile.status === "inactive")) {
     return (
       <div className="min-h-screen bg-[#030812] flex flex-col items-center justify-center p-6 text-center select-none">
         <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-4">
@@ -2501,96 +3128,176 @@ export default function App() {
     );
   }
 
-  if (user && !currentUserProfile) {
-    const emailLower = (user.email || "").toLowerCase();
-    const isDoctorRole = !emailLower.includes("receptionist") && !emailLower.includes("anjali") && !emailLower.includes("neha") && !emailLower.includes("sana");
-    const role = isHardcodedAdminEmail(user.email) ? "admin" : isDoctorRole ? "Doctor" : "Receptionist";
-    const displayName = user.displayName || (user.email?.split("@")[0] || "User");
-    const userDocRef = doc(db, "users", user.uid);
-
-    const isPediatrician = emailLower.includes("priya") || emailLower.includes("neha") || emailLower.includes("pediatrician") || emailLower.includes("ped");
-    const isDentist = emailLower.includes("ahmed") || emailLower.includes("sana") || emailLower.includes("dentist") || emailLower.includes("dent");
-
-    const category = role === "Doctor" ? (isPediatrician ? "PEDIATRICIAN" : isDentist ? "DENTIST" : "GP") : undefined;
-    const doctorId = role === "Doctor" ? (isPediatrician ? "DOC-PED-001" : isDentist ? "DOC-DENT-001" : "DOC-GP-001") : undefined;
-
-    const assignedDoctorId = role === "Receptionist" ? (isPediatrician ? "DOC-PED-001" : isDentist ? "DOC-DENT-001" : "DOC-GP-001") : undefined;
-    const assignedDoctorName = role === "Receptionist" ? (isPediatrician ? "Dr. Priya Nair" : isDentist ? "Dr. Ahmed Khan" : "Dr. Rahul Sharma") : undefined;
-    const assignedDoctorCategory = role === "Receptionist" ? (isPediatrician ? "PEDIATRICIAN" : isDentist ? "DENTIST" : "GP") : undefined;
-    const receptionistId = role === "Receptionist" ? (isPediatrician ? "REC-PED-001" : isDentist ? "REC-DENT-001" : "REC-GP-001") : undefined;
-    
-    setDoc(userDocRef, cleanObject({
-      uid: user.uid,
-      email: user.email,
-      displayName: displayName,
-      role: role,
-      category: category,
-      doctorId: doctorId,
-      receptionistId: receptionistId,
-      clinicId: "meditrack-main-clinic",
-      clinicName: "Meditrack Healthcare Center",
-      clinicAddress: "Main Medical Suite",
-      contactNumber: "+91 9876543210",
-      assignedDoctorId: assignedDoctorId,
-      assignedDoctorName: assignedDoctorName,
-      assignedDoctorCategory: assignedDoctorCategory,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    }), { merge: true }).catch(console.error);
-
+  // NO CLINIC PROFILE FOUND VIEW (only shown after profile check is fully confirmed)
+  if (user && profileLoaded && !currentUserProfile) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center select-none">
-        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <h2 className="text-base font-bold">Setting up MediTrack Workspace...</h2>
-        <p className="text-xs text-slate-400 mt-1">Authenticating profile and routing to dashboard</p>
+      <div className="min-h-screen bg-[#030812] flex flex-col items-center justify-center p-6 text-center select-none">
+        <div className="flex flex-col items-center gap-4 max-w-sm">
+          <MediTrackLogo size="lg" theme="dark" showBadge={false} />
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mt-2">
+            <AlertCircle size={28} />
+          </div>
+          <div className="space-y-1.5">
+            <h2 className="text-white font-black text-lg tracking-tight">No Clinic Profile Found</h2>
+            <p className="text-slate-400 text-xs leading-relaxed">
+              Your account ({user.email}) is not assigned to any registered clinic or staff directory yet.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 mt-4 w-full justify-center">
+            <button
+              onClick={handleLogout}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md w-full sm:w-auto"
+            >
+              Sign In with Another Account
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
+
   if (!user) {
-    const handleLoginSubmit = async (
-      e: React.FormEvent,
-      selectedPortal?: "doctor" | "receptionist" | "admin",
-      doctorCategory?: "GP" | "PEDIATRICIAN" | "DENTIST",
-    ) => {
+    const handleLoginSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setAuthLoading(true);
       setError(null);
       try {
-        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const cleanEmail = email.trim().toLowerCase();
+        if (!cleanEmail || !password) {
+          setError("Please enter your email and password.");
+          setAuthLoading(false);
+          return;
+        }
+
+        const cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
         const userDocRef = doc(db, "users", cred.user.uid);
         const snap = await getDoc(userDocRef);
 
+        let profile: UserProfile | null = null;
         if (snap.exists()) {
-          const profile = snap.data() as UserProfile;
-          setCurrentUserProfile(profile);
+          profile = { ...snap.data(), uid: snap.id } as UserProfile;
+        } else {
+          // If no profile found directly, check clinicInvitations by email
+          const inviteQ = query(collection(db, "clinicInvitations"), where("email", "==", cleanEmail));
+          const inviteSnap = await getDocs(inviteQ).catch(() => null);
+          if (inviteSnap && !inviteSnap.empty) {
+            const inv = inviteSnap.docs[0].data();
+            const staffRole = inv.role === "doctor" ? "doctor" : inv.role === "admin" ? "admin" : "receptionist";
+            const newProfile: any = {
+              uid: cred.user.uid,
+              email: cred.user.email,
+              displayName: inv.name || cred.user.displayName || "Staff Member",
+              photoURL: cred.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(inv.name || "Staff")}&background=064e3b&color=fff`,
+              role: staffRole,
+              status: "active",
+              category: inv.category || "GP",
+              specialty: inv.specialty || "",
+              clinicId: inv.clinicId,
+              clinicName: inv.clinicName,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            };
+            if (staffRole === "doctor") {
+              newProfile.doctorId = `DOC-${inv.clinicId}-${cred.user.uid.slice(0, 4).toUpperCase()}`;
+            } else if (staffRole === "receptionist") {
+              newProfile.receptionistId = `REC-${inv.clinicId}-${cred.user.uid.slice(0, 4).toUpperCase()}`;
+              newProfile.assignedDoctorCategory = "GP";
+              if (inv.assignedDoctorEmail) {
+                newProfile.assignedDoctorEmail = inv.assignedDoctorEmail;
+                newProfile.assignedDoctorName = inv.assignedDoctorName || "";
+              }
+            }
+            await setDoc(userDocRef, newProfile).catch(console.error);
+            profile = newProfile;
+          }
+        }
 
-          const role = (profile.role || "").trim().toLowerCase();
-          const isDoc =
-            role === "doctor" ||
+        if (!profile) {
+          const chosenRole = (selectedRole || "doctor").trim().toLowerCase();
+          const isDocRole = chosenRole === "doctor";
+          const isRecRole = chosenRole === "receptionist";
+          const computedRole = isDocRole ? "doctor" : isRecRole ? "receptionist" : "admin";
+          const targetClinicId = "MT0001";
+          const targetClinicName = "MedPlus HealthCare";
+          
+          const defaultName = cleanEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+          const newProfile: any = {
+            uid: cred.user.uid,
+            email: cleanEmail,
+            displayName: cred.user.displayName || defaultName,
+            photoURL: cred.user.photoURL || `/assets/admin_doctor_avatar.png`,
+            role: computedRole,
+            status: "active",
+            category: "GP",
+            specialty: isDocRole ? "General Practitioner" : "",
+            clinicId: targetClinicId,
+            clinicName: targetClinicName,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          };
+          if (isDocRole) {
+            newProfile.doctorId = `DOC-${targetClinicId}-${cred.user.uid.slice(0, 4).toUpperCase()}`;
+          } else if (isRecRole) {
+            newProfile.receptionistId = `REC-${targetClinicId}-${cred.user.uid.slice(0, 4).toUpperCase()}`;
+          }
+          await setDoc(userDocRef, newProfile).catch(console.error);
+          profile = newProfile;
+        }
+
+        // Section 28: Inactive account check
+        if (profile.status === "inactive" || (profile as any).isDeactivated === true) {
+          await signOut(auth);
+          setError("Your account is currently inactive. Please contact your administrator.");
+          return;
+        }
+
+        const role = (profile.role || "").trim().toLowerCase();
+        const isAdm =
+          role === "admin" ||
+          role === "administrator" ||
+          role === "owner" ||
+          role === "clinic administrator";
+
+        const isDoc =
+          !isAdm &&
+          (role === "doctor" ||
             role.includes("doctor") ||
             role.includes("physician") ||
             role.includes("pediatrician") ||
-            role.includes("dentist");
+            role.includes("dentist"));
 
-          const isAdm =
-            role === "admin" ||
-            role === "administrator" ||
-            role === "owner" ||
-            isHardcodedAdminEmail(cred.user.email);
+        const isRec = !isAdm && !isDoc;
 
-          if (isDoc) {
-            setActiveView("doctor");
-          } else if (isAdm) {
-            setActiveView("dashboard");
-          } else {
-            setActiveView("receptionist");
-          }
-          setHasRedirected(true);
+        // Strict Role Authorization: Reject unauthorized portal login attempts
+        if (selectedRole === "admin" && !isAdm) {
+          await signOut(auth);
+          setError(`ACCESS DENIED: The Admin Portal is restricted to Clinic Administrators only. This account (${cleanEmail}) is registered as a ${isDoc ? "Doctor" : "Receptionist"}.`);
+          return;
         }
+
+        if (selectedRole === "doctor" && !isDoc) {
+          await signOut(auth);
+          setError(`ACCESS DENIED: The Doctor Portal is restricted to Doctors only. This account (${cleanEmail}) is registered as ${isAdm ? "an Administrator" : "a Receptionist"}.`);
+          return;
+        }
+
+        if (selectedRole === "receptionist" && !isRec) {
+          await signOut(auth);
+          setError(`ACCESS DENIED: The Receptionist Portal is restricted to Receptionists only. This account (${cleanEmail}) is registered as ${isAdm ? "an Administrator" : "a Doctor"}.`);
+          return;
+        }
+
+        setCurrentUserProfile(profile);
+        setHasRedirected(true);
+
+        const targetPath = isAdm ? "/admin" : isDoc ? "/doctor" : "/receptionist";
+        const targetView = isAdm ? "dashboard" : isDoc ? "doctor" : "receptionist";
+        window.history.replaceState(null, "", targetPath);
+        setActiveView(targetView);
       } catch (e: any) {
         if (e.code === "auth/network-request-failed") {
-          setError("Network connection to Firebase failed. Since this app runs inside an embedded preview frame, this is usually caused by: 1) An ad-blocker or Brave Shields blocking Google's Identity Toolkit, or 2) Disabled third-party cookies. Please click the top-right 'Open in new tab' button, or temporarily disable your ad-blocker/shields for this site.");
+          setError("Network connection to Firebase failed. Please check your connection and try again.");
         } else if (e.code === "auth/invalid-credential" || e.code === "auth/user-not-found" || e.code === "auth/wrong-password") {
           setError("Invalid email or password. Please verify your credentials and try again.");
         } else {
@@ -2611,19 +3318,23 @@ export default function App() {
         const userDocRef = doc(db, "users", cred.user.uid);
         const snap = await getDoc(userDocRef);
         if (!snap.exists()) {
-          const isAdminUser = isHardcodedAdminEmail(cred.user.email);
-          if (isAdminUser) {
-            const adminName = cred.user.displayName || (cred.user.email?.toLowerCase().includes("junaid") ? "Junaid Ahmed" : "Mohammed Zaid");
+          const cleanEmail = (cred.user.email || "").toLowerCase().trim();
+          const inviteQ = query(collection(db, "clinicInvitations"), where("email", "==", cleanEmail));
+          const inviteSnap = await getDocs(inviteQ).catch(() => null);
+          if (inviteSnap && !inviteSnap.empty) {
+            const inv = inviteSnap.docs[0].data();
+            const staffRole = inv.role === "doctor" ? "doctor" : inv.role === "admin" ? "admin" : "receptionist";
             await setDoc(userDocRef, {
               uid: cred.user.uid,
               email: cred.user.email,
-              displayName: adminName,
-              photoURL: cred.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}`,
-              role: "admin",
-              clinicId: "meditrack-main-clinic",
-              clinicName: "Meditrack Healthcare Center",
-              clinicAddress: "Main Clinic",
-              contactNumber: "+91 9876543210",
+              displayName: inv.name || cred.user.displayName || "Staff Member",
+              photoURL: cred.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(inv.name || "Staff")}&background=064e3b&color=fff`,
+              role: staffRole,
+              status: "active",
+              category: inv.category || "GP",
+              specialty: inv.specialty || "",
+              clinicId: inv.clinicId,
+              clinicName: inv.clinicName,
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
             });
@@ -2649,150 +3360,88 @@ export default function App() {
       setAuthLoading(true);
       setError(null);
       try {
-        let clinicName = signupData.clinicName.trim();
-        let clinicAddress = signupData.clinicAddress.trim();
-        const rawId = signupData.clinicId || "";
-        let finalClinicId = rawId.trim();
+        const clinicName = signupData.clinicName.trim();
+        const fullName = signupData.fullName.trim();
+        const emailVal = signupData.email.trim();
+        const passwordVal = signupData.password;
 
-        // If joining, check if it exists BEFORE creating account
-        if (!signupData.isRegisteringClinic) {
-          const docRef = doc(db, "clinics", finalClinicId);
-          const snap = await getDocFromServer(docRef).catch(() => getDoc(docRef));
-
-          if (!snap || !snap.exists()) {
-            throw new Error(`Clinic ID "${finalClinicId}" not found. If this is a new clinic, please ensure it was registered first.`);
-          }
-          const clinicData = snap.data();
-          clinicName = clinicData.name || "";
-          clinicAddress = clinicData.address || "";
+        if (!clinicName || !fullName || !emailVal || !passwordVal) {
+          throw new Error("Please fill in all fields.");
         }
 
-        // Create account or reuse existing authentication identity
-        let cred: any = null;
+        // Step 1 — Create or reuse existing Firebase Auth user
+        let userUid = "";
+        let authUser: any = null;
         try {
-          cred = await createUserWithEmailAndPassword(
-            auth,
-            signupData.email,
-            signupData.password,
-          );
+          const cred = await createUserWithEmailAndPassword(auth, emailVal, passwordVal);
+          userUid = cred.user.uid;
+          authUser = cred.user;
         } catch (authErr: any) {
           if (authErr.code === "auth/email-already-in-use") {
             try {
-              cred = await signInWithEmailAndPassword(
-                auth,
-                signupData.email,
-                signupData.password,
-              );
-            } catch (signInErr: any) {
-              throw new Error(`This email address (${signupData.email}) is already registered in MediTrack. Please switch to the "Sign In" tab to log in to your account, or verify your password.`);
+              const signinCred = await signInWithEmailAndPassword(auth, emailVal, passwordVal);
+              userUid = signinCred.user.uid;
+              authUser = signinCred.user;
+            } catch (loginErr: any) {
+              throw new Error("This email is already registered in MediTrack. Please sign in with your correct password, or register with another email.");
             }
           } else {
             throw authErr;
           }
         }
 
-        if (signupData.isRegisteringClinic) {
-          finalClinicId =
-            (signupData.clinicName || "clinic")
-              .toLowerCase()
-              .replace(/\s+/g, "-") +
-            "-" +
-            Math.random().toString(36).substr(2, 5);
+        // Step 2 — Generate sequential clinic ID (MT0001, MT0002, ...) via Firestore transaction
+        const counterRef = doc(db, "system", "clinicCounter");
+        let finalClinicId = "";
+        await runTransaction(db, async (transaction) => {
+          const counterSnap = await transaction.get(counterRef);
+          const currentCount = counterSnap.exists() ? (counterSnap.data().count || 0) : 0;
+          const nextCount = currentCount + 1;
+          const paddedNum = String(nextCount).padStart(4, "0");
+          finalClinicId = `MT${paddedNum}`;
+          transaction.set(counterRef, { count: nextCount }, { merge: true });
+        });
 
-          await setDoc(doc(db, "clinics", finalClinicId), {
-            name: signupData.clinicName,
-            address: signupData.clinicAddress,
-            adminId: cred.user.uid,
-            createdAt: serverTimestamp(),
-          });
-        }
-
-        const isDoc = signupData.role === "Doctor";
-        const isRec = signupData.role === "Receptionist";
-        const category = signupData.category || "GP";
-        const shortUid = cred.user.uid.slice(0, 6).toUpperCase();
-
-        const doctorId = isDoc ? `DOC_${category}_${shortUid}` : undefined;
-        const receptionistId = isDoc
-          ? `REC_${category}_${shortUid}`
-          : isRec
-          ? `REC_${shortUid}`
-          : undefined;
-
-        const assignedDoctorId = isRec ? `DOC_GP_001` : undefined;
-        const assignedDoctorName = isRec ? `Dr. Rahul Sharma` : undefined;
-        const assignedDoctorCategory = isRec ? `GP` : undefined;
-
-        const userDocRef = doc(db, "users", cred.user.uid);
-        const isAdminUser = isHardcodedAdminEmail(signupData.email);
-
-        const newProfile: UserProfile = {
-          uid: cred.user.uid,
-          email: signupData.email,
-          displayName: signupData.fullName,
-          photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(signupData.fullName)}`,
-          role: isAdminUser ? "admin" : signupData.role,
-          clinicName: clinicName,
+        // Step 3 — Create clinic document
+        await setDoc(doc(db, "clinics", finalClinicId), {
           clinicId: finalClinicId,
-          clinicAddress: clinicAddress || "",
-          contactNumber: formatIndianPhoneNumber(signupData.contactNumber),
-          category: isDoc ? category : undefined,
-          doctorId: doctorId,
-          receptionistId: receptionistId,
-          assignedDoctorId: assignedDoctorId,
-          assignedDoctorName: assignedDoctorName,
-          assignedDoctorCategory: assignedDoctorCategory as any,
-          specialty: isDoc
-            ? category === "PEDIATRICIAN"
-              ? "Pediatrician (Child Specialist)"
-              : category === "DENTIST"
-              ? "Dentist & Oral Healthcare"
-              : "General Practice & Family Medicine"
-            : undefined,
-          consultationFee: isDoc
-            ? category === "DENTIST"
-              ? 700
-              : category === "PEDIATRICIAN"
-              ? 600
-              : 500
-            : undefined,
-        };
-
-        await setDoc(userDocRef, cleanObject({
-          ...newProfile,
+          name: clinicName,
+          adminId: userUid,
+          adminEmail: emailVal,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        }), { merge: true });
+        });
 
-        // Record permanent mapping in doctorReceptionistMappings
-        if (isDoc && doctorId && receptionistId) {
-          const mappingId = `${doctorId}_${receptionistId}`;
-          await setDoc(doc(db, "doctorReceptionistMappings", mappingId), {
-            clinicId: finalClinicId,
-            doctorId,
-            doctorName: signupData.fullName,
-            receptionistId,
-            doctorCategory: category,
-            active: true,
-            createdAt: serverTimestamp(),
-          }, { merge: true }).catch(() => {});
+        // Step 4 — Create user profile as admin
+        const userDocRef = doc(db, "users", userUid);
+        await setDoc(userDocRef, {
+          uid: userUid,
+          email: emailVal.toLowerCase().trim(),
+          displayName: fullName,
+          photoURL: `/assets/admin_doctor_avatar.png`,
+          role: "admin",
+          status: "active",
+          clinicId: finalClinicId,
+          clinicName: clinicName,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+
+        // Step 5 — Update Firebase Auth display name
+        if (authUser) {
+          await updateProfile(authUser, { displayName: fullName }).catch(() => {});
         }
 
-        await updateProfile(cred.user, {
-          displayName: signupData.fullName,
-        }).catch(() => {});
-
-        // As specified in Section 9:
-        // Do NOT automatically drop into dashboard; redirect to Login with "Account Created Successfully"
+        // Step 6 — Sign out and redirect to login with success message
         await signOut(auth);
-        setEmail(signupData.email);
+        setEmail(emailVal);
         setPassword("");
         setSignupSuccess(true);
       } catch (e: any) {
         if (e.code === "auth/network-request-failed") {
-          setError("Network connection to Firebase failed. Since this app runs inside an embedded preview frame, this is usually caused by: 1) An ad-blocker or Brave Shields blocking Google's Identity Toolkit, or 2) Disabled third-party cookies. Please click the top-right 'Open in new tab' button, or temporarily disable your ad-blocker/shields for this site.");
-        } else if (e.code === "auth/email-already-in-use" || (e.message && e.message.includes("auth/email-already-in-use"))) {
-          setError(`This email address (${signupData.email}) is already registered in MediTrack. Please switch to the "Sign In" tab to log in to your account.`);
+          setError("Network connection to Firebase failed. Please check your connection and try again.");
+        } else if (e.code === "auth/weak-password") {
+          setError("Password must be at least 6 characters.");
         } else {
           setError(e.message || "An error occurred during account creation.");
         }
@@ -2813,55 +3462,30 @@ export default function App() {
         error={error}
         setError={setError}
         onLoginSubmit={handleLoginSubmit}
-        onGoogleSignIn={handleGoogleSignIn}
         onForgotPasswordClick={() => setResetFlowStep("options")}
-        onSelectDemoAccount={handleSelectDemoAccount}
         signupData={signupData}
         setSignupData={setSignupData}
         onSignupSubmit={handleSignupSubmit}
         signupSuccess={signupSuccess}
         onDismissSignupSuccess={() => setSignupSuccess(false)}
+        selectedRole={selectedRole}
+        setSelectedRole={setSelectedRole}
       />
     );
   }
 
-  // Route 403 Forbidden Screen if user tries accessing forbidden portal
-  if (user && currentUserProfile && !isAuthorizedForView(activeView)) {
-    const targetPortal = isDoctor ? "doctor" : "receptionist";
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center select-none">
-        <div className="w-16 h-16 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center mb-4">
-          <ShieldCheck size={32} />
-        </div>
-        <span className="px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold uppercase tracking-wider mb-2">
-          403 Forbidden • Access Restricted
-        </span>
-        <h1 className="text-2xl font-black tracking-tight mb-2 font-display">
-          Unauthorized Portal Access
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-400 max-w-md mb-6 leading-relaxed">
-          Your account role (<strong className="text-slate-200">{currentUserProfile?.role || "Staff"}</strong>) is strictly assigned to its dedicated workspace. Cross-portal access is prohibited in production.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <button
-            onClick={() => setActiveView(targetPortal)}
-            className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-lg shadow-blue-600/30"
-          >
-            Return to Designated Workspace
-          </button>
-          <button
-            onClick={handleLogout}
-            className="w-full sm:w-auto px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700"
-          >
-            Sign Out
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Canonical portal view for this user based strictly on Firestore role
+  const targetPortal: "dashboard" | "doctor" | "receptionist" = isAdmin
+    ? "dashboard"
+    : isDoctor
+    ? "doctor"
+    : "receptionist";
+
+  const effectivePortalView: "dashboard" | "doctor" | "receptionist" | "profile" =
+    activeView === "profile" && isAdmin ? "profile" : targetPortal;
 
   // RECEPTIONIST PORTAL VIEW
-  if (user && activeView === "receptionist") {
+  if (user && effectivePortalView === "receptionist") {
     return (
       <ReceptionistPortal
         user={user}
@@ -2870,7 +3494,6 @@ export default function App() {
         patients={patients}
         onLogout={handleLogout}
         isAdmin={isAdmin}
-        onBackToAdmin={() => setActiveView("dashboard")}
         regPatientName={regPatientName}
         setRegPatientName={setRegPatientName}
         regPatientPhone={regPatientPhone}
@@ -2884,15 +3507,14 @@ export default function App() {
         onClearQueue={handleClearReceptionQueue}
         onProcessPayment={handleProcessPayment}
         onSendReceiptWhatsApp={handleSendReceiptWhatsApp}
-        onSwitchToDoctorPortal={() => setActiveView("doctor")}
         isProcessing={isProcessing}
-        onSelectDemoAccount={handleSelectDemoAccount}
+        clinicDoctors={clinicDoctors}
       />
     );
   }
 
   // DOCTOR PORTAL VIEW
-  if (user && activeView === "doctor") {
+  if (user && effectivePortalView === "doctor") {
     return (
       <DoctorPortal
         user={user}
@@ -2901,7 +3523,6 @@ export default function App() {
         patients={patients}
         onLogout={handleLogout}
         isAdmin={isAdmin}
-        onBackToAdmin={() => setActiveView("dashboard")}
         onCallPatient={handleCallPatient}
         onCompleteConsultation={handleCompleteDoctorConsultation}
         activePatient={activeDoctorPatient}
@@ -2909,67 +3530,134 @@ export default function App() {
         medicalHistory={medicalHistory}
         isHistoryOpen={isHistoryOpen}
         setIsHistoryOpen={setIsHistoryOpen}
-        onSelectDemoAccount={handleSelectDemoAccount}
+        clinicDoctors={clinicDoctors}
       />
     );
   }
 
-  // MAIN APP SHELL
+  // STRICT ADMIN PORTAL SECURITY GUARD
+  // Doctor and Receptionist users are strictly prohibited from rendering or receiving the Admin Shell
+  if (!isAdmin) {
+    const targetRoute = isDoctor ? "/doctor" : "/receptionist";
+    const portalName = isDoctor ? "Doctor" : "Receptionist";
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center select-none">
+        <div className="w-16 h-16 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center mb-4">
+          <ShieldCheck size={32} />
+        </div>
+        <span className="px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold uppercase tracking-wider mb-2">
+          403 Forbidden • Admin Only
+        </span>
+        <h1 className="text-2xl font-black tracking-tight mb-2 font-display">
+          Unauthorized Admin Portal Access
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-400 max-w-md mb-6 leading-relaxed">
+          The Admin Portal is restricted to Clinic Administrators only. Your account (<strong className="text-slate-200">{currentUserProfile?.email}</strong>) is assigned as <strong className="text-slate-200">{currentUserProfile?.role || "Staff"}</strong>.
+        </p>
+        <button
+          onClick={() => {
+            window.history.replaceState(null, "", targetRoute);
+            setActiveView(isDoctor ? "doctor" : "receptionist");
+          }}
+          className="px-6 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
+        >
+          Return to {portalName} Portal
+        </button>
+      </div>
+    );
+  }
+
+  // MAIN ADMIN APP SHELL
   return (
-    <div className="min-h-screen bg-[#fafbfc] flex flex-col relative overflow-x-hidden">
+    <div
+      className="min-h-screen flex flex-col relative overflow-x-hidden"
+      style={
+        activeView === "dashboard" && activeTab === "dashboard" && isAdmin
+          ? {
+              backgroundImage: "url('/assets/clinic_admin_bg.jpg')",
+              backgroundSize: "cover",
+              backgroundPosition: "center top",
+              backgroundAttachment: "fixed",
+            }
+          : { backgroundColor: "#fafbfc" }
+      }
+    >
+      {/* Luminous frosted glass backdrop overlay for Admin Hub */}
+      {activeView === "dashboard" && activeTab === "dashboard" && isAdmin && (
+        <div className="fixed inset-0 bg-gradient-to-b from-white/70 via-white/50 to-white/80 backdrop-blur-[1px] pointer-events-none z-0" />
+      )}
+
       {/* Top Navigation */}
-      <header className="h-20 bg-white/95 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-50 border-b border-slate-100 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
-        <div className="flex items-center gap-4">
+      <header className="h-20 bg-white/90 backdrop-blur-xl px-4 sm:px-8 flex items-center justify-between sticky top-0 z-50 border-b border-emerald-100/70 shadow-[0_4px_25px_rgba(6,78,59,0.03)]">
+        <div className="flex items-center gap-3 sm:gap-4">
           <MediTrackLogo size="sm" theme="light" showSubtitle={true} showBadge={false} />
 
           {dbConnected === false && (
             <button
               onClick={checkConnection}
               title="Click to retry connection"
-              className="flex items-center gap-1.5 ml-2 px-2.5 py-1 bg-amber-50 text-amber-600 text-[9px] font-black rounded-lg border border-amber-100 uppercase tracking-wider flex-shrink-0 animate-pulse hover:bg-amber-100 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 ml-2 px-3 py-1.5 bg-amber-50 text-amber-700 text-[10px] font-black rounded-full border border-amber-200/80 uppercase tracking-wider flex-shrink-0 animate-pulse hover:bg-amber-100 transition-colors cursor-pointer shadow-2xs"
             >
-              <AlertCircle size={10} className="shrink-0" />
+              <AlertCircle size={12} className="shrink-0" />
               <span>Retry Link</span>
             </button>
           )}
           {dbConnected === true && (
-            <div className="flex items-center gap-1.5 ml-3 px-2.5 py-1 bg-slate-50 text-slate-500 text-[9px] font-bold rounded-lg border border-slate-100 flex-shrink-0 select-none">
-              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-[#e8fbf3]/90 backdrop-blur-md text-[#065f46] text-[10px] font-black rounded-full border border-[#a7f3d0] shadow-2xs flex-shrink-0 select-none">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
               <span className="uppercase tracking-wider">Operational</span>
             </div>
           )}
 
           {/* Role Badge in Header */}
           {isAdmin ? (
-            <span className="ml-2 px-2.5 py-1 bg-red-50 text-red-600 text-[9px] font-black rounded-lg uppercase tracking-wider border border-red-100">
-              Admin Control
-            </span>
+            <div className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#e8fbf3] backdrop-blur-md text-[#065f46] text-[10px] font-black rounded-full border border-[#a7f3d0] uppercase tracking-wider shadow-2xs">
+              <Settings size={12} className="shrink-0 stroke-[2.5] text-[#065f46]" />
+              <span>Admin Control</span>
+            </div>
           ) : isDoctor ? (
-            <span className="ml-2 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[9px] font-black rounded-lg uppercase tracking-wider border border-emerald-100">
+            <span className="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-wider border border-emerald-200">
               Doctor Suite
             </span>
           ) : (
-            <span className="ml-2 px-2.5 py-1 bg-blue-50 text-blue-700 text-[9px] font-black rounded-lg uppercase tracking-wider border border-blue-100">
+            <span className="px-3.5 py-1.5 bg-teal-50 text-teal-800 text-[10px] font-black rounded-full uppercase tracking-wider border border-teal-200">
               Reception Desk
             </span>
           )}
         </div>
 
-        <div className="relative" ref={profileDropdownRef}>
+        <div className="flex items-center gap-3">
+          {/* Notification Bell */}
           <button
-            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-            className="w-12 h-12 rounded-full bg-blue-50 border-2 border-blue-100 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-all overflow-hidden"
+            title="Notifications"
+            className="w-10 h-10 rounded-full bg-white/80 hover:bg-white border border-slate-200/60 shadow-2xs flex items-center justify-center text-slate-600 relative transition-all cursor-pointer"
           >
-            {user.photoURL ? (
+            <Bell size={18} />
+            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+          </button>
+
+          <div className="relative" ref={profileDropdownRef}>
+            <button
+              onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+            className="flex items-center gap-2.5 px-2 sm:px-3 py-1.5 rounded-full hover:bg-white/80 transition-all cursor-pointer group border border-transparent hover:border-emerald-200/60 shadow-2xs"
+          >
+            <div className="w-10 h-10 rounded-full bg-emerald-50 border-2 border-white ring-1 ring-emerald-200/80 overflow-hidden shadow-xs flex-shrink-0">
               <img
-                src={user.photoURL}
+                src={user.photoURL || "/assets/admin_doctor_avatar.png"}
                 alt="Profile"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
-            ) : (
-              <UserCircle size={28} />
-            )}
+            </div>
+            <div className="text-left hidden sm:block">
+              <p className="text-xs font-black text-slate-800 leading-tight">
+                {currentUserProfile?.displayName || user.displayName || "Admin"}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-400 leading-tight">
+                {currentUserProfile?.role || "Clinic Administrator"}
+              </p>
+            </div>
+            <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-600 transition-colors hidden sm:block" />
           </button>
 
           <AnimatePresence>
@@ -2989,7 +3677,7 @@ export default function App() {
                       {user.email}
                     </p>
                     <span className={`inline-block mt-1 text-[9px] font-extrabold uppercase px-2 py-0.5 rounded ${
-                      isAdmin ? "bg-red-50 text-red-700" : isDoctor ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
+                      isAdmin ? "bg-[#e8fbf3] text-[#065f46] border border-[#a7f3d0]" : isDoctor ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-teal-50 text-teal-800 border border-teal-200"
                     }`}>
                       {currentUserProfile?.role || (isAdmin ? "Admin" : "Staff")}
                     </span>
@@ -3006,38 +3694,16 @@ export default function App() {
                   </button>
 
                   {isAdmin && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setActiveTab("dashboard");
-                          setActiveView("dashboard");
-                          setIsProfileDropdownOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-                      >
-                        <LayoutDashboard size={18} /> Admin Overview
-                      </button>
-                      <button
-                        onClick={() => {
-                          resetDatabase();
-                          setIsProfileDropdownOpen(false);
-                        }}
-                        disabled={isResetting || isWipingAuth}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-                      >
-                        <Trash2 size={18} /> {isResetting ? "Wiping Database..." : "Wipe Database"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          wipeAuthentication();
-                          setIsProfileDropdownOpen(false);
-                        }}
-                        disabled={isResetting || isWipingAuth}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-                      >
-                        <Users size={18} /> {isWipingAuth ? "Wiping Auth..." : "Wipe Authentication"}
-                      </button>
-                    </>
+                    <button
+                      onClick={() => {
+                        setActiveTab("dashboard");
+                        setActiveView("dashboard");
+                        setIsProfileDropdownOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                    >
+                      <LayoutDashboard size={18} /> Admin Overview
+                    </button>
                   )}
 
                   {isDoctor && (
@@ -3075,7 +3741,8 @@ export default function App() {
             )}
           </AnimatePresence>
         </div>
-      </header>
+      </div>
+    </header>
 
       <div className="flex-1 flex flex-col">
         <main className="flex-1 flex flex-col">
@@ -3098,7 +3765,7 @@ export default function App() {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col items-center justify-center py-16 text-center max-w-md mx-auto space-y-4"
                   >
-                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto border border-blue-100 shadow-sm">
+                    <div className="w-16 h-16 bg-emerald-50 text-[#065f46] rounded-3xl flex items-center justify-center mx-auto border border-emerald-100 shadow-sm">
                       <Activity size={32} className="animate-pulse" />
                     </div>
                     <div className="space-y-1">
@@ -3112,7 +3779,7 @@ export default function App() {
                     </div>
                     <button
                       onClick={() => setActiveView(isDoctor ? "doctor" : "receptionist")}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-500/25 cursor-pointer"
+                      className="px-6 py-3 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-900/20 cursor-pointer"
                     >
                       Enter {isDoctor ? "Doctor Consultation Suite" : "Reception Desk"} →
                     </button>
@@ -3122,216 +3789,435 @@ export default function App() {
                   key="dashboard-view"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex flex-col items-center py-8"
+                  transition={{ duration: 0.3 }}
+                  className="flex flex-col items-center py-4 sm:py-6 relative z-10 w-full"
                 >
-                  <div className="text-center mb-14 max-w-2xl">
-                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-600 text-[10px] font-extrabold uppercase tracking-widest mb-4 shadow-[0_2px_8px_rgba(99,102,241,0.08)]">
-                      <Activity size={10} className="animate-pulse" />
-                      Dynamic Operations Hub
-                    </div>
-                    <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-3 tracking-tight font-display">
-                      Welcome back
+                  {/* Hero Header Section */}
+                  <div className="w-full max-w-3xl text-left mb-5 px-2 sm:px-0">
+                    <p className="text-slate-500 text-sm sm:text-base font-medium tracking-normal mb-0.5">
+                      Welcome back,
+                    </p>
+
+                    {/* Dynamic Multi-Tone Clinic Heading */}
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.1] mb-1.5 font-display">
+                      {(() => {
+                        const fullName = currentUserProfile?.clinicName || clinicInfo?.name || "Clinic";
+                        const parts = fullName.trim().split(/\s+/);
+                        if (parts.length === 1) {
+                          return <span className="text-slate-900">{parts[0]}</span>;
+                        }
+                        const first = parts[0];
+                        const rest = parts.slice(1).join(" ");
+                        return (
+                          <>
+                            <span className="text-slate-900">{first}</span>{" "}
+                            <span className="text-[#059669]">{rest}</span>
+                          </>
+                        );
+                      })()}
                     </h1>
-                    <div className="flex items-center justify-center gap-3 text-red-500 text-xs font-extrabold uppercase tracking-widest">
-                      <span className="bg-red-50 px-3 py-1 rounded-md border border-red-100">Master System Administrator</span>
+
+                    <p className="text-slate-500 text-xs sm:text-sm font-semibold mb-2.5">
+                      Clinic Administrator • {currentUserProfile?.displayName || user.displayName || user.email?.split("@")[0] || "Administrator"}
+                    </p>
+
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#e8fbf3]/95 backdrop-blur-md border border-[#a7f3d0] rounded-full text-[#065f46] text-[10px] font-black uppercase tracking-wider mb-2 shadow-xs">
+                      <Building2 size={12} className="text-[#059669]" />
+                      <span>{currentUserProfile?.clinicName || clinicInfo?.name || "CLINIC WORKSPACE"}</span>
+                      <span className="text-[#6ee7b7]">•</span>
+                      <span className="font-mono text-[#059669] font-bold">ID: {currentUserProfile?.clinicId || "—"}</span>
                     </div>
+
+                    <p className="text-slate-600 text-xs font-medium max-w-md">
+                      Manage your clinic efficiently with modern tools and seamless workflow.
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl px-4">
-                    {/* Receptionist Card */}
+                  {/* Compact Glassmorphism Interactive Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 w-full max-w-3xl px-2 sm:px-0">
+                    {/* Card 1 — Manage Staff & Users */}
                     <button
-                      onClick={() => setActiveView("receptionist")}
-                      className="p-8 bg-white rounded-[32px] border border-slate-100/80 hover:border-blue-200 hover:shadow-[0_20px_50px_rgba(59,130,246,0.08)] hover:-translate-y-1 transition-all text-left group relative overflow-hidden flex flex-col justify-between min-h-[220px]"
+                      onClick={() => setActiveTab("users")}
+                      className="group text-left rounded-2xl sm:rounded-3xl p-4 sm:p-5 bg-white/80 hover:bg-white/95 backdrop-blur-2xl border border-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.05)] hover:shadow-[0_15px_40px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden cursor-pointer"
                     >
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/40 rounded-full blur-2xl -mr-6 -mt-6 group-hover:bg-blue-100/55 transition-colors" />
-                      <div className="flex items-center justify-between w-full relative z-10">
-                        <div className="bg-blue-50 text-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-inner">
-                          <UserIcon size={24} />
+                      <div>
+                        {/* Real Medical Staff Team Photo */}
+                        <div className="w-full h-32 sm:h-36 rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-emerald-50/50 via-white/40 to-teal-50/40 relative flex items-center justify-center border border-white/70 shadow-2xs mb-2">
+                          <img
+                            src="/assets/staff_team_photo.jpg"
+                            alt="Manage Staff & Users"
+                            className="w-full h-full object-cover object-[center_20%] group-hover:scale-105 transition-transform duration-500"
+                          />
                         </div>
-                        <span className="text-[10px] uppercase tracking-widest font-extrabold text-blue-500 bg-blue-50/60 px-3 py-1 rounded-full border border-blue-100/50">
-                          Front Desk
-                        </span>
-                      </div>
-                      <div className="mt-6 relative z-10">
-                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                          Receptionist Portal
-                        </h3>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Register new patients, manage live tokens, and organize waitlist queue.
-                        </p>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between w-full relative z-10">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
-                          <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                            {patients.filter((p) => p.status === "Waiting").length} in waitlist
+
+                        {/* Floating Icon Badge + Category Tag */}
+                        <div className="flex items-center justify-between w-full relative z-10 -mt-6 px-1 mb-2">
+                          <div className="w-10 h-10 rounded-xl bg-white/95 backdrop-blur-md border border-emerald-100/90 shadow-md flex items-center justify-center text-[#064e3b] group-hover:scale-105 transition-transform">
+                            <Users size={18} className="stroke-[2.2]" />
+                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#dcfce7] border border-[#86efac] text-[#15803d] text-[9px] font-black uppercase tracking-wider shadow-2xs">
+                            Staff Control
                           </span>
                         </div>
-                        <ArrowRight size={14} className="text-blue-500 transform group-hover:translate-x-1 transition-transform" />
+
+                        {/* Title & Description */}
+                        <div className="relative z-10 px-1">
+                          <h3 className="text-base sm:text-lg font-black text-slate-900 group-hover:text-[#064e3b] transition-colors">
+                            Manage Staff & Users
+                          </h3>
+                          <p className="text-[11px] sm:text-xs text-slate-500 font-medium leading-relaxed mt-1">
+                            Add doctors and receptionists with email & password. Assign categories, doctor pairings, and edit roles.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Footer with Registered Doctor Count & Action Button */}
+                      <div className="mt-4 pt-3 border-t border-slate-100/90 flex items-center justify-between w-full relative z-10 px-1">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
+                          <span className="font-mono text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                            {clinicDoctors.length} Doctors Registered
+                          </span>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-[#e8fbf3] border border-[#a7f3d0] flex items-center justify-center text-[#065f46] group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-xs">
+                          <ArrowRight size={14} className="transform group-hover:translate-x-0.5 transition-transform" />
+                        </div>
                       </div>
                     </button>
 
-                    {/* Doctor Card */}
+                    {/* Card 2 — Clinic Profile & Settings */}
                     <button
-                      onClick={() => setActiveView("doctor")}
-                      className="p-8 bg-white rounded-[32px] border border-slate-100/80 hover:border-emerald-200 hover:shadow-[0_20px_50px_rgba(16,185,129,0.08)] hover:-translate-y-1 transition-all text-left group relative overflow-hidden flex flex-col justify-between min-h-[220px]"
+                      onClick={() => setActiveView("profile")}
+                      className="group text-left rounded-2xl sm:rounded-3xl p-4 sm:p-5 bg-white/80 hover:bg-white/95 backdrop-blur-2xl border border-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.05)] hover:shadow-[0_15px_40px_rgba(6,78,59,0.15)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden cursor-pointer"
                     >
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50/40 rounded-full blur-2xl -mr-6 -mt-6 group-hover:bg-emerald-100/55 transition-colors" />
-                      <div className="flex items-center justify-between w-full relative z-10">
-                        <div className="bg-emerald-50 text-emerald-600 w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-inner">
-                          <Stethoscope size={24} />
+                      <div>
+                        {/* Real Clinic Facility Photo */}
+                        <div className="w-full h-32 sm:h-36 rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-emerald-50/50 via-white/40 to-teal-50/40 relative flex items-center justify-center border border-white/70 shadow-2xs mb-2">
+                          <img
+                            src="/assets/clinic_building_photo.png"
+                            alt="Clinic Profile & Settings"
+                            className="w-full h-full object-cover object-[center_35%] group-hover:scale-105 transition-transform duration-500"
+                          />
                         </div>
-                        <span className="text-[10px] uppercase tracking-widest font-extrabold text-emerald-500 bg-emerald-50/60 px-3 py-1 rounded-full border border-emerald-100/50">
-                          Consultation
-                        </span>
-                      </div>
-                      <div className="mt-6 relative z-10">
-                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                          Doctor Portal
-                        </h3>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Conduct active consultations, write smart digital prescriptions, and view medical histories.
-                        </p>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between w-full relative z-10">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                          <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                            {patients.filter((p) => p.status === "Called").length > 0 
-                              ? `Consulting room active (${patients.filter((p) => p.status === "Called").length})`
-                              : "Ready for next patient"}
-                          </span>
-                        </div>
-                        <ArrowRight size={14} className="text-emerald-600 transform group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </button>
 
-                    {/* TV Display Card */}
-                    <button
-                      onClick={() => setActiveView("tv")}
-                      className="p-8 bg-white rounded-[32px] border border-slate-100/80 hover:border-purple-200 hover:shadow-[0_20px_50px_rgba(168,85,247,0.08)] hover:-translate-y-1 transition-all text-left group relative overflow-hidden flex flex-col justify-between min-h-[220px]"
-                    >
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50/40 rounded-full blur-2xl -mr-6 -mt-6 group-hover:bg-purple-100/55 transition-colors" />
-                      <div className="flex items-center justify-between w-full relative z-10">
-                        <div className="bg-purple-50 text-purple-600 w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-inner">
-                          <Monitor size={24} />
-                        </div>
-                        <span className="text-[10px] uppercase tracking-widest font-extrabold text-purple-500 bg-purple-50/60 px-3 py-1 rounded-full border border-purple-100/50">
-                          Public Display
-                        </span>
-                      </div>
-                      <div className="mt-6 relative z-10">
-                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-purple-600 transition-colors">
-                          TV Queue Board
-                        </h3>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Full-screen patients display for the waiting hall with audio voice announcer alerts.
-                        </p>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between w-full relative z-10">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-purple-500 rounded-full" />
-                          <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                            Live Screen Feed Active
+                        {/* Floating Icon Badge + Settings Tag */}
+                        <div className="flex items-center justify-between w-full relative z-10 -mt-6 px-1 mb-2">
+                          <div className="w-10 h-10 rounded-xl bg-white/95 backdrop-blur-md border border-emerald-100/90 shadow-md flex items-center justify-center text-[#064e3b] group-hover:scale-105 transition-transform">
+                            <Building2 size={18} className="stroke-[2.2]" />
+                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#dcfce7] border border-[#86efac] text-[#15803d] text-[9px] font-black uppercase tracking-wider shadow-2xs">
+                            Settings
                           </span>
                         </div>
-                        <ArrowRight size={14} className="text-purple-600 transform group-hover:translate-x-1 transition-transform" />
+
+                        {/* Title & Description */}
+                        <div className="relative z-10 px-1">
+                          <h3 className="text-base sm:text-lg font-black text-slate-900 group-hover:text-[#064e3b] transition-colors">
+                            Clinic Profile & Settings
+                          </h3>
+                          <p className="text-[11px] sm:text-xs text-slate-500 font-medium leading-relaxed mt-1">
+                            Manage clinic name, security tokens, system preferences, and administrative details.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Footer with Clinic ID & Action Button */}
+                      <div className="mt-4 pt-3 border-t border-slate-100/90 flex items-center justify-between w-full relative z-10 px-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                            Clinic ID: {currentUserProfile?.clinicId || "—"}
+                          </span>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-[#e8fbf3] border border-[#a7f3d0] flex items-center justify-center text-[#065f46] group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-xs">
+                          <ArrowRight size={14} className="transform group-hover:translate-x-0.5 transition-transform" />
+                        </div>
                       </div>
                     </button>
+                  </div>
+
+                  {/* ── Clinic Live Activity & Queue Overview Banner ── */}
+                  <div className="w-full max-w-3xl px-2 sm:px-0 mt-5">
+                    <div className="p-4 sm:p-5 bg-white/80 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.03)] flex flex-col md:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3.5">
+                        <div className="bg-[#e8fbf3] text-[#065f46] w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-[#a7f3d0]/80">
+                          <Activity size={18} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm sm:text-base font-black text-slate-900">Clinic Queue & Activity Summary</h3>
+                          <p className="text-[11px] text-slate-500">Live monitoring of patients across all consultation rooms and front desk.</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3 sm:gap-4 shrink-0 text-center w-full md:w-auto">
+                        <div className="px-3.5 py-1.5 bg-white/80 rounded-xl border border-slate-100 shadow-2xs">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Waiting</p>
+                          <p className="text-lg font-black text-amber-600">
+                            {patients.filter((p) => p.status === "Waiting").length}
+                          </p>
+                        </div>
+                        <div className="px-3.5 py-1.5 bg-white/80 rounded-xl border border-slate-100 shadow-2xs">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">In Room</p>
+                          <p className="text-lg font-black text-emerald-600">
+                            {patients.filter((p) => p.status === "Called").length}
+                          </p>
+                        </div>
+                        <div className="px-3.5 py-1.5 bg-white/80 rounded-xl border border-slate-100 shadow-2xs">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Done</p>
+                          <p className="text-lg font-black text-[#059669]">
+                            {patients.filter((p) => p.status === "Completed").length}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
                 )
               )}
+
+              {/* ── Users Management Tab ── */}
+              {activeView === "dashboard" && activeTab === "users" && isAdmin && (
+                <AdminUsersPanel
+                  clinicId={currentUserProfile?.clinicId || ""}
+                  clinicName={currentUserProfile?.clinicName || ""}
+                  onBack={() => setActiveTab("dashboard")}
+                  db={db}
+                  showToast={showToast}
+                />
+              )}
+
 
               {activeView === "profile" && (
                 <motion.div
                   key="profile-view"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="max-w-2xl mx-auto w-full"
+                  className="w-full max-w-5xl mx-auto py-2 relative z-10"
                 >
                   <button
-                    onClick={() => setActiveView("dashboard")}
-                    className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest mb-8"
+                    onClick={() => {
+                      const canonicalPath = isAdmin ? "/admin" : isDoctor ? "/doctor" : "/receptionist";
+                      const canonicalPortal = isAdmin ? "dashboard" : isDoctor ? "doctor" : "receptionist";
+                      window.history.pushState(null, "", canonicalPath);
+                      setActiveView(canonicalPortal);
+                    }}
+                    className="flex items-center gap-1.5 text-[#065f46] font-bold text-xs uppercase tracking-wider mb-5 hover:text-[#064e3b] transition-colors cursor-pointer"
                   >
-                    <ArrowLeft size={16} /> Back to Dashboard
+                    <ArrowLeft size={15} /> BACK TO {isAdmin ? "DASHBOARD" : isDoctor ? "DOCTOR SUITE" : "RECEPTION DESK"}
                   </button>
 
-                  <div className="bg-white rounded-[32px] shadow-sm overflow-hidden">
-                    <div className="p-10 bg-slate-50/50">
-                      <div className="flex items-center gap-4 mb-2">
-                        <div className="bg-blue-100 text-blue-600 p-3 rounded-2xl">
-                          <UserCircle size={32} />
+                  {isAdmin ? (
+                    <div className="bg-white/85 backdrop-blur-2xl rounded-[32px] p-6 sm:p-9 border border-white/80 shadow-[0_20px_50px_rgba(0,0,0,0.06)]">
+                      {/* Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-[#e8fbf3] border border-[#a7f3d0] flex items-center justify-center text-[#064e3b] shadow-2xs shrink-0">
+                            <UserCircle size={32} />
+                          </div>
+                          <div>
+                            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                              System Administrator Profile
+                            </h2>
+                            <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
+                              Personal administrative account settings.
+                            </p>
+                          </div>
                         </div>
-                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-                          {isAdmin
-                            ? "System Administrator Profile"
-                            : "Clinic Profile"}
-                        </h2>
-                      </div>
-                      <p className="text-slate-500 font-medium">
-                        {isAdmin
-                          ? "Personal administrative account settings."
-                          : "Details of the registered clinic you are working with."}
-                      </p>
-                    </div>
 
-                    <div className="p-10 space-y-10">
-                      {!isAdmin && (
-                        <React.Fragment>
-                          <div className="flex items-start gap-6">
-                            <div className="bg-slate-50 p-3 rounded-xl text-slate-400">
-                              <Building2 size={24} />
+                        {/* Verified Administrator Badge chip */}
+                        <div className="inline-flex items-center gap-2.5 px-4 py-2 bg-emerald-50/90 border border-emerald-200/90 rounded-2xl shadow-2xs shrink-0 self-start sm:self-auto">
+                          <ShieldCheck size={22} className="text-emerald-600 shrink-0" />
+                          <div>
+                            <p className="text-xs font-black text-emerald-900 leading-tight">Administrator</p>
+                            <p className="text-[10px] font-semibold text-emerald-600 leading-tight">Full System Access</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Content Grid */}
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 pt-7">
+                        {/* Left Column — Account Details */}
+                        <div className="lg:col-span-7 space-y-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-xl bg-[#e8fbf3] text-[#064e3b] flex items-center justify-center">
+                                <UserIcon size={16} />
+                              </div>
+                              <div>
+                                <h3 className="text-base font-black text-slate-900">Personal Information</h3>
+                                <p className="text-xs text-slate-400 font-medium">Your administrative account details and contact information.</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                Clinic Name
-                              </p>
-                              <p className="text-xl font-black text-slate-900">
-                                {clinicInfo?.name ||
-                                  currentUserProfile?.clinicName ||
-                                  "Not Set"}
-                              </p>
+                            <button
+                              onClick={() => {
+                                const newName = window.prompt("Enter new Person of Contact name:", currentUserProfile?.displayName || user.displayName || "");
+                                if (newName && newName.trim()) {
+                                  updateDoc(doc(db, "users", user.uid), {
+                                    displayName: newName.trim(),
+                                    updatedAt: serverTimestamp(),
+                                  }).then(() => {
+                                    setCurrentUserProfile((p) => p ? { ...p, displayName: newName.trim() } : p);
+                                    showToast("Profile name updated!");
+                                  }).catch(() => showToast("Failed to update name."));
+                                }
+                              }}
+                              className="px-3.5 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer shrink-0"
+                            >
+                              <Pencil size={12} />
+                              <span>Edit Profile</span>
+                            </button>
+                          </div>
+
+                          {/* Row 1 — Person of Contact */}
+                          <div className="p-4 bg-white/95 rounded-2xl border border-slate-100 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between">
+                            <div className="flex items-center gap-3.5">
+                              <div className="w-10 h-10 rounded-xl bg-[#e8fbf3] text-[#064e3b] flex items-center justify-center shrink-0">
+                                <UserIcon size={18} />
+                              </div>
+                              <div>
+                                <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">PERSON OF CONTACT</p>
+                                <p className="text-sm font-black text-slate-900 mt-0.5">
+                                  {currentUserProfile?.displayName || user.displayName || "Zaid"}
+                                </p>
+                              </div>
                             </div>
                           </div>
 
-                          {(clinicInfo?.address ||
-                            currentUserProfile?.clinicAddress) && (
-                            <div className="flex items-start gap-6">
-                              <div className="bg-slate-50 p-3 rounded-xl text-slate-400">
-                                <Monitor size={24} />
+                          {/* Row 2 — Contact Email */}
+                          <div className="p-4 bg-white/95 rounded-2xl border border-slate-100 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between">
+                            <div className="flex items-center gap-3.5 min-w-0">
+                              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                <Mail size={18} />
                               </div>
-                              <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                  Clinic Address
-                                </p>
-                                <p className="text-xl font-black text-slate-900">
-                                  {clinicInfo?.address ||
-                                    currentUserProfile?.clinicAddress}
+                              <div className="min-w-0">
+                                <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">CONTACT EMAIL</p>
+                                <p className="text-sm font-black text-slate-900 truncate mt-0.5">
+                                  {user.email || currentUserProfile?.email || "—"}
                                 </p>
                               </div>
                             </div>
-                          )}
-                        </React.Fragment>
-                      )}
+                            <span className="px-3 py-1 bg-[#e8fbf3] text-[#065f46] border border-[#a7f3d0] rounded-full text-xs font-black flex items-center gap-1 shadow-2xs shrink-0">
+                              <Check size={12} className="stroke-[3]" /> Verified
+                            </span>
+                          </div>
 
-                      <div className="flex items-start gap-6">
-                        <div className="bg-slate-50 p-3 rounded-xl text-slate-400">
-                          <UserIcon size={24} />
+                          {/* Row 3 — Contact Phone */}
+                          <div className="p-4 bg-white/95 rounded-2xl border border-slate-100 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between">
+                            <div className="flex items-center gap-3.5">
+                              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center shrink-0">
+                                <Phone size={18} />
+                              </div>
+                              <div>
+                                <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">CONTACT PHONE</p>
+                                <p className="text-sm font-black text-slate-900 mt-0.5">
+                                  {currentUserProfile?.contactNumber || currentUserProfile?.phone || "Not Set"}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const newPhone = window.prompt("Enter contact phone number:", currentUserProfile?.contactNumber || currentUserProfile?.phone || "+91 ");
+                                if (newPhone && newPhone.trim()) {
+                                  updateDoc(doc(db, "users", user.uid), {
+                                    contactNumber: newPhone.trim(),
+                                    phone: newPhone.trim(),
+                                    updatedAt: serverTimestamp(),
+                                  }).then(() => {
+                                    setCurrentUserProfile((p) => p ? { ...p, contactNumber: newPhone.trim(), phone: newPhone.trim() } : p);
+                                    showToast("Contact phone updated!");
+                                  }).catch(() => showToast("Failed to update phone."));
+                                }
+                              }}
+                              className="px-3.5 py-1 text-xs font-bold text-[#065f46] border border-dashed border-[#a7f3d0] hover:bg-emerald-50 rounded-full transition-colors cursor-pointer shrink-0"
+                            >
+                              {currentUserProfile?.contactNumber || currentUserProfile?.phone ? "Edit Phone" : "Add Phone"}
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                            Person of Contact
-                          </p>
-                          <p className="text-xl font-black text-slate-900">
-                            {currentUserProfile?.displayName ||
-                              user?.displayName ||
-                              "Not Set"}
-                          </p>
+
+                        {/* Right Column — 3D Admin Identity Card */}
+                        <div className="lg:col-span-5">
+                          <div className="rounded-3xl overflow-hidden border border-slate-100 bg-white shadow-md flex flex-col">
+                            <div className="w-full h-52 sm:h-56 overflow-hidden relative bg-slate-100">
+                              <img
+                                src="/assets/admin_doctor_profile.png"
+                                alt="System Administrator"
+                                className="w-full h-full object-cover object-[center_12%]"
+                              />
+                            </div>
+                            <div className="p-5 bg-white">
+                              <h3 className="text-xl font-black text-slate-900">
+                                {currentUserProfile?.displayName || user.displayName || "Zaid"}
+                              </h3>
+                              <p className="text-xs font-bold text-[#065f46] mt-0.5">System Administrator</p>
+                              <p className="text-xs text-slate-400 font-medium mt-2 leading-relaxed">
+                                Managing clinic operations and system settings.
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-[32px] shadow-sm overflow-hidden">
+                      <div className="p-10 bg-slate-50/50">
+                        <div className="flex items-center gap-4 mb-2">
+                          <div className="bg-[#e8fbf3] text-[#064e3b] p-3 rounded-2xl">
+                            <UserCircle size={32} />
+                          </div>
+                          <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                            Clinic Profile
+                          </h2>
+                        </div>
+                        <p className="text-slate-500 font-medium">
+                          Details of the registered clinic you are working with.
+                        </p>
+                      </div>
 
-                      {!isAdmin && (
+                      <div className="p-10 space-y-10">
+                        <div className="flex items-start gap-6">
+                          <div className="bg-slate-50 p-3 rounded-xl text-slate-400">
+                            <Building2 size={24} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                              Clinic Name
+                            </p>
+                            <p className="text-xl font-black text-slate-900">
+                              {clinicInfo?.name || currentUserProfile?.clinicName || "Not Set"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {(clinicInfo?.address || currentUserProfile?.clinicAddress) && (
+                          <div className="flex items-start gap-6">
+                            <div className="bg-slate-50 p-3 rounded-xl text-slate-400">
+                              <Monitor size={24} />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                Clinic Address
+                              </p>
+                              <p className="text-xl font-black text-slate-900">
+                                {clinicInfo?.address || currentUserProfile?.clinicAddress}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-start gap-6">
+                          <div className="bg-slate-50 p-3 rounded-xl text-slate-400">
+                            <UserIcon size={24} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                              Person of Contact
+                            </p>
+                            <p className="text-xl font-black text-slate-900">
+                              {currentUserProfile?.displayName || user?.displayName || "Not Set"}
+                            </p>
+                          </div>
+                        </div>
+
                         <div className="flex items-start gap-6">
                           <div className="bg-slate-50 p-3 rounded-xl text-slate-400">
                             <ShieldCheck size={24} />
@@ -3345,253 +4231,67 @@ export default function App() {
                             </p>
                           </div>
                         </div>
-                      )}
 
-                      <div className="flex items-start gap-6">
-                        <div className="bg-slate-50 p-3 rounded-xl text-slate-400">
-                          <Mail size={24} />
+                        <div className="flex items-start gap-6">
+                          <div className="bg-slate-50 p-3 rounded-xl text-slate-400">
+                            <Mail size={24} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                              Contact Email
+                            </p>
+                            <p className="text-xl font-black text-slate-900">
+                              {currentUserProfile?.email || user?.email || "Not Set"}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                            Contact Email
-                          </p>
-                          <p className="text-xl font-black text-slate-900">
-                            {currentUserProfile?.email ||
-                              user?.email ||
-                              "Not Set"}
-                          </p>
+
+                        <div className="flex items-start gap-6">
+                          <div className="bg-slate-50 p-3 rounded-xl text-slate-400">
+                            <Phone size={24} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                              Contact Phone
+                            </p>
+                            <p className="text-xl font-black text-slate-900">
+                              {currentUserProfile?.contactNumber || "Not Set"}
+                            </p>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-6">
-                        <div className="bg-slate-50 p-3 rounded-xl text-slate-400">
-                          <Phone size={24} />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                            Contact Phone
-                          </p>
-                          <p className="text-xl font-black text-slate-900">
-                            {currentUserProfile?.contactNumber || "Not Set"}
-                          </p>
+                      <div className="p-8 bg-slate-50 border-t border-slate-100">
+                        <div className="flex flex-col gap-4">
+                          <div className="bg-white px-6 py-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-200">
+                            <div>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                Clinic Connection
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-bold text-slate-900">
+                                  {currentUserProfile?.clinicName || clinicInfo?.name || "Connected Clinic"}
+                                </p>
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-2 py-0.5 rounded text-[10px] font-mono font-bold">
+                                  {currentUserProfile?.clinicId || "Active"}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1">
+                                Signed in as: <span className="font-mono text-slate-700">{user?.email}</span> ({currentUserProfile?.role || "Staff"})
+                              </p>
+                            </div>
+                            {currentUserProfile?.assignedDoctorEmail && (
+                              <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl px-4 py-2 shrink-0">
+                                <p className="text-[10px] font-black text-blue-500 uppercase tracking-wider">Connected Doctor</p>
+                                <p className="text-xs font-bold text-slate-800">{currentUserProfile.assignedDoctorName || "Doctor"}</p>
+                                <p className="text-[11px] font-mono text-[#065f46]">{currentUserProfile.assignedDoctorEmail}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-
-                    {!isAdmin && (
-                      <div className="p-8 bg-slate-50 border-t border-slate-100">
-                        <div className="flex flex-col gap-4">
-                          <div className="bg-white px-6 py-4 rounded-2xl flex items-center justify-between border border-slate-200">
-                            <div>
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                Clinic ID
-                              </p>
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-mono text-slate-900 font-bold">
-                                  {currentUserProfile?.clinicId || "N/A"}
-                                </p>
-                                {currentUserProfile?.clinicId && (
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(
-                                        currentUserProfile.clinicId,
-                                      );
-                                      alert("Copied to clipboard!");
-                                    }}
-                                    className="p-1 hover:bg-slate-100 rounded text-slate-400"
-                                    title="Copy ID"
-                                  >
-                                    <Copy size={12} />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              onClick={async () => {
-                                const newId = prompt(
-                                  "Enter Clinic ID:",
-                                  currentUserProfile?.clinicId,
-                                );
-                                if (newId && currentUserProfile) {
-                                  const rawInput = newId.trim();
-                                  const normalize = (id: string) => {
-                                    let cid = id.trim().replace(/\u00d7/g, "x"); // Fix multiplication sign
-                                    if (cid.includes("/")) {
-                                      const parts = cid.split("/");
-                                      cid = parts[parts.length - 1];
-                                    }
-                                    // Remove EVERYTHING except alphanumeric and dash/underscore
-                                    return cid.replace(/[^\w\-]/g, "");
-                                  };
-
-                                  try {
-                                    console.log(
-                                      `[Join Clinic] Attempting: "${rawInput}"`,
-                                    );
-
-                                    const findSnap = async (id: string) => {
-                                      try {
-                                        console.log(
-                                          `[Join Clinic] Checking: "${id}"`,
-                                        );
-                                        const docRef = doc(db, "clinics", id);
-                                        const snap = await getDocFromServer(
-                                          docRef,
-                                        ).catch(() => getDoc(docRef));
-                                        return snap.exists() ? snap : null;
-                                      } catch (e) {
-                                        return null;
-                                      }
-                                    };
-
-                                    let clinicSnap = await findSnap(rawInput);
-                                    let finalId = rawInput;
-
-                                    if (!clinicSnap) {
-                                      const variants = [
-                                        normalize(rawInput),
-                                        rawInput.toLowerCase(),
-                                        normalize(rawInput).toLowerCase(),
-                                        rawInput.replace(/[^a-zA-Z0-9]/g, ""),
-                                      ].filter(
-                                        (v, i, self) =>
-                                          v &&
-                                          v !== rawInput &&
-                                          self.indexOf(v) === i,
-                                      );
-
-                                      for (const v of variants) {
-                                        console.log(
-                                          `[Join Clinic] Trying variant: "${v}"`,
-                                        );
-                                        clinicSnap = await findSnap(v);
-                                        if (clinicSnap) {
-                                          finalId = v;
-                                          break;
-                                        }
-                                      }
-                                    }
-
-                                    // Deep resilience fallback
-                                    if (!clinicSnap) {
-                                      try {
-                                        console.log(
-                                          `[Join Clinic] FAILED finding "${rawInput}". Checking variants...`,
-                                        );
-                                        const allClinics = await getDocs(
-                                          collection(db, "clinics"),
-                                        ).catch(() => ({ docs: [] }));
-                                        const clinics = allClinics.docs;
-
-                                        const inputClean = rawInput
-                                          .toLowerCase()
-                                          .replace(/[^a-z0-9]/g, "");
-
-                                        let bestMatch = clinics.find((d) => {
-                                          const docIdClean = d.id
-                                            .toLowerCase()
-                                            .replace(/[^a-z0-9]/g, "");
-                                          const nameClean = (
-                                            d.data()?.name || ""
-                                          )
-                                            .toLowerCase()
-                                            .replace(/[^a-z0-9]/g, "");
-                                          const fieldIdClean = (
-                                            d.data()?.id || ""
-                                          )
-                                            .toLowerCase()
-                                            .replace(/[^a-z0-9]/g, "");
-                                          return (
-                                            docIdClean === inputClean ||
-                                            nameClean === inputClean ||
-                                            fieldIdClean === inputClean
-                                          );
-                                        });
-
-                                        // Special case: adminId lookup (user UID provided)
-                                        if (!bestMatch) {
-                                          const targetUid =
-                                            "K8rZe4OMl8f7DgBOTeJtNUTXe9x2";
-                                          if (
-                                            rawInput === targetUid ||
-                                            clinics.length > 0
-                                          ) {
-                                            bestMatch = clinics.find(
-                                              (d) =>
-                                                d.data()?.adminId ===
-                                                  targetUid ||
-                                                d.data()?.adminId === rawInput,
-                                            );
-                                          }
-                                        }
-
-                                        if (bestMatch) {
-                                          clinicSnap = bestMatch;
-                                          finalId = bestMatch.id;
-                                          console.log(
-                                            `[Join Clinic] Resilience match: "${finalId}"`,
-                                          );
-                                        } else if (clinics.length > 0) {
-                                          console.log(
-                                            `[Join Clinic] ALL CLINICS:`,
-                                            clinics.map((d) => ({
-                                              id: d.id,
-                                              name: d.data()?.name,
-                                            })),
-                                          );
-                                        }
-                                      } catch (err) {
-                                        console.warn(
-                                          "[Join Clinic] Resilience lookup failed:",
-                                          err,
-                                        );
-                                      }
-                                    }
-
-                                    if (!clinicSnap) {
-                                      alert(
-                                        `Clinic ID "${rawInput}" not found. See console (F12) for details.`,
-                                      );
-                                      return;
-                                    }
-
-                                    const clinicData = clinicSnap.data();
-                                    await updateDoc(
-                                      doc(db, "users", currentUserProfile.uid),
-                                      {
-                                        clinicId: finalId,
-                                        clinicName: clinicData.name || "",
-                                        clinicAddress: clinicData.address || "",
-                                        updatedAt: serverTimestamp(),
-                                      },
-                                    );
-                                    alert("Clinic joined successfully!");
-                                  } catch (e) {
-                                    console.error("[Join Clinic] error:", e);
-                                    alert(
-                                      "Failed to join clinic. Please check your connection or permissions.",
-                                    );
-                                  }
-                                }
-                              }}
-                              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all"
-                            >
-                              Change ID
-                            </button>
-                          </div>
-                          {!clinicInfo && currentUserProfile?.clinicId && (
-                            <div className="flex items-center gap-2 bg-amber-50 text-amber-600 p-4 rounded-xl border border-amber-100 text-xs font-medium">
-                              <AlertCircle size={16} />
-                              <span>
-                                We couldn't find a registered clinic with this
-                                ID. Please double check with your administrator.
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </motion.div>
               )}
 
@@ -3614,7 +4314,7 @@ export default function App() {
                     </div>
                     <button
                       onClick={() => setActiveView(isDoctor ? "doctor" : "dashboard")}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-500/25 cursor-pointer"
+                      className="px-6 py-3 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-900/20 cursor-pointer"
                     >
                       Return to My Workspace →
                     </button>
@@ -3632,7 +4332,7 @@ export default function App() {
                         </button>
                       )}
                       <h2 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                        <Activity className="text-blue-600 animate-pulse" size={28} />
+                        <Activity className="text-[#059669] animate-pulse" size={28} />
                         RECEPTIONIST DESK &amp; QUEUE
                       </h2>
                     </div>
@@ -3690,7 +4390,7 @@ export default function App() {
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
                           <div className="flex items-center gap-3 mb-6">
-                            <div className="bg-blue-50 text-blue-600 p-2 rounded-xl">
+                            <div className="bg-emerald-50 text-[#065f46] p-2 rounded-xl">
                               <Plus size={20} />
                             </div>
                             <h3 className="text-xl font-black uppercase tracking-tight text-slate-800">Register Patient</h3>
@@ -3738,7 +4438,7 @@ export default function App() {
                             <button
                               type="submit"
                               disabled={isProcessing}
-                              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all disabled:opacity-50"
+                              className="w-full bg-[#064e3b] text-white py-4 rounded-2xl font-black shadow-lg shadow-emerald-100 hover:bg-blue-700 transition-all disabled:opacity-50"
                             >
                               {isProcessing ? "Adding..." : "Add to Queue"}
                             </button>
@@ -3802,7 +4502,7 @@ export default function App() {
                                         <span
                                           className={`text-[9px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider ${
                                             p.status === "Called"
-                                              ? "bg-blue-100 text-blue-600"
+                                              ? "bg-emerald-100 text-[#065f46]"
                                               : p.status === "Completed"
                                                 ? "bg-emerald-100 text-emerald-600"
                                                 : "bg-amber-100 text-amber-600"
@@ -3866,7 +4566,7 @@ export default function App() {
                     </div>
                     <button
                       onClick={() => setActiveView(isReceptionist ? "receptionist" : "dashboard")}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-500/25 cursor-pointer"
+                      className="px-6 py-3 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-900/20 cursor-pointer"
                     >
                       Return to My Workspace →
                     </button>
@@ -3932,7 +4632,7 @@ export default function App() {
                                   ) : (
                                     <button
                                       onClick={() => handleCallPatient(p)}
-                                      className="bg-white border border-slate-100 hover:border-blue-200 px-4 py-2 rounded-xl text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-sm transition-all shadow-sm cursor-pointer"
+                                      className="bg-white border border-slate-100 hover:border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold text-[#065f46] hover:bg-[#064e3b] hover:text-white hover:shadow-sm transition-all shadow-sm cursor-pointer"
                                     >
                                       Call
                                     </button>
@@ -3959,7 +4659,7 @@ export default function App() {
                           >
                             <div className="flex justify-between items-center pb-6">
                               <div className="flex gap-4">
-                                <div className="bg-blue-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl">
+                                <div className="bg-[#064e3b] text-white w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl">
                                   #{activeDoctorPatient.queueNumber}
                                 </div>
                                 <div>
@@ -3974,7 +4674,7 @@ export default function App() {
                               <div className="flex items-center gap-4">
                                 <button
                                   onClick={() => setIsHistoryOpen(true)}
-                                  className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-widest hover:bg-blue-50 px-4 py-2 rounded-xl transition-all"
+                                  className="flex items-center gap-2 text-[#065f46] font-bold text-xs uppercase tracking-widest hover:bg-emerald-50 px-4 py-2 rounded-xl transition-all"
                                 >
                                   <Clock size={16} /> History
                                 </button>
@@ -3996,7 +4696,7 @@ export default function App() {
                                 onChange={(e) =>
                                   setConsultationNotes(e.target.value)
                                 }
-                                className="w-full h-32 bg-slate-50 rounded-3xl p-6 outline-none focus:ring-2 focus:ring-blue-500 transition-all border-none"
+                                className="w-full h-32 bg-slate-50 rounded-3xl p-6 outline-none focus:ring-2 focus:ring-[#064e3b] transition-all border-none"
                                 placeholder="Clinical observations, advice, or patient history..."
                               />
                             </div>
@@ -4013,7 +4713,7 @@ export default function App() {
                                       { medicine: "", dosage: "", days: "" },
                                     ])
                                   }
-                                  className="text-blue-600 font-bold text-xs flex items-center gap-1 hover:bg-blue-50 px-3 py-1 rounded-lg transition-colors"
+                                  className="text-[#065f46] font-bold text-xs flex items-center gap-1 hover:bg-emerald-50 px-3 py-1 rounded-lg transition-colors"
                                 >
                                   <Plus size={14} /> Add Item
                                 </button>
@@ -4121,7 +4821,7 @@ export default function App() {
                                 onChange={(e) =>
                                   setSendWhatsApp(e.target.checked)
                                 }
-                                className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                className="w-5 h-5 rounded border-slate-300 text-[#065f46] focus:ring-[#064e3b]"
                               />
                               <label
                                 htmlFor="sendWhatsApp"
@@ -4137,7 +4837,7 @@ export default function App() {
 
                             <button
                               onClick={handleCompleteConsultation}
-                              className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black shadow-xl shadow-blue-100 flex items-center justify-center gap-3 hover:bg-blue-700 transition-all"
+                              className="w-full bg-[#064e3b] text-white py-5 rounded-3xl font-black shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 hover:bg-blue-700 transition-all"
                             >
                               <ShieldCheck /> Complete & Save
                             </button>
@@ -4185,7 +4885,7 @@ export default function App() {
                           <td className="p-6 text-slate-400">{p.phone}</td>
                           <td className="p-6">
                             <span
-                              className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${p.status === "Completed" ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600"}`}
+                              className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${p.status === "Completed" ? "bg-emerald-100 text-emerald-600" : "bg-emerald-100 text-[#065f46]"}`}
                             >
                               {p.status}
                             </span>
@@ -4196,107 +4896,7 @@ export default function App() {
                   </table>
                 </div>
               )}
-              {activeView === "tv" && (
-                <div
-                  key="tv-view"
-                  className="fixed inset-0 bg-slate-900 z-50 p-12 flex flex-col gap-12 overflow-hidden"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-blue-500 p-4 rounded-2xl">
-                        <Heart className="text-white fill-current" size={40} />
-                      </div>
-                      <h1 className="text-5xl font-black text-white tracking-tighter">
-                        MediTrack{" "}
-                        <span className="text-blue-500">Live Queue</span>
-                      </h1>
-                    </div>
-                    <button
-                      onClick={() => setActiveView("dashboard")}
-                      className="flex items-center gap-3 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white px-6 py-4 rounded-3xl text-sm font-black uppercase tracking-widest transition-all cursor-pointer border border-slate-700/50 shadow-lg"
-                    >
-                      <ArrowLeft size={20} /> Back to Dashboard
-                    </button>
-                  </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 flex-1">
-                    {/* Now Calling */}
-                    <div className="bg-slate-800/50 rounded-[48px] p-12 flex flex-col items-center justify-center text-center gap-8">
-                      <p className="text-blue-400 font-black text-2xl uppercase tracking-[0.3em]">
-                        Now Calling
-                      </p>
-                      {patients.find((p) => p.status === "Called") ? (
-                        <motion.div
-                          initial={{ scale: 0.9, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          key={
-                            patients.find((p) => p.status === "Called")?.id ||
-                            "none"
-                          }
-                          className="space-y-4"
-                        >
-                          <h2 className="text-[12rem] font-black text-white leading-none tracking-tighter">
-                            #
-                            {
-                              patients.find((p) => p.status === "Called")
-                                ?.queueNumber
-                            }
-                          </h2>
-                          <p className="text-5xl font-bold text-slate-300">
-                            {patients.find((p) => p.status === "Called")?.name}
-                          </p>
-                        </motion.div>
-                      ) : (
-                        <div
-                          key="calling-none"
-                          className="space-y-4 opacity-20"
-                        >
-                          <h2 className="text-[12rem] font-black text-white leading-none tracking-tighter">
-                            --
-                          </h2>
-                          <p className="text-5xl font-bold text-slate-300">
-                            Waiting for next patient
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Waiting List */}
-                    <div className="bg-slate-800/50 rounded-[48px] p-12 flex flex-col gap-8">
-                      <p className="text-amber-400 font-black text-2xl uppercase tracking-[0.3em]">
-                        Waiting List
-                      </p>
-                      <div className="flex flex-col gap-4 overflow-y-auto pr-4">
-                        {patients
-                          .filter((p) => p.status === "Waiting")
-                          .slice(0, 6)
-                          .map((p, idx) => (
-                            <motion.div
-                              initial={{ x: 20, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: idx * 0.1 }}
-                              key={p.id}
-                              className="bg-slate-700/30 p-8 rounded-3xl flex justify-between items-center"
-                            >
-                              <span className="text-4xl font-black text-white">
-                                #{p.queueNumber}
-                              </span>
-                              <span className="text-3xl font-bold text-slate-300">
-                                {p.name}
-                              </span>
-                            </motion.div>
-                          ))}
-                        {patients.filter((p) => p.status === "Waiting")
-                          .length === 0 && (
-                          <p className="text-slate-500 text-2xl font-bold text-center mt-20">
-                            Queue is empty
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
             </AnimatePresence>
           </div>
@@ -4323,7 +4923,7 @@ export default function App() {
             >
               <div className="flex justify-between items-center pb-3.5 border-b border-slate-100 shrink-0">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#065f46] flex items-center justify-center font-black shrink-0">
                     <Clock size={18} />
                   </div>
                   <div>
@@ -4350,7 +4950,7 @@ export default function App() {
                     >
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                          <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center text-[#065f46]">
                             <Clock size={13} />
                           </div>
                           <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
@@ -4364,7 +4964,7 @@ export default function App() {
                               : "Recent Visit"}
                           </p>
                         </div>
-                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-bold text-[#065f46] bg-emerald-50 px-2 py-0.5 rounded-md">
                           Dr. {h.doctorName}
                         </span>
                       </div>
@@ -4406,7 +5006,7 @@ export default function App() {
                                   <p className="text-xs font-bold text-slate-700">
                                     {item.medicine || item.name || "Medication"}
                                   </p>
-                                  <p className="text-[10px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded uppercase">
+                                  <p className="text-[10px] font-black text-blue-500 bg-emerald-50 px-1.5 py-0.5 rounded uppercase">
                                     {item.dosage || "1-0-1"}
                                   </p>
                                 </div>
@@ -4455,7 +5055,7 @@ export default function App() {
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
             className="fixed bottom-8 left-8 z-[1000] flex items-center gap-3 bg-slate-900 border border-slate-800 text-white px-6 py-4 rounded-[24px] shadow-2xl shadow-slate-900/50"
           >
-            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
               <Pill className="text-blue-400" size={20} />
             </div>
             <div>
@@ -4512,7 +5112,7 @@ export default function App() {
                     setCustomModal(null);
                     await confirmFn();
                   }}
-                  className={`px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-md transition-all active:scale-95 font-sans cursor-pointer ${customModal.isDanger ? "bg-red-500 hover:bg-red-600 shadow-red-100" : "bg-blue-600 hover:bg-blue-700 shadow-blue-100"}`}
+                  className={`px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-md transition-all active:scale-95 font-sans cursor-pointer ${customModal.isDanger ? "bg-red-500 hover:bg-red-600 shadow-red-100" : "bg-[#064e3b] hover:bg-[#043d2e] shadow-emerald-950/20"}`}
                 >
                   {customModal.confirmText || "OK"}
                 </button>
@@ -4569,7 +5169,7 @@ export default function App() {
               <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 font-bold uppercase text-[9px]">Invoice Number</span>
-                  <span className="font-mono font-bold text-blue-600 text-xs">{publicInvoice.invoiceNumber}</span>
+                  <span className="font-mono font-bold text-[#065f46] text-xs">{publicInvoice.invoiceNumber}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 font-bold uppercase text-[9px]">Patient Name</span>
@@ -4577,11 +5177,11 @@ export default function App() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 font-bold uppercase text-[9px]">Consulting Doctor</span>
-                  <span className="font-bold text-slate-800 text-xs">{publicInvoice.doctorName || "Dr. Rahul Sharma"}</span>
+                  <span className="font-bold text-slate-800 text-xs">{publicInvoice.doctorName || "—"}</span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200">
                   <span className="text-slate-700 font-extrabold text-xs">Total Amount Paid</span>
-                  <span className="font-black text-blue-600 text-base">₹{publicInvoice.amount}.00</span>
+                  <span className="font-black text-[#065f46] text-base">₹{publicInvoice.amount}.00</span>
                 </div>
               </div>
             </div>
@@ -4597,7 +5197,7 @@ export default function App() {
                   window.print();
                 }
               }}
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+              className="w-full py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
             >
               <Download size={14} />
               <span>Download Official PDF Invoice</span>
