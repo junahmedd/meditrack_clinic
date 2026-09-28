@@ -1613,133 +1613,18 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         {/* 2. DESKTOP TOP HEADER (Strictly >= 768px, rendered only on Dashboard per user requirement) */}
         {activeTab === "dashboard" && (
           <header className="hidden md:flex h-16 bg-white border-b border-slate-100/90 px-8 items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] shrink-0 gap-2 w-full">
-            {/* Left: Search input */}
-            <div className="relative w-72 lg:w-96">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search patient by name, phone or MRN..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all font-medium"
-              />
+            {/* Left: DASHBOARD heading + one-liner */}
+            <div className="flex flex-col">
+              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">DASHBOARD</h1>
+              <p className="text-[11px] font-medium text-slate-400 leading-tight">Real-time clinic overview & patient queue</p>
             </div>
 
-            {/* Center / Right: Assigned Doctor Badge */}
-            <div className="flex items-center gap-4">
-              {/* Assigned Doctor Badge (Strictly Assigned) */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 shrink-0 select-none shadow-xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
-                <span className="text-slate-500 text-[11px] font-bold">Doctor:</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs font-black text-slate-900 truncate max-w-[200px]">
-                    {assignedDoctorName}
-                  </span>
-                  {assignedDoctorEmail && (
-                    <span className="text-[10px] font-mono text-slate-400 hidden lg:inline">
-                      ({assignedDoctorEmail})
-                    </span>
-                  )}
-                </div>
-                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100/80 text-emerald-800 uppercase tracking-wide">
-                  {assignedDoctorCategory}
-                </span>
-              </div>
-
-              <button
-                onClick={() => showToast("No unread alerts")}
-                className="relative w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <Bell size={16} />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white" />
-              </button>
-
-              {/* User Profile Chip */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsProfileMenuOpen((prev) => !prev);
-                  }}
-                  className="flex items-center gap-1.5 p-1 rounded-2xl hover:bg-slate-100 active:bg-slate-200 transition-all cursor-pointer select-none touch-target"
-                  aria-label="User profile menu"
-                >
-                  <div className="w-9 h-9 rounded-full bg-[#064e3b] text-white font-extrabold text-xs flex items-center justify-center shadow-sm shrink-0">
-                    {receptionistInitials}
-                  </div>
-                  <div className="hidden sm:block text-left">
-                    <p className="text-xs font-bold text-slate-800 leading-tight">
-                      {currentUserProfile?.displayName || user?.displayName || "Receptionist"}
-                    </p>
-                    <p className="text-[10px] font-semibold text-slate-400 leading-none mt-0.5">Front Desk ({queuePrefix.replace("-", "")})</p>
-                  </div>
-                  <ChevronDown size={14} className="text-slate-400 shrink-0" />
-                </button>
-
-                <AnimatePresence>
-                  {isProfileMenuOpen && (
-                    <>
-                      {/* Click Outside Dismissal Backdrop */}
-                      <div
-                        className="fixed inset-0 z-40 bg-transparent"
-                        onClick={() => setIsProfileMenuOpen(false)}
-                      />
-                      <motion.div
-                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                        className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 space-y-1 select-none"
-                      >
-                        <div className="px-3 py-2 border-b border-slate-100">
-                          <p className="text-xs font-black text-slate-900">{currentUserProfile?.displayName || user?.displayName || "Receptionist"}</p>
-                          <p className="text-[10.5px] font-bold text-[#065f46]">Assigned to: {assignedDoctorName} ({assignedDoctorCategory})</p>
-                          <p className="text-[9.5px] font-medium text-slate-400 mt-0.5">Clinic ID: {currentUserProfile?.clinicId || clinicInfo?.id || "—"}</p>
-                        </div>
-                        <div className="py-1 space-y-0.5">
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsProfileMenuOpen(false);
-                              setActiveTab("profile");
-                            }}
-                            className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
-                          >
-                            <UserIcon size={14} className="text-slate-400" />
-                            <span>View Profile</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsProfileMenuOpen(false);
-                              setActiveTab("profile");
-                            }}
-                            className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
-                          >
-                            <Settings size={14} className="text-slate-400" />
-                            <span>Settings & Preferences</span>
-                          </button>
-                        </div>
-
-                        <div className="border-t border-slate-100 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsProfileMenuOpen(false);
-                              onLogout();
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
-                          >
-                            <LogOut size={14} className="text-red-500" />
-                            <span>Sign Out</span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
+            {/* Right: Doctor Name Pill */}
+            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 shrink-0 select-none shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+              <span className="text-xs font-black text-slate-900 truncate">
+                {assignedDoctorName}
+              </span>
             </div>
           </header>
         )}
