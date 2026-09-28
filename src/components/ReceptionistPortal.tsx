@@ -1619,12 +1619,99 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               <p className="text-[11px] font-medium text-slate-400 leading-tight">Real-time clinic overview & patient queue</p>
             </div>
 
-            {/* Right: Doctor Name Pill */}
-            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 shrink-0 select-none shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
-              <span className="text-xs font-black text-slate-900 truncate">
-                {assignedDoctorName}
-              </span>
+            {/* Right: Doctor Pill + Bell + Profile */}
+            <div className="flex items-center gap-3">
+              {/* Doctor Name Pill */}
+              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 shrink-0 select-none shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                <span className="text-xs font-black text-slate-900 truncate">
+                  {assignedDoctorName}
+                </span>
+              </div>
+
+              {/* Notification Bell */}
+              <button
+                onClick={() => showToast("No unread alerts")}
+                className="relative w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <Bell size={16} />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white" />
+              </button>
+
+              {/* User Profile Chip */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsProfileMenuOpen((prev) => !prev);
+                  }}
+                  className="flex items-center gap-1.5 p-1 rounded-2xl hover:bg-slate-100 active:bg-slate-200 transition-all cursor-pointer select-none"
+                  aria-label="User profile menu"
+                >
+                  <div className="w-9 h-9 rounded-full bg-[#064e3b] text-white font-extrabold text-xs flex items-center justify-center shadow-sm shrink-0">
+                    {receptionistInitials}
+                  </div>
+                  <div className="hidden sm:block text-left">
+                    <p className="text-xs font-bold text-slate-800 leading-tight">
+                      {currentUserProfile?.displayName || user?.displayName || "Receptionist"}
+                    </p>
+                    <p className="text-[10px] font-semibold text-slate-400 leading-none mt-0.5">Front Desk</p>
+                  </div>
+                  <ChevronDown size={14} className="text-slate-400 shrink-0" />
+                </button>
+
+                <AnimatePresence>
+                  {isProfileMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40 bg-transparent"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                        className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 space-y-1 select-none"
+                      >
+                        <div className="px-3 py-2 border-b border-slate-100">
+                          <p className="text-xs font-black text-slate-900">{currentUserProfile?.displayName || user?.displayName || "Receptionist"}</p>
+                          <p className="text-[10.5px] font-bold text-[#065f46]">Assigned to: {assignedDoctorName}</p>
+                          <p className="text-[9.5px] font-medium text-slate-400 mt-0.5">Clinic ID: {currentUserProfile?.clinicId || clinicInfo?.id || "—"}</p>
+                        </div>
+                        <div className="py-1 space-y-0.5">
+                          <button
+                            type="button"
+                            onClick={() => { setIsProfileMenuOpen(false); setActiveTab("profile"); }}
+                            className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+                          >
+                            <UserIcon size={14} className="text-slate-400" />
+                            <span>View Profile</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setIsProfileMenuOpen(false); setActiveTab("profile"); }}
+                            className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+                          >
+                            <Settings size={14} className="text-slate-400" />
+                            <span>Settings & Preferences</span>
+                          </button>
+                        </div>
+                        <div className="border-t border-slate-100 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => { setIsProfileMenuOpen(false); onLogout(); }}
+                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
+                          >
+                            <LogOut size={14} className="text-red-500" />
+                            <span>Sign Out</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </header>
         )}
