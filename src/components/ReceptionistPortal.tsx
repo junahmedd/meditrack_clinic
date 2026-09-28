@@ -803,6 +803,24 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     return () => clearInterval(interval);
   }, [scopedPatients]);
 
+  // Keyboard shortcut: Press "N" to open New Appointment modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger when typing in inputs, textareas, or selects
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      // Don't trigger with modifier keys
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        setIsNewAptModalOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   // Appointment Handlers
   const [isSubmittingApt, setIsSubmittingApt] = useState(false);
 
