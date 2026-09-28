@@ -1514,16 +1514,10 @@ export function DoctorPortal({
         {/* 2. DESKTOP TOP HEADER (Strictly >= 768px, rendered only on Dashboard per user requirement) */}
         {activeTab === "dashboard" && (
           <header className="hidden md:flex h-16 bg-white border-b border-slate-100 px-8 items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] gap-2 w-full shrink-0">
-            {/* Left Search Input Bar */}
-            <div className="flex-1 max-w-md">
-              <div className="relative flex items-center">
-                <Search size={15} className="absolute left-3.5 text-slate-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search patient by name, phone or MRN..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] focus:bg-white transition-all"
-                />
-              </div>
+            {/* Left: DASHBOARD heading + one-liner */}
+            <div className="flex flex-col">
+              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">DASHBOARD</h1>
+              <p className="text-[11px] font-medium text-slate-400 leading-tight">Consultations, prescriptions & patient overview</p>
             </div>
 
             {/* Right Header Status & Avatar Pill */}

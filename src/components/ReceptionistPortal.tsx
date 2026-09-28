@@ -1619,15 +1619,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               <p className="text-[11px] font-medium text-slate-400 leading-tight">Real-time clinic overview & patient queue</p>
             </div>
 
-            {/* Right: Doctor Pill + Bell + Profile */}
+            {/* Right: Bell + Profile */}
             <div className="flex items-center gap-3">
-              {/* Doctor Name Pill */}
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 shrink-0 select-none shadow-xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
-                <span className="text-xs font-black text-slate-900 truncate">
-                  {assignedDoctorName}
-                </span>
-              </div>
 
               {/* Notification Bell */}
               <button
