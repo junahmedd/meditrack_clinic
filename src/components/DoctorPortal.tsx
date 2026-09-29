@@ -2584,46 +2584,6 @@ export function DoctorPortal({
               </div>
             </div>
 
-            {/* Period Selector: Day, Month, Year, All Time */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-2xs">
-              <div className="flex items-center gap-2">
-                <Calendar size={16} className="text-[#065f46]" />
-                <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
-                  Revenue &amp; Analytics Period:
-                </span>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-[#065f46] border border-emerald-200">
-                  {selectedPeriod === "today"
-                    ? "Today's Live Data"
-                    : selectedPeriod === "month"
-                    ? "This Month"
-                    : selectedPeriod === "year"
-                    ? "This Year"
-                    : "All Time"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl overflow-x-auto no-scrollbar w-full sm:w-auto">
-                {[
-                  { key: "today", label: "Today (Live)" },
-                  { key: "month", label: "This Month" },
-                  { key: "year", label: "This Year" },
-                  { key: "all", label: "All Time" },
-                ].map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => setSelectedPeriod(item.key as any)}
-                    className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
-                      selectedPeriod === item.key
-                        ? "bg-[#064e3b] text-white shadow-xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* 4 Summary KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {/* Card 1: Waiting Patients */}
