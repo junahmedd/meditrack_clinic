@@ -732,10 +732,34 @@ export function DoctorPortal({
     return () => clearInterval(interval);
   }, []);
 
-  // Filter Doctor Queue strictly for this authenticated doctor
+  // Helper to extract patient timestamp as standard JS Date
+  const getPatientDate = (p: any): Date | null => {
+    const ts = p.paidAt || p.consultationCompletedAt || p.billedAt || p.calledAt || p.timestamp || p.createdAt;
+    if (!ts) return null;
+    if (ts.toDate && typeof ts.toDate === "function") return ts.toDate();
+    if (ts.seconds) return new Date(ts.seconds * 1000);
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Check if patient was registered/active TODAY (Strict New-Day Basis)
+  const isTodayPatient = (p: any): boolean => {
+    const d = getPatientDate(p);
+    if (!d) return true;
+    const now = new Date();
+    return (
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear()
+    );
+  };
+
+  // Filter Doctor Queue strictly for this authenticated doctor & strictly for TODAY's live queue
   const doctorQueue = useMemo(() => {
     const docId = currentUserProfile?.doctorId || user?.uid || "";
     return patients.filter((p) => {
+      // Must be an active patient for today
+      if (!isTodayPatient(p)) return false;
       if (
         p.status === "Completed" ||
         p.status === "COMPLETED" ||
@@ -766,7 +790,7 @@ export function DoctorPortal({
     });
   }, [patients, currentUserProfile, user, doctorDisplayName, isAdmin]);
 
-  // Doctor Patient History List
+  // Doctor Patient History List (All-time historical patients for this doctor)
   const doctorPatientsList = useMemo(() => {
     const docId = currentUserProfile?.doctorId || user?.uid || "";
     return patients.filter((p) => {
@@ -782,6 +806,94 @@ export function DoctorPortal({
       return true;
     });
   }, [patients, currentUserProfile, user, doctorDisplayName, isAdmin]);
+
+  // Dashboard Period Filter: "today" | "month" | "year" | "all"
+  const [selectedPeriod, setSelectedPeriod] = useState<"today" | "month" | "year" | "all">("today");
+
+  // Check if patient belongs to given period
+  const matchesPeriod = (p: any, period: "today" | "month" | "year" | "all"): boolean => {
+    if (period === "all") return true;
+    const d = getPatientDate(p);
+    if (!d) return period === "today";
+    const now = new Date();
+    if (period === "today") {
+      return (
+        d.getDate() === now.getDate() &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear()
+      );
+    }
+    if (period === "month") {
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }
+    if (period === "year") {
+      return d.getFullYear() === now.getFullYear();
+    }
+    return true;
+  };
+
+  // Comprehensive Multi-Period Revenue & Analytics Engine
+  const analyticsData = useMemo(() => {
+    const computeForPeriod = (period: "today" | "month" | "year" | "all") => {
+      const periodList = doctorPatientsList.filter((p) => matchesPeriod(p, period));
+      const completedList = periodList.filter(
+        (p) => p.status === "Completed" || p.status === "COMPLETED" || p.status === "PAID" || p.status === "Paid" || p.billingStatus === "Paid"
+      );
+      // Revenue is counted strictly from patients whose billing is completed/paid
+      const billedList = periodList.filter(
+        (p) => p.billingStatus === "Paid" || p.status === "PAID" || (p.status === "Completed" && p.billingStatus === "Paid")
+      );
+      const revenue = billedList.reduce((sum, p) => {
+        const fee = typeof p.consultationFee === "number" ? p.consultationFee : (p.billingAmount ? Number(p.billingAmount) : consultationFee);
+        return sum + (fee > 0 ? fee : consultationFee);
+      }, 0);
+
+      return {
+        patientsCount: periodList.length,
+        completedCount: completedList.length,
+        billedCount: billedList.length,
+        revenue,
+      };
+    };
+
+    const todayStats = computeForPeriod("today");
+    const monthStats = computeForPeriod("month");
+    const yearStats = computeForPeriod("year");
+    const allStats = computeForPeriod("all");
+
+    // Active selected period stats
+    const active = selectedPeriod === "today"
+      ? todayStats
+      : selectedPeriod === "month"
+      ? monthStats
+      : selectedPeriod === "year"
+      ? yearStats
+      : allStats;
+
+    const chartSlices = active.revenue > 0
+      ? [{ name: "Consultation Fee", value: active.revenue, color: "#064e3b", percentage: 100 }]
+      : [{ name: "No Revenue", value: 1, color: "#e2e8f0", percentage: 0 }];
+
+    const legendSlices = [
+      { name: "Consultation Fee", value: active.revenue, color: "#064e3b", percentage: active.revenue > 0 ? 100 : 0 },
+    ];
+
+    return {
+      active,
+      today: todayStats,
+      month: monthStats,
+      year: yearStats,
+      all: allStats,
+      total: active.revenue,
+      consultationRev: active.revenue,
+      billedCount: active.billedCount,
+      chartSlices,
+      legendSlices,
+    };
+  }, [doctorPatientsList, consultationFee, selectedPeriod]);
+
+  // Backward-compatible alias for existing chart references
+  const revenueData = analyticsData;
 
   // Patient Statistics Chart Data (Strict Live Firebase Data - Starts at 0)
   const patientStatsData = useMemo(() => {
@@ -815,56 +927,6 @@ export function DoctorPortal({
       };
     });
   }, [doctorPatientsList]);
-
-  // Revenue Overview Chart Data (Strict Live Firebase Data - Starts at ₹0)
-  // Revenue Overview (Strictly on New Day Basis - updated ONLY after billing is done/paid)
-  const revenueData = useMemo(() => {
-    const isBilledToday = (p: Patient) => {
-      const isPaid = p.billingStatus === "Paid" || p.status === "PAID" || (p.status === "Completed" && p.billingStatus === "Paid");
-      if (!isPaid) return false;
-      const ts: any = p.paidAt || p.consultationCompletedAt || p.billedAt || p.timestamp || p.createdAt;
-      if (!ts) return false;
-      let d: Date | null = null;
-      if (ts.toDate && typeof ts.toDate === "function") d = ts.toDate();
-      else if (ts.seconds) d = new Date(ts.seconds * 1000);
-      else if (typeof ts === "string" || typeof ts === "number") d = new Date(ts);
-      if (!d || isNaN(d.getTime())) return false;
-      const now = new Date();
-      return (
-        d.getDate() === now.getDate() &&
-        d.getMonth() === now.getMonth() &&
-        d.getFullYear() === now.getFullYear()
-      );
-    };
-
-    // Consultation Revenue ONLY from patients whose billing is completed/paid TODAY
-    const billedTodayPatients = doctorPatientsList.filter(isBilledToday);
-    const consultationRev = billedTodayPatients.reduce((sum, p) => {
-      const fee = typeof p.consultationFee === "number" ? p.consultationFee : (p.billingAmount ? Number(p.billingAmount) : consultationFee);
-      return sum + (fee > 0 ? fee : consultationFee);
-    }, 0);
-
-    const total = consultationRev;
-    const chartSlices = total > 0
-      ? [
-          { name: "Consultation Fee", value: consultationRev, color: "#064e3b", percentage: 100 },
-        ]
-      : [
-          { name: "No Revenue", value: 1, color: "#e2e8f0", percentage: 0 },
-        ];
-
-    const legendSlices = [
-      { name: "Consultation Fee", value: consultationRev, color: "#064e3b", percentage: total > 0 ? 100 : 0 },
-    ];
-
-    return {
-      total,
-      consultationRev,
-      billedCount: billedTodayPatients.length,
-      chartSlices,
-      legendSlices,
-    };
-  }, [doctorPatientsList, consultationFee]);
 
   // Medicine & Catalog State
   const [medicines, setMedicines] = useState<MedicineItem[]>([]);
@@ -2414,6 +2476,46 @@ export function DoctorPortal({
               </div>
             </div>
 
+            {/* Period Selector: Day, Month, Year, All Time */}
+            <div className="flex items-center justify-between flex-wrap gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <Calendar size={16} className="text-[#065f46]" />
+                <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
+                  Revenue &amp; Analytics Period:
+                </span>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-[#065f46] border border-emerald-200">
+                  {selectedPeriod === "today"
+                    ? "Today's Live Data"
+                    : selectedPeriod === "month"
+                    ? "This Month"
+                    : selectedPeriod === "year"
+                    ? "This Year"
+                    : "All Time"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl">
+                {[
+                  { key: "today", label: "Today (Live)" },
+                  { key: "month", label: "This Month" },
+                  { key: "year", label: "This Year" },
+                  { key: "all", label: "All Time" },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setSelectedPeriod(item.key as any)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                      selectedPeriod === item.key
+                        ? "bg-[#064e3b] text-white shadow-xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* 4 Summary KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {/* Card 1: Waiting Patients */}
@@ -2427,11 +2529,11 @@ export function DoctorPortal({
                 <div>
                   <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Waiting Patients</p>
                   <h3 className="text-2xl font-black text-slate-900 mt-0.5">{doctorQueue.length}</h3>
-                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">Patients in queue</p>
+                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">Today's live queue</p>
                 </div>
               </div>
 
-              {/* Card 2: Completed Today */}
+              {/* Card 2: Completed Consultations */}
               <div
                 onClick={() => setActiveTab("patients")}
                 className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-4 group"
@@ -2440,11 +2542,15 @@ export function DoctorPortal({
                   <CheckCircle2 size={22} />
                 </div>
                 <div>
-                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Completed Today</p>
+                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+                    {selectedPeriod === "today" ? "Completed Today" : "Completed"}
+                  </p>
                   <h3 className="text-2xl font-black text-slate-900 mt-0.5">
-                    {doctorPatientsList.filter((p) => p.status === "Completed" || p.status === "COMPLETED" || p.status === "PAID" || p.status === "Paid" || p.billingStatus === "Paid").length}
+                    {analyticsData.active.completedCount}
                   </h3>
-                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">Consultations completed</p>
+                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                    {selectedPeriod === "today" ? "Consultations today" : `In ${selectedPeriod === "month" ? "this month" : selectedPeriod === "year" ? "this year" : "all time"}`}
+                  </p>
                 </div>
               </div>
 
@@ -2457,13 +2563,17 @@ export function DoctorPortal({
                   <Users size={22} />
                 </div>
                 <div>
-                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Total Patients</p>
-                  <h3 className="text-2xl font-black text-slate-900 mt-0.5">{doctorPatientsList.length}</h3>
-                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">Registered patients</p>
+                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+                    {selectedPeriod === "today" ? "Today's Patients" : "Patients"}
+                  </p>
+                  <h3 className="text-2xl font-black text-slate-900 mt-0.5">{analyticsData.active.patientsCount}</h3>
+                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                    {selectedPeriod === "today" ? "Registered today" : `Total in ${selectedPeriod === "month" ? "month" : selectedPeriod === "year" ? "year" : "all time"}`}
+                  </p>
                 </div>
               </div>
 
-              {/* Card 4: Today's Revenue */}
+              {/* Card 4: Revenue */}
               <div
                 onClick={() => setActiveTab("profile")}
                 className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-4 group"
@@ -2472,10 +2582,44 @@ export function DoctorPortal({
                   ₹
                 </div>
                 <div>
-                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Today's Revenue</p>
-                  <h3 className="text-2xl font-black text-slate-900 mt-0.5">₹{revenueData.total.toLocaleString()}</h3>
-                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">₹{consultationFee} per visit</p>
+                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+                    {selectedPeriod === "today"
+                      ? "Today's Revenue"
+                      : selectedPeriod === "month"
+                      ? "This Month Revenue"
+                      : selectedPeriod === "year"
+                      ? "This Year Revenue"
+                      : "All-Time Revenue"}
+                  </p>
+                  <h3 className="text-2xl font-black text-slate-900 mt-0.5">₹{analyticsData.active.revenue.toLocaleString()}</h3>
+                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                    {analyticsData.active.billedCount} paid visits • ₹{consultationFee} fee
+                  </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Quick Summary Row: Day, Month, Year, All-Time */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100/90 text-xs">
+              <div className="p-2.5 bg-white rounded-xl border border-slate-100">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Today (Live)</span>
+                <p className="text-sm font-black text-slate-900 mt-0.5">₹{analyticsData.today.revenue.toLocaleString()}</p>
+                <span className="text-[10px] text-slate-400 font-medium">{analyticsData.today.billedCount} billed visits</span>
+              </div>
+              <div className="p-2.5 bg-white rounded-xl border border-slate-100">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">This Month</span>
+                <p className="text-sm font-black text-slate-900 mt-0.5">₹{analyticsData.month.revenue.toLocaleString()}</p>
+                <span className="text-[10px] text-slate-400 font-medium">{analyticsData.month.billedCount} billed visits</span>
+              </div>
+              <div className="p-2.5 bg-white rounded-xl border border-slate-100">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">This Year</span>
+                <p className="text-sm font-black text-slate-900 mt-0.5">₹{analyticsData.year.revenue.toLocaleString()}</p>
+                <span className="text-[10px] text-slate-400 font-medium">{analyticsData.year.billedCount} billed visits</span>
+              </div>
+              <div className="p-2.5 bg-white rounded-xl border border-slate-100">
+                <span className="text-[10px] font-bold text-[#065f46] uppercase tracking-wider block">All-Time Total</span>
+                <p className="text-sm font-black text-[#065f46] mt-0.5">₹{analyticsData.all.revenue.toLocaleString()}</p>
+                <span className="text-[10px] text-slate-400 font-medium">{analyticsData.all.billedCount} billed visits</span>
               </div>
             </div>
 

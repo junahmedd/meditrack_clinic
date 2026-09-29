@@ -458,18 +458,43 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       }));
   }, [scopedPatients, assignedDoctorName]);
 
-  // Queue Suite State & Live Queue derived from scoped Firestore patients
+  // Helper to extract patient timestamp as JS Date
+  const getPatientDate = (p: any): Date | null => {
+    const ts = p.paidAt || p.consultationCompletedAt || p.billedAt || p.calledAt || p.timestamp || p.createdAt;
+    if (!ts) return null;
+    if (ts.toDate && typeof ts.toDate === "function") return ts.toDate();
+    if (ts.seconds) return new Date(ts.seconds * 1000);
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Check if patient was registered/active TODAY (Strict New-Day Basis)
+  const isTodayPatient = (p: any): boolean => {
+    const d = getPatientDate(p);
+    if (!d) return true;
+    const now = new Date();
+    return (
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear()
+    );
+  };
+
+  // Queue Suite State & Live Queue derived from scoped Firestore patients (Strictly Today's Live Queue)
   const queueItems = useMemo<QueueItem[]>(() => {
     return scopedPatients
-      .filter(
-        (p) =>
+      .filter((p) => {
+        // Live queue on every new day strictly includes active patients from TODAY
+        if (!isTodayPatient(p)) return false;
+        return (
           p.status === "Waiting" ||
           p.status === "WAITING" ||
           p.status === "Called" ||
           p.status === "Consulting" ||
           p.status === "In Consultation" ||
           p.status === "CONSULTING"
-      )
+        );
+      })
       .map((p) => ({
         id: p.id,
         queueNo: p.queueNumber,
@@ -1125,51 +1150,83 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     [scopedPatients]
   );
 
-  // Helper to test if payment was recorded TODAY (Strict New-Day Basis)
-  const isPaidToday = (p: Patient) => {
-    const isPaid = p.billingStatus === "Paid" || p.status === "PAID" || (p.status === "Completed" && p.billingStatus === "Paid");
-    if (!isPaid) return false;
-    const ts: any = p.paidAt || p.consultationCompletedAt || p.billedAt || p.timestamp || p.createdAt;
-    if (!ts) return false;
-    let d: Date | null = null;
-    if (ts.toDate && typeof ts.toDate === "function") d = ts.toDate();
-    else if (ts.seconds) d = new Date(ts.seconds * 1000);
-    else if (typeof ts === "string" || typeof ts === "number") d = new Date(ts);
-    if (!d || isNaN(d.getTime())) return false;
+  // Selected Revenue & Analytics Period: "today" | "month" | "year" | "all"
+  const [receptionistPeriod, setReceptionistPeriod] = useState<"today" | "month" | "year" | "all">("today");
+
+  // Helper to test if payment/patient belongs to selected period
+  const matchesReceptionistPeriod = (p: any, period: "today" | "month" | "year" | "all"): boolean => {
+    if (period === "all") return true;
+    const d = getPatientDate(p);
+    if (!d) return period === "today";
     const now = new Date();
-    return (
-      d.getDate() === now.getDate() &&
-      d.getMonth() === now.getMonth() &&
-      d.getFullYear() === now.getFullYear()
-    );
+    if (period === "today") {
+      return (
+        d.getDate() === now.getDate() &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear()
+      );
+    }
+    if (period === "month") {
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }
+    if (period === "year") {
+      return d.getFullYear() === now.getFullYear();
+    }
+    return true;
   };
 
-  // Patients billed and paid TODAY
-  const paidTodayPatients = useMemo(
-    () => scopedPatients.filter(isPaidToday),
-    [scopedPatients]
-  );
-
-  // Dynamic Revenue Stats (Strictly Today on New Day Basis)
-  const revenueStats = useMemo(() => {
-    let upiTotal = 0;
-    let cashTotal = 0;
-    paidTodayPatients.forEach((p) => {
-      const fee = typeof p.consultationFee === "number" ? p.consultationFee : (p.billingAmount ? Number(p.billingAmount) : 500);
-      if (p.paymentMethod === "Cash") {
-        cashTotal += fee;
-      } else {
-        upiTotal += fee;
-      }
-    });
-    return {
-      upi: upiTotal,
-      cash: cashTotal,
-      total: upiTotal + cashTotal,
-      todayPatients: scopedPatients.length,
-      settledInvoices: paidTodayPatients.length,
+  // Comprehensive Multi-Period Revenue & Analytics Engine for Receptionist (Day, Month, Year, All-Time)
+  const receptionistAnalytics = useMemo(() => {
+    const computeForPeriod = (period: "today" | "month" | "year" | "all") => {
+      const periodPatients = scopedPatients.filter((p) => matchesReceptionistPeriod(p, period));
+      const paidPeriod = periodPatients.filter(
+        (p) => p.billingStatus === "Paid" || p.status === "PAID" || (p.status === "Completed" && p.billingStatus === "Paid")
+      );
+      let upiTotal = 0;
+      let cashTotal = 0;
+      paidPeriod.forEach((p) => {
+        const fee = typeof p.consultationFee === "number" ? p.consultationFee : (p.billingAmount ? Number(p.billingAmount) : 500);
+        if (p.paymentMethod === "Cash") {
+          cashTotal += fee;
+        } else {
+          upiTotal += fee;
+        }
+      });
+      return {
+        patientsCount: periodPatients.length,
+        settledCount: paidPeriod.length,
+        upi: upiTotal,
+        cash: cashTotal,
+        total: upiTotal + cashTotal,
+        paidList: paidPeriod,
+      };
     };
-  }, [paidTodayPatients, scopedPatients]);
+
+    const todayStats = computeForPeriod("today");
+    const monthStats = computeForPeriod("month");
+    const yearStats = computeForPeriod("year");
+    const allStats = computeForPeriod("all");
+
+    const active = receptionistPeriod === "today"
+      ? todayStats
+      : receptionistPeriod === "month"
+      ? monthStats
+      : receptionistPeriod === "year"
+      ? yearStats
+      : allStats;
+
+    return {
+      active,
+      today: todayStats,
+      month: monthStats,
+      year: yearStats,
+      all: allStats,
+    };
+  }, [scopedPatients, receptionistPeriod]);
+
+  // Backward-compatible alias for existing references
+  const revenueStats = receptionistAnalytics.active;
+  const paidTodayPatients = receptionistAnalytics.today.paidList;
 
   // Dynamic Doctor Visits from Live Scoped Patients (Strictly scoped to assigned doctor)
   const DOCTOR_VISITS_DATA = useMemo(() => {
@@ -1743,15 +1800,55 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           {/* ========================================================================= */}
           {activeTab === "dashboard" && (
             <div className="space-y-6">
+              {/* Period Selector: Day, Month, Year, All Time */}
+              <div className="flex items-center justify-between flex-wrap gap-3 bg-white p-3 rounded-2xl border border-slate-100/90 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <Calendar size={16} className="text-[#065f46]" />
+                  <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
+                    Revenue &amp; Analytics Period:
+                  </span>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-[#065f46] border border-emerald-200">
+                    {receptionistPeriod === "today"
+                      ? "Today's Live Data"
+                      : receptionistPeriod === "month"
+                      ? "This Month"
+                      : receptionistPeriod === "year"
+                      ? "This Year"
+                      : "All Time"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl">
+                  {[
+                    { key: "today", label: "Today (Live)" },
+                    { key: "month", label: "This Month" },
+                    { key: "year", label: "This Year" },
+                    { key: "all", label: "All Time" },
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setReceptionistPeriod(item.key as any)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                        receptionistPeriod === item.key
+                          ? "bg-[#064e3b] text-white shadow-xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* 4 Summary Stat Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {/* 1. UPI Revenue */}
                 <div className="bg-white p-5 rounded-2xl border border-slate-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">UPI</p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">₹{revenueStats.upi.toLocaleString()}</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">UPI Revenue</p>
+                    <p className="text-2xl font-black text-slate-900 mt-1">₹{receptionistAnalytics.active.upi.toLocaleString()}</p>
                     <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                      {paidTodayPatients.filter((p) => p.paymentMethod !== "Cash").length} digital payment{paidTodayPatients.filter((p) => p.paymentMethod !== "Cash").length === 1 ? "" : "s"}
+                      {receptionistPeriod === "today" ? "Today's digital" : `Digital (${receptionistPeriod})`}
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -1762,10 +1859,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 {/* 2. Cash Revenue */}
                 <div className="bg-white p-5 rounded-2xl border border-slate-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cash</p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">₹{revenueStats.cash.toLocaleString()}</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cash Revenue</p>
+                    <p className="text-2xl font-black text-slate-900 mt-1">₹{receptionistAnalytics.active.cash.toLocaleString()}</p>
                     <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                      {paidTodayPatients.filter((p) => p.paymentMethod === "Cash").length} cash payment{paidTodayPatients.filter((p) => p.paymentMethod === "Cash").length === 1 ? "" : "s"}
+                      {receptionistPeriod === "today" ? "Today's cash" : `Cash (${receptionistPeriod})`}
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -1776,10 +1873,18 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 {/* 3. Total Revenue */}
                 <div className="bg-white p-5 rounded-2xl border border-slate-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">₹{revenueStats.total.toLocaleString()}</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      {receptionistPeriod === "today"
+                        ? "Today's Revenue"
+                        : receptionistPeriod === "month"
+                        ? "This Month Total"
+                        : receptionistPeriod === "year"
+                        ? "This Year Total"
+                        : "All-Time Revenue"}
+                    </p>
+                    <p className="text-2xl font-black text-slate-900 mt-1">₹{receptionistAnalytics.active.total.toLocaleString()}</p>
                     <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                      {paidTodayPatients.length} invoice{paidTodayPatients.length === 1 ? "" : "s"} settled
+                      {receptionistAnalytics.active.settledCount} invoice{receptionistAnalytics.active.settledCount === 1 ? "" : "s"} settled
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -1787,18 +1892,44 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </div>
                 </div>
 
-                {/* 4. Today's Patients */}
+                {/* 4. Patients Count */}
                 <div className="bg-white p-5 rounded-2xl border border-slate-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Today's Patients</p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">{revenueStats.todayPatients}</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      {receptionistPeriod === "today" ? "Today's Patients" : "Patients"}
+                    </p>
+                    <p className="text-2xl font-black text-slate-900 mt-1">{receptionistAnalytics.active.patientsCount}</p>
                     <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                      {waitingPatients.length} currently in queue
+                      {receptionistPeriod === "today" ? `${waitingPatients.length} in queue today` : `Registered in ${receptionistPeriod}`}
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
                     <Clock size={22} />
                   </div>
+                </div>
+              </div>
+
+              {/* Quick Summary Row: Day, Month, Year, All-Time */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100/90 text-xs">
+                <div className="p-2.5 bg-white rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Today (Live)</span>
+                  <p className="text-sm font-black text-slate-900 mt-0.5">₹{receptionistAnalytics.today.total.toLocaleString()}</p>
+                  <span className="text-[10px] text-slate-400 font-medium">{receptionistAnalytics.today.settledCount} settled ({receptionistAnalytics.today.patientsCount} patients)</span>
+                </div>
+                <div className="p-2.5 bg-white rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">This Month</span>
+                  <p className="text-sm font-black text-slate-900 mt-0.5">₹{receptionistAnalytics.month.total.toLocaleString()}</p>
+                  <span className="text-[10px] text-slate-400 font-medium">{receptionistAnalytics.month.settledCount} settled ({receptionistAnalytics.month.patientsCount} patients)</span>
+                </div>
+                <div className="p-2.5 bg-white rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">This Year</span>
+                  <p className="text-sm font-black text-slate-900 mt-0.5">₹{receptionistAnalytics.year.total.toLocaleString()}</p>
+                  <span className="text-[10px] text-slate-400 font-medium">{receptionistAnalytics.year.settledCount} settled ({receptionistAnalytics.year.patientsCount} patients)</span>
+                </div>
+                <div className="p-2.5 bg-white rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-[#065f46] uppercase tracking-wider block">All-Time Total</span>
+                  <p className="text-sm font-black text-[#065f46] mt-0.5">₹{receptionistAnalytics.all.total.toLocaleString()}</p>
+                  <span className="text-[10px] text-slate-400 font-medium">{receptionistAnalytics.all.settledCount} settled ({receptionistAnalytics.all.patientsCount} patients)</span>
                 </div>
               </div>
 
