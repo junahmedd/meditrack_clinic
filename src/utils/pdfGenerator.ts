@@ -190,6 +190,29 @@ export function generateInvoicePDF(data: InvoicePDFData): { pdfDataUri: string; 
 
   y += boxHeight + 6;
 
+  // Consultation Notes (Doctor's brief note)
+  const diagText = data.consultationDetails?.diagnosis || "";
+  const notesText = data.consultationDetails?.notes || "";
+  if (diagText || notesText) {
+    const noteBoxHeight = 14 + (notesText ? 4 : 0);
+    doc.setFillColor(248, 250, 252); // slate-50
+    doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+    doc.roundedRect(margin, y, pageWidth - margin * 2, noteBoxHeight, 1.5, 1.5, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+    doc.text("CLINICAL NOTE", margin + 4, y + 4);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+    const combinedNote = diagText ? (notesText ? `${diagText} — ${notesText}` : diagText) : notesText;
+    const noteLines = doc.splitTextToSize(combinedNote, pageWidth - margin * 2 - 8);
+    doc.text(noteLines.slice(0, 2), margin + 4, y + 8.5); // max 2 lines to keep it short
+    y += noteBoxHeight + 4;
+  }
+
   // Itemized Table Header
   const tableWidth = pageWidth - margin * 2;
   const colX = {

@@ -3240,18 +3240,47 @@ export function DoctorPortal({
 
               <div className="my-3.5 space-y-2.5 overflow-y-auto pr-1 flex-1 min-h-0 custom-scrollbar">
                 {medicalHistory.length > 0 ? (
-                  medicalHistory.map((item, i) => (
+                  medicalHistory.map((item: any, i: number) => {
+                    let meds: any[] = [];
+                    try { if (item.prescription) meds = JSON.parse(item.prescription); } catch {}
+                    const dateStr = item.timestamp?.toDate ? item.timestamp.toDate().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : item.date || "Recent";
+                    return (
                     <div key={i} className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 space-y-1.5">
                       <div className="flex items-center justify-between text-xs font-bold text-[#065f46]">
-                        <span>Visit #{i + 1}</span>
-                        <span className="text-slate-400 text-[11px]">{item.date || "Recent"}</span>
+                        <span>Visit #{medicalHistory.length - i}</span>
+                        <span className="text-slate-400 text-[11px]">{dateStr}</span>
                       </div>
+                      {item.doctorName && (
+                        <p className="text-[11px] font-semibold text-slate-500">Dr. {item.doctorName}</p>
+                      )}
                       {item.diagnosis && (
                         <p className="text-xs font-extrabold text-slate-900">Diagnosis: {item.diagnosis}</p>
                       )}
                       {item.notes && <p className="text-xs text-slate-600 leading-relaxed font-medium">{item.notes}</p>}
+                      {Array.isArray(meds) && meds.length > 0 && (
+                        <div className="pt-1">
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-0.5">Prescription</p>
+                          <div className="flex flex-wrap gap-1">
+                            {meds.map((m: any, j: number) => m.medicine && (
+                              <span key={j} className="text-[11px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
+                                {m.medicine} — {m.dosage || "1-0-1"}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {item.vitals && (item.vitals.bp || item.vitals.temperature || item.vitals.pulse) && (
+                        <div className="pt-1 flex flex-wrap gap-2 text-[10px] font-semibold text-slate-500">
+                          {item.vitals.bp && <span>BP: {item.vitals.bp}</span>}
+                          {item.vitals.temperature && <span>Temp: {item.vitals.temperature}°F</span>}
+                          {item.vitals.pulse && <span>Pulse: {item.vitals.pulse}</span>}
+                          {item.vitals.spo2 && <span>SpO₂: {item.vitals.spo2}%</span>}
+                          {item.vitals.weight && <span>Wt: {item.vitals.weight}kg</span>}
+                        </div>
+                      )}
                     </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="text-xs text-slate-400 font-bold text-center py-8">
                     No previous clinical history records found for this patient.

@@ -2545,8 +2545,11 @@ export default function App() {
       // Save to consultations collection for history
       const consultationRef = doc(collection(db, "consultations"));
       batch.set(consultationRef, {
+        patientId: patient.id || "",
         patientPhone: patient.phone || "",
         patientName: patient.name || "",
+        patientAge: patient.age || "",
+        patientGender: patient.gender || "",
         clinicId: clinicId || "",
         doctorId: docId || "",
         receptionistId: recId || "",

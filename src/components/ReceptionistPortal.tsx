@@ -3576,7 +3576,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             parsedMeds.forEach((m: any) => {
                               if (m.medicine) {
                                 itemsList.push({
-                                  description: `Rx: ${m.medicine} (${m.dosage || "1-0-1"}, ${m.duration || "5 Days"})`,
+                                  description: `${m.medicine} — ${m.dosage || "1-0-1"}`,
                                   qty: 1,
                                   rate: 0,
                                   amount: 0,
