@@ -2599,29 +2599,6 @@ export function DoctorPortal({
               </div>
             </div>
 
-            {/* Quick Summary Row: Day, Month, Year, All-Time */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100/90 text-xs">
-              <div className="p-2.5 bg-white rounded-xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Today (Live)</span>
-                <p className="text-sm font-black text-slate-900 mt-0.5">₹{analyticsData.today.revenue.toLocaleString()}</p>
-                <span className="text-[10px] text-slate-400 font-medium">{analyticsData.today.billedCount} billed visits</span>
-              </div>
-              <div className="p-2.5 bg-white rounded-xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">This Month</span>
-                <p className="text-sm font-black text-slate-900 mt-0.5">₹{analyticsData.month.revenue.toLocaleString()}</p>
-                <span className="text-[10px] text-slate-400 font-medium">{analyticsData.month.billedCount} billed visits</span>
-              </div>
-              <div className="p-2.5 bg-white rounded-xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">This Year</span>
-                <p className="text-sm font-black text-slate-900 mt-0.5">₹{analyticsData.year.revenue.toLocaleString()}</p>
-                <span className="text-[10px] text-slate-400 font-medium">{analyticsData.year.billedCount} billed visits</span>
-              </div>
-              <div className="p-2.5 bg-white rounded-xl border border-slate-100">
-                <span className="text-[10px] font-bold text-[#065f46] uppercase tracking-wider block">All-Time Total</span>
-                <p className="text-sm font-black text-[#065f46] mt-0.5">₹{analyticsData.all.revenue.toLocaleString()}</p>
-                <span className="text-[10px] text-slate-400 font-medium">{analyticsData.all.billedCount} billed visits</span>
-              </div>
-            </div>
 
             {/* Bottom 2 Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
