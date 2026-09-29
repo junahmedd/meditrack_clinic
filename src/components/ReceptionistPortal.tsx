@@ -1801,7 +1801,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           {activeTab === "dashboard" && (
             <div className="space-y-6">
               {/* Period Selector: Day, Month, Year, All Time */}
-              <div className="flex items-center justify-between flex-wrap gap-3 bg-white p-3 rounded-2xl border border-slate-100/90 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-100/90 shadow-2xs">
                 <div className="flex items-center gap-2">
                   <Calendar size={16} className="text-[#065f46]" />
                   <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
@@ -1817,7 +1817,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       : "All Time"}
                   </span>
                 </div>
-                <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl">
+                <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl overflow-x-auto no-scrollbar w-full sm:w-auto">
                   {[
                     { key: "today", label: "Today (Live)" },
                     { key: "month", label: "This Month" },
@@ -1828,7 +1828,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       key={item.key}
                       type="button"
                       onClick={() => setReceptionistPeriod(item.key as any)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                      className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
                         receptionistPeriod === item.key
                           ? "bg-[#064e3b] text-white shadow-xs"
                           : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
@@ -2125,7 +2125,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
               {/* Full Width Billing Table Card */}
               <div className="bg-white rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Desktop Billing Table (>= 768px) */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/60 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -2183,6 +2184,53 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile Responsive Cards View (< 768px) */}
+                <div className="md:hidden divide-y divide-slate-100">
+                  {pendingBills.map((bill, idx) => (
+                    <div key={bill.id} className="p-4 space-y-3 bg-white">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-extrabold text-slate-900 text-sm">{bill.name}</span>
+                            <span className="text-[10px] font-mono text-slate-400 font-bold">{bill.mrn}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 font-medium mt-0.5">
+                            Dr. {bill.doctor} • <span className="text-slate-400">{bill.specialty}</span>
+                          </p>
+                        </div>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 shrink-0">
+                          UNPAID
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-50 text-slate-500">
+                        <span className="font-mono text-[11px]">{bill.phone}</span>
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 font-medium block">Fee</span>
+                          <span className="font-black text-slate-900 text-sm text-[#065f46]">₹{bill.fee}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedBillForPayment(bill);
+                          setSelectedPaymentMode("UPI");
+                          setPaymentCashTendered(bill.fee.toString());
+                        }}
+                        className="w-full py-2.5 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.98] text-white font-extrabold text-xs rounded-xl shadow-sm shadow-emerald-950/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <CreditCard size={14} />
+                        <span>Bill Now (₹{bill.fee})</span>
+                      </button>
+                    </div>
+                  ))}
+                  {pendingBills.length === 0 && (
+                    <div className="py-8 text-center text-slate-400 text-xs font-medium">
+                      No pending bills awaiting payment. All patient consultations are billed!
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2275,7 +2323,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
               {/* Full Width Live Queue Table Card */}
               <div className="bg-white rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Desktop Live Queue Table (>= 768px) */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/60 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -2398,6 +2447,122 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile Responsive Live Queue Cards (< 768px) */}
+                <div className="md:hidden divide-y divide-slate-100">
+                  {queueItems.map((q) => (
+                    <div key={q.id} className="p-4 space-y-3 bg-white">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-800 font-mono font-black text-xs flex items-center justify-center shrink-0">
+                            #{q.queueNo}
+                          </span>
+                          <div>
+                            <span className="font-extrabold text-slate-900 text-sm leading-tight block">{q.name}</span>
+                            <span className="text-[10px] font-mono text-slate-400 font-semibold">{q.mrn} • {q.phone}</span>
+                          </div>
+                        </div>
+                        <div>
+                          {(q.status === "Consulting" || q.status === "In Consultation") && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                              Consulting
+                            </span>
+                          )}
+                          {(q.status === "Billing" || q.status === "In Billing") && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
+                              Billing
+                            </span>
+                          )}
+                          {q.status === "Waiting" && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                              Waiting
+                            </span>
+                          )}
+                          {q.status === "Completed" && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80">
+                              Completed
+                            </span>
+                          )}
+                          {q.status === "Scheduled" && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200/80">
+                              Scheduled
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-50 text-slate-500">
+                        <span>Dr. {q.doctor}</span>
+                        <span className="font-mono text-[11px] text-slate-400">{q.time}</span>
+                      </div>
+
+                      {/* Mobile Actions Row */}
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        {q.status === "Consulting" || q.status === "In Consultation" ? (
+                          <span className="flex-1 py-2 text-center bg-slate-100 text-slate-500 font-bold text-xs rounded-xl cursor-not-allowed">
+                            Consulting
+                          </span>
+                        ) : q.status === "Billing" || q.status === "In Billing" ? (
+                          <span className="flex-1 py-2 text-center bg-cyan-50 text-cyan-700 font-bold text-xs rounded-xl cursor-not-allowed">
+                            In Billing
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const p = patients.find((pat) => pat.id === q.id);
+                              if (p && onCallPatient) {
+                                onCallPatient(p);
+                              }
+                              showToast(`Calling ${q.name} to ${q.doctor}'s room...`);
+                            }}
+                            className="flex-1 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <PhoneCall size={13} />
+                            <span>Call Patient</span>
+                          </button>
+                        )}
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => {
+                              const p = patients.find((pat) => pat.id === q.id);
+                              if (p) setViewingPatient(p);
+                            }}
+                            className="p-2 rounded-xl bg-slate-50 hover:bg-emerald-50 text-slate-500 hover:text-[#065f46] transition-colors cursor-pointer"
+                            title="View Patient Details"
+                          >
+                            <Eye size={15} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const p = patients.find((pat) => pat.id === q.id);
+                              if (p) handleOpenEditPatient(p);
+                            }}
+                            className="p-2 rounded-xl bg-slate-50 hover:bg-amber-50 text-slate-500 hover:text-amber-600 transition-colors cursor-pointer"
+                            title="Edit Patient Record"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const p = patients.find((pat) => pat.id === q.id);
+                              if (p) handleDeletePatient(p);
+                            }}
+                            className="p-2 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Remove from Queue"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {queueItems.length === 0 && (
+                    <div className="py-8 text-center text-slate-400 text-xs font-medium">
+                      No patients in queue.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2855,8 +3020,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
           {/* TAB: PROFILE WORKSPACE */}
           {activeTab === "profile" && (
-            <div className="p-8 max-w-4xl mx-auto w-full space-y-6">
-              <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6">
+            <div className="max-w-4xl mx-auto w-full space-y-6">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm space-y-6">
                 {/* Top Banner & Avatar */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
                   <div className="flex items-center gap-4">
@@ -3566,7 +3731,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               exit={{ scale: 0.95, y: 10 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "440px" }}
-              className="bg-white rounded-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3.5 relative mx-auto"
+              className="bg-white rounded-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3.5 relative mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               {/* Header */}
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
@@ -3904,7 +4069,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               exit={{ scale: 0.95, y: 10 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "440px" }}
-              className="bg-white rounded-2xl w-full p-3.5 sm:p-4 shadow-2xl border border-slate-100 space-y-2.5 relative mx-auto font-sans text-xs"
+              className="bg-white rounded-2xl w-full p-3.5 sm:p-4 shadow-2xl border border-slate-100 space-y-2.5 relative mx-auto font-sans text-xs max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               {/* Close icon (no-print) */}
               <button
@@ -4095,7 +4260,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-md w-full p-7 shadow-2xl border border-slate-100 space-y-5 relative"
+              className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -4248,7 +4413,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               exit={{ scale: 0.95, y: 10 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "440px" }}
-              className="bg-white rounded-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3.5 relative mx-auto"
+              className="bg-white rounded-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3.5 relative mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -4527,7 +4692,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-md w-full p-7 shadow-2xl border border-slate-100 space-y-4 relative"
+              className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h3 className="text-base font-black text-slate-900 font-display">Edit Clinic Details</h3>
@@ -4618,7 +4783,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-lg w-full p-7 shadow-2xl border border-slate-100 space-y-5 relative"
+              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -4760,7 +4925,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-lg w-full p-7 shadow-2xl border border-slate-100 space-y-5 relative"
+              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -4888,7 +5053,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-md w-full p-7 shadow-2xl border border-slate-100 space-y-4 relative"
+              className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
@@ -4992,7 +5157,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-lg w-full p-7 shadow-2xl border border-slate-100 space-y-4 relative"
+              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
@@ -5081,7 +5246,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-lg w-full p-7 shadow-2xl border border-slate-100 space-y-4 relative"
+              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
@@ -5203,10 +5368,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-8 right-8 z-50 flex items-center gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-800"
+            className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-8 sm:bottom-8 z-50 flex items-center justify-between sm:justify-start gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-800"
           >
-            <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
-            <span className="text-xs font-bold">{toastMessage}</span>
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+              <span className="text-xs font-bold">{toastMessage}</span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

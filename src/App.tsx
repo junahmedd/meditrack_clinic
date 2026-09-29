@@ -3545,8 +3545,8 @@ export default function App() {
       )}
 
       {/* Top Navigation */}
-      <header className="h-20 bg-white/90 backdrop-blur-xl px-4 sm:px-8 flex items-center justify-between sticky top-0 z-50 border-b border-emerald-100/70 shadow-[0_4px_25px_rgba(6,78,59,0.03)]">
-        <div className="flex items-center gap-3 sm:gap-4">
+      <header className="h-16 sm:h-20 bg-white/90 backdrop-blur-xl px-3 sm:px-8 flex items-center justify-between sticky top-0 z-50 border-b border-emerald-100/70 shadow-[0_4px_25px_rgba(6,78,59,0.03)]">
+        <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
           <MediTrackLogo size="sm" theme="light" showSubtitle={true} showBadge={false} />
 
           {dbConnected === false && (
@@ -3560,7 +3560,7 @@ export default function App() {
             </button>
           )}
           {dbConnected === true && (
-            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-[#e8fbf3]/90 backdrop-blur-md text-[#065f46] text-[10px] font-black rounded-full border border-[#a7f3d0] shadow-2xs flex-shrink-0 select-none">
+            <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 bg-[#e8fbf3]/90 backdrop-blur-md text-[#065f46] text-[10px] font-black rounded-full border border-[#a7f3d0] shadow-2xs flex-shrink-0 select-none">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
               <span className="uppercase tracking-wider">Operational</span>
             </div>
@@ -3568,16 +3568,16 @@ export default function App() {
 
           {/* Role Badge in Header */}
           {isAdmin ? (
-            <div className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#e8fbf3] backdrop-blur-md text-[#065f46] text-[10px] font-black rounded-full border border-[#a7f3d0] uppercase tracking-wider shadow-2xs">
+            <div className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 bg-[#e8fbf3] backdrop-blur-md text-[#065f46] text-[10px] font-black rounded-full border border-[#a7f3d0] uppercase tracking-wider shadow-2xs">
               <Settings size={12} className="shrink-0 stroke-[2.5] text-[#065f46]" />
               <span>Admin Control</span>
             </div>
           ) : isDoctor ? (
-            <span className="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-wider border border-emerald-200">
+            <span className="hidden md:inline-block px-3.5 py-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-wider border border-emerald-200">
               Doctor Suite
             </span>
           ) : (
-            <span className="px-3.5 py-1.5 bg-teal-50 text-teal-800 text-[10px] font-black rounded-full uppercase tracking-wider border border-teal-200">
+            <span className="hidden md:inline-block px-3.5 py-1.5 bg-teal-50 text-teal-800 text-[10px] font-black rounded-full uppercase tracking-wider border border-teal-200">
               Reception Desk
             </span>
           )}
@@ -3703,7 +3703,7 @@ export default function App() {
 
       <div className="flex-1 flex flex-col">
         <main className="flex-1 flex flex-col">
-          <div className="p-8 max-w-7xl mx-auto w-full">
+          <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto w-full">
             {error && (
               <div className="bg-red-50 text-red-600 p-4 rounded-2xl mb-6 flex justify-between items-center">
                 <span>{error}</span>
@@ -5010,19 +5010,19 @@ export default function App() {
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className="fixed bottom-8 left-8 z-[1000] flex items-center gap-3 bg-slate-900 border border-slate-800 text-white px-6 py-4 rounded-[24px] shadow-2xl shadow-slate-900/50"
+            className="fixed bottom-20 left-4 right-4 sm:right-auto sm:left-8 sm:bottom-8 z-[1000] flex items-center justify-between sm:justify-start gap-3 bg-slate-900 border border-slate-800 text-white px-5 py-3.5 sm:px-6 sm:py-4 rounded-2xl sm:rounded-[24px] shadow-2xl shadow-slate-900/50"
           >
-            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <Pill className="text-blue-400" size={20} />
-            </div>
-            <div>
-              <p className="text-sm font-black tracking-tight leading-none">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <Pill className="text-blue-400" size={16} />
+              </div>
+              <p className="text-xs sm:text-sm font-black tracking-tight leading-snug">
                 {toast.message}
               </p>
             </div>
             <button
               onClick={() => setToast((prev) => ({ ...prev, visible: false }))}
-              className="ml-2 p-1 hover:bg-slate-800 rounded-full transition-colors"
+              className="ml-2 p-1 hover:bg-slate-800 rounded-full transition-colors shrink-0"
             >
               <X size={16} className="text-slate-500" />
             </button>
@@ -5037,16 +5037,16 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 text-left"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-3 sm:p-4 text-left"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
-              className="bg-white rounded-[32px] p-8 max-w-md w-full border border-slate-200 shadow-2xl flex flex-col gap-6"
+              className="bg-white rounded-3xl p-5 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl flex flex-col gap-5 sm:gap-6 max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               <div className="flex flex-col gap-2">
-                <h4 className={`text-lg font-black uppercase tracking-wider ${customModal.isDanger ? "text-red-500" : "text-slate-900"}`}>
+                <h4 className={`text-base sm:text-lg font-black uppercase tracking-wider ${customModal.isDanger ? "text-red-500" : "text-slate-900"}`}>
                   {customModal.title}
                 </h4>
                 <p className="text-slate-500 text-xs font-bold leading-relaxed whitespace-pre-wrap">
@@ -5054,11 +5054,11 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="flex gap-4 justify-end mt-2">
+              <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-4 justify-end mt-2">
                 {customModal.cancelText && (
                   <button
                     onClick={() => setCustomModal(null)}
-                    className="px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 border border-slate-100 transition-all font-sans cursor-pointer"
+                    className="w-full sm:w-auto px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 border border-slate-100 transition-all font-sans cursor-pointer text-center"
                   >
                     {customModal.cancelText}
                   </button>
@@ -5069,7 +5069,7 @@ export default function App() {
                     setCustomModal(null);
                     await confirmFn();
                   }}
-                  className={`px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-md transition-all active:scale-95 font-sans cursor-pointer ${customModal.isDanger ? "bg-red-500 hover:bg-red-600 shadow-red-100" : "bg-[#064e3b] hover:bg-[#043d2e] shadow-emerald-950/20"}`}
+                  className={`w-full sm:w-auto px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-md transition-all active:scale-95 font-sans cursor-pointer text-center ${customModal.isDanger ? "bg-red-500 hover:bg-red-600 shadow-red-100" : "bg-[#064e3b] hover:bg-[#043d2e] shadow-emerald-950/20"}`}
                 >
                   {customModal.confirmText || "OK"}
                 </button>
@@ -5103,8 +5103,8 @@ export default function App() {
 
       {/* Public URL Invoice Viewer Modal for WhatsApp link clicks */}
       {publicInvoice && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-3.5 relative border border-slate-100">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-3.5 relative border border-slate-100 max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar">
             <button
               onClick={() => {
                 setPublicInvoice(null);

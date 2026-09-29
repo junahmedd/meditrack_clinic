@@ -1689,11 +1689,11 @@ export function DoctorPortal({
 
         {/* TAB A: CONSULTATION WORKSPACE (Clean, Dynamic Data & Optimized Layout) */}
         {activeTab === "consultation" && (
-          <div className="p-8 max-w-7xl mx-auto w-full space-y-6">
+          <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-5 sm:space-y-6">
             {/* Page Title Sub-Header Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 font-display tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display tracking-tight">
                   Consultation
                 </h2>
                 <p className="text-xs text-slate-400 font-medium mt-0.5">
@@ -1704,7 +1704,7 @@ export function DoctorPortal({
               <button
                 type="button"
                 onClick={() => setIsHistoryOpen(true)}
-                className="px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-700 shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0"
+                className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-700 shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0"
               >
                 <Clock size={15} />
                 <span>View History</span>
@@ -1712,7 +1712,7 @@ export function DoctorPortal({
             </div>
 
             {/* 2-Column Split View Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
               {/* LEFT COLUMN: TODAY'S PATIENTS QUEUE LIST (Compact Fit, Avoids Scrolling) */}
               <div className="lg:col-span-4 bg-white rounded-2xl p-4 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-3">
                 <div className="flex items-center justify-between">
@@ -1722,8 +1722,8 @@ export function DoctorPortal({
                   </span>
                 </div>
 
-                {/* Queue Patient Items List (Compact Fit, No Scrollbar) */}
-                <div className="space-y-1.5">
+                {/* Queue Patient Items List (Scrollable on small mobile screens to keep consultation card reachable) */}
+                <div className="space-y-1.5 max-h-56 sm:max-h-none overflow-y-auto no-scrollbar pr-0.5">
                   {doctorQueue.length > 0 ? (
                     doctorQueue.map((item) => {
                       const isSelected = activePatient?.id === item.id || item.status === "Called";
@@ -2024,45 +2024,47 @@ export function DoctorPortal({
                               <span>Upper Arch (Maxillary Teeth 18-28)</span>
                               <span>UL (Upper Left)</span>
                             </div>
-                            <div className="flex justify-center gap-1 sm:gap-1.5 flex-wrap">
-                              {[18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28].map((tNum) => {
-                                const cond = teethStatus[tNum] || "Healthy";
-                                const isSelected = selectedToothNum === tNum;
-                                const isTreated = dentalProcedures.some((p) => p.tooth === `Tooth #${tNum}`);
+                            <div className="overflow-x-auto no-scrollbar pb-1">
+                              <div className="flex justify-center gap-1 sm:gap-1.5 min-w-[500px] sm:min-w-0">
+                                {[18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28].map((tNum) => {
+                                  const cond = teethStatus[tNum] || "Healthy";
+                                  const isSelected = selectedToothNum === tNum;
+                                  const isTreated = dentalProcedures.some((p) => p.tooth === `Tooth #${tNum}`);
 
-                                return (
-                                  <button
-                                    key={tNum}
-                                    type="button"
-                                    onClick={() => setSelectedToothNum(tNum)}
-                                    className={`w-7 h-10 sm:w-8 sm:h-11 rounded-xl flex flex-col items-center justify-between p-1 font-mono text-[10px] font-black transition-all cursor-pointer border ${
-                                      isSelected
-                                        ? "ring-2 ring-cyan-400 bg-cyan-600 text-white border-cyan-300 shadow-lg shadow-cyan-500/40 scale-110 z-10"
-                                        : isTreated
-                                        ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/80 shadow-xs"
-                                        : cond === "Caries"
-                                        ? "bg-rose-950/80 text-rose-300 border-rose-500/80 animate-pulse"
-                                        : cond === "Missing"
-                                        ? "bg-slate-800/60 text-slate-500 border-slate-700 opacity-40 line-through"
-                                        : cond === "Crown"
-                                        ? "bg-amber-950/80 text-amber-300 border-amber-500/80"
-                                        : "bg-slate-900/90 text-slate-200 border-slate-700/80 hover:border-sky-400 hover:bg-slate-800"
-                                    }`}
-                                    title={`Tooth #${tNum} (${cond})`}
-                                  >
-                                    <span className="text-[9px] font-bold">#{tNum}</span>
-                                    {/* 4D Tooth Silhouette */}
-                                    <div className="w-3.5 h-3.5 rounded-xs flex items-center justify-center">
-                                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full opacity-90">
-                                        <path d="M12 2C8 2 6 5 6 9C6 14 8 22 10 22C11 22 11.5 20 12 20C12.5 20 13 22 14 22C16 22 18 14 18 9C18 5 16 2 12 2Z" />
-                                      </svg>
-                                    </div>
-                                    <span className="text-[7.5px] font-sans font-extrabold uppercase">
-                                      {cond === "Healthy" ? "OK" : cond.slice(0, 3)}
-                                    </span>
-                                  </button>
-                                );
-                              })}
+                                  return (
+                                    <button
+                                      key={tNum}
+                                      type="button"
+                                      onClick={() => setSelectedToothNum(tNum)}
+                                      className={`w-7 h-10 sm:w-8 sm:h-11 rounded-xl flex flex-col items-center justify-between p-1 font-mono text-[10px] font-black transition-all cursor-pointer border ${
+                                        isSelected
+                                          ? "ring-2 ring-cyan-400 bg-cyan-600 text-white border-cyan-300 shadow-lg shadow-cyan-500/40 scale-110 z-10"
+                                          : isTreated
+                                          ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/80 shadow-xs"
+                                          : cond === "Caries"
+                                          ? "bg-rose-950/80 text-rose-300 border-rose-500/80 animate-pulse"
+                                          : cond === "Missing"
+                                          ? "bg-slate-800/60 text-slate-500 border-slate-700 opacity-40 line-through"
+                                          : cond === "Crown"
+                                          ? "bg-amber-950/80 text-amber-300 border-amber-500/80"
+                                          : "bg-slate-900/90 text-slate-200 border-slate-700/80 hover:border-sky-400 hover:bg-slate-800"
+                                      }`}
+                                      title={`Tooth #${tNum} (${cond})`}
+                                    >
+                                      <span className="text-[9px] font-bold">#{tNum}</span>
+                                      {/* 4D Tooth Silhouette */}
+                                      <div className="w-3.5 h-3.5 rounded-xs flex items-center justify-center">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full opacity-90">
+                                          <path d="M12 2C8 2 6 5 6 9C6 14 8 22 10 22C11 22 11.5 20 12 20C12.5 20 13 22 14 22C16 22 18 14 18 9C18 5 16 2 12 2Z" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-[7.5px] font-sans font-extrabold uppercase">
+                                        {cond === "Healthy" ? "OK" : cond.slice(0, 3)}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </div>
 
@@ -2075,45 +2077,47 @@ export function DoctorPortal({
                               <span>Lower Arch (Mandibular Teeth 48-38)</span>
                               <span>LL (Lower Left)</span>
                             </div>
-                            <div className="flex justify-center gap-1 sm:gap-1.5 flex-wrap">
-                              {[48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38].map((tNum) => {
-                                const cond = teethStatus[tNum] || "Healthy";
-                                const isSelected = selectedToothNum === tNum;
-                                const isTreated = dentalProcedures.some((p) => p.tooth === `Tooth #${tNum}`);
+                            <div className="overflow-x-auto no-scrollbar pb-1">
+                              <div className="flex justify-center gap-1 sm:gap-1.5 min-w-[500px] sm:min-w-0">
+                                {[48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38].map((tNum) => {
+                                  const cond = teethStatus[tNum] || "Healthy";
+                                  const isSelected = selectedToothNum === tNum;
+                                  const isTreated = dentalProcedures.some((p) => p.tooth === `Tooth #${tNum}`);
 
-                                return (
-                                  <button
-                                    key={tNum}
-                                    type="button"
-                                    onClick={() => setSelectedToothNum(tNum)}
-                                    className={`w-7 h-10 sm:w-8 sm:h-11 rounded-xl flex flex-col items-center justify-between p-1 font-mono text-[10px] font-black transition-all cursor-pointer border ${
-                                      isSelected
-                                        ? "ring-2 ring-cyan-400 bg-cyan-600 text-white border-cyan-300 shadow-lg shadow-cyan-500/40 scale-110 z-10"
-                                        : isTreated
-                                        ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/80 shadow-xs"
-                                        : cond === "Caries"
-                                        ? "bg-rose-950/80 text-rose-300 border-rose-500/80 animate-pulse"
-                                        : cond === "Missing"
-                                        ? "bg-slate-800/60 text-slate-500 border-slate-700 opacity-40 line-through"
-                                        : cond === "Crown"
-                                        ? "bg-amber-950/80 text-amber-300 border-amber-500/80"
-                                        : "bg-slate-900/90 text-slate-200 border-slate-700/80 hover:border-sky-400 hover:bg-slate-800"
-                                    }`}
-                                    title={`Tooth #${tNum} (${cond})`}
-                                  >
-                                    <span className="text-[9px] font-bold">#{tNum}</span>
-                                    {/* 4D Tooth Silhouette */}
-                                    <div className="w-3.5 h-3.5 rounded-xs flex items-center justify-center">
-                                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full opacity-90">
-                                        <path d="M12 2C8 2 6 5 6 9C6 14 8 22 10 22C11 22 11.5 20 12 20C12.5 20 13 22 14 22C16 22 18 14 18 9C18 5 16 2 12 2Z" />
-                                      </svg>
-                                    </div>
-                                    <span className="text-[7.5px] font-sans font-extrabold uppercase">
-                                      {cond === "Healthy" ? "OK" : cond.slice(0, 3)}
-                                    </span>
-                                  </button>
-                                );
-                              })}
+                                  return (
+                                    <button
+                                      key={tNum}
+                                      type="button"
+                                      onClick={() => setSelectedToothNum(tNum)}
+                                      className={`w-7 h-10 sm:w-8 sm:h-11 rounded-xl flex flex-col items-center justify-between p-1 font-mono text-[10px] font-black transition-all cursor-pointer border ${
+                                        isSelected
+                                          ? "ring-2 ring-cyan-400 bg-cyan-600 text-white border-cyan-300 shadow-lg shadow-cyan-500/40 scale-110 z-10"
+                                          : isTreated
+                                          ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/80 shadow-xs"
+                                          : cond === "Caries"
+                                          ? "bg-rose-950/80 text-rose-300 border-rose-500/80 animate-pulse"
+                                          : cond === "Missing"
+                                          ? "bg-slate-800/60 text-slate-500 border-slate-700 opacity-40 line-through"
+                                          : cond === "Crown"
+                                          ? "bg-amber-950/80 text-amber-300 border-amber-500/80"
+                                          : "bg-slate-900/90 text-slate-200 border-slate-700/80 hover:border-sky-400 hover:bg-slate-800"
+                                      }`}
+                                      title={`Tooth #${tNum} (${cond})`}
+                                    >
+                                      <span className="text-[9px] font-bold">#{tNum}</span>
+                                      {/* 4D Tooth Silhouette */}
+                                      <div className="w-3.5 h-3.5 rounded-xs flex items-center justify-center">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full opacity-90">
+                                          <path d="M12 2C8 2 6 5 6 9C6 14 8 22 10 22C11 22 11.5 20 12 20C12.5 20 13 22 14 22C16 22 18 14 18 9C18 5 16 2 12 2Z" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-[7.5px] font-sans font-extrabold uppercase">
+                                        {cond === "Healthy" ? "OK" : cond.slice(0, 3)}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -2291,8 +2295,8 @@ export function DoctorPortal({
                         </button>
                       </div>
 
-                      {/* Prescription Table Grid */}
-                      <div className="border border-slate-200/80 rounded-xl text-xs relative">
+                      {/* Prescription Container: Desktop Table Grid (>= 640px) */}
+                      <div className="hidden sm:block border border-slate-200/80 rounded-xl text-xs relative">
                         <div className="bg-slate-50 px-4 py-2.5 grid grid-cols-12 gap-3 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider border-b border-slate-100">
                           <div className="col-span-4">Medicine</div>
                           <div className="col-span-2">Dosage</div>
@@ -2396,15 +2400,119 @@ export function DoctorPortal({
                           ))}
                         </div>
                       </div>
+
+                      {/* Prescription Container: Mobile Touch Cards (< 640px) */}
+                      <div className="sm:hidden space-y-3">
+                        {prescriptionItems.map((item, idx) => (
+                          <div key={idx} className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2.5">
+                            {/* Medicine Search Header */}
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                                Medicine #{idx + 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMedicine(idx)}
+                                className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+
+                            <div className="relative">
+                              <div className="relative flex items-center">
+                                <Search size={14} className="absolute left-2.5 text-slate-400 pointer-events-none" />
+                                <input
+                                  type="text"
+                                  value={item.medicine}
+                                  onChange={(e) => handleUpdateMedicine(idx, "medicine", e.target.value)}
+                                  onFocus={() => setActiveMedicineSearchIdx(idx)}
+                                  placeholder="Search medicine name..."
+                                  className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200/80 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
+                                />
+                              </div>
+                              {activeMedicineSearchIdx === idx && (
+                                <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 z-50 max-h-48 overflow-y-auto">
+                                  {combinedMedicineOptions.filter((m) =>
+                                    m.name.toLowerCase().includes((item.medicine || "").toLowerCase())
+                                  ).length > 0 ? (
+                                    combinedMedicineOptions
+                                      .filter((m) =>
+                                        m.name.toLowerCase().includes((item.medicine || "").toLowerCase())
+                                      )
+                                      .map((catItem, cIdx) => (
+                                        <button
+                                          key={cIdx}
+                                          type="button"
+                                          onClick={() => handleSelectCatalogMedicine(idx, catItem)}
+                                          className="w-full text-left p-2 hover:bg-emerald-50 rounded-lg text-xs font-bold text-slate-800 transition-colors flex items-center justify-between cursor-pointer"
+                                        >
+                                          <span className="truncate pr-2">{catItem.name}</span>
+                                          <span className="text-[10px] text-[#065f46] bg-emerald-50 px-1.5 py-0.5 rounded font-extrabold shrink-0">
+                                            {catItem.defaultDosage}
+                                          </span>
+                                        </button>
+                                      ))
+                                  ) : (
+                                    <div className="p-2.5 text-center text-slate-400 font-medium text-[11px]">
+                                      No matching medicines
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* 3-Column Inputs on Mobile */}
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Dosage</label>
+                                <input
+                                  type="text"
+                                  value={item.dosage}
+                                  onChange={(e) => handleUpdateMedicine(idx, "dosage", e.target.value)}
+                                  placeholder="1-0-1"
+                                  className="w-full px-2 py-1.5 bg-white border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Duration</label>
+                                <input
+                                  type="text"
+                                  value={item.duration}
+                                  onChange={(e) => handleUpdateMedicine(idx, "duration", e.target.value)}
+                                  placeholder="5 Days"
+                                  className="w-full px-2 py-1.5 bg-white border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">When</label>
+                                <select
+                                  value={item.instructions || "After food"}
+                                  onChange={(e) => handleUpdateMedicine(idx, "instructions", e.target.value)}
+                                  className="w-full px-1.5 py-1.5 bg-white border border-slate-200/80 rounded-lg text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
+                                >
+                                  <option value="After food">After food</option>
+                                  <option value="Before food">Before food</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {prescriptionItems.length === 0 && (
+                          <div className="p-4 text-center text-slate-400 text-xs font-bold bg-slate-50 rounded-xl">
+                            No medicines added. Click "+ Add Medicine Row" above.
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* 5. BOTTOM ACTION BAR */}
                     <div className="space-y-2 pt-1">
-                      <div className="flex items-center justify-end gap-3">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                         <button
                           type="button"
                           onClick={() => showToast("Draft saved successfully")}
-                          className="px-5 py-2.5 bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-700 font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+                          className="w-full sm:w-auto px-5 py-2.5 bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-700 font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
                           <FileText size={14} />
                           <span>Save as Draft</span>
@@ -2414,7 +2522,7 @@ export function DoctorPortal({
                           type="button"
                           onClick={handleComplete}
                           disabled={isSubmitting}
-                          className="px-7 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                          className="w-full sm:w-auto px-7 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                         >
                           <span>{isSubmitting ? "Completing Consultation..." : "Complete Consultation"}</span>
                           <ArrowRight size={15} />
@@ -2477,7 +2585,7 @@ export function DoctorPortal({
             </div>
 
             {/* Period Selector: Day, Month, Year, All Time */}
-            <div className="flex items-center justify-between flex-wrap gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-2xs">
               <div className="flex items-center gap-2">
                 <Calendar size={16} className="text-[#065f46]" />
                 <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
@@ -2493,7 +2601,7 @@ export function DoctorPortal({
                     : "All Time"}
                 </span>
               </div>
-              <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl">
+              <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl overflow-x-auto no-scrollbar w-full sm:w-auto">
                 {[
                   { key: "today", label: "Today (Live)" },
                   { key: "month", label: "This Month" },
@@ -2504,7 +2612,7 @@ export function DoctorPortal({
                     key={item.key}
                     type="button"
                     onClick={() => setSelectedPeriod(item.key as any)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                    className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
                       selectedPeriod === item.key
                         ? "bg-[#064e3b] text-white shadow-xs"
                         : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
@@ -2696,7 +2804,7 @@ export function DoctorPortal({
 
         {/* TAB: MEDICINE CATALOG WORKSPACE & MANAGEMENT */}
         {(activeTab === "medicine" || activeTab === "prescriptions" || activeTab === "appointments") && (
-          <div className="p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
+          <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-5 sm:space-y-6">
             {/* Header & Title */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -2839,7 +2947,7 @@ export function DoctorPortal({
                 exit={{ scale: 0.95, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
                 style={{ maxWidth: "420px" }}
-                className="bg-white rounded-2xl shadow-2xl w-full p-5 space-y-4 border border-slate-100 mx-auto"
+                className="bg-white rounded-2xl shadow-2xl w-full p-5 space-y-4 border border-slate-100 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
               >
                 {/* Modal Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -2971,15 +3079,15 @@ export function DoctorPortal({
 
         {/* TAB D: PATIENTS ARCHIVE */}
         {activeTab === "patients" && (
-          <div className="p-8 max-w-7xl mx-auto w-full space-y-6">
-            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+          <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-5 sm:space-y-6">
+            <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm space-y-4">
               <h3 className="text-base font-extrabold text-slate-900">My Patients History</h3>
               <div className="divide-y divide-slate-100">
                 {doctorPatientsList.map((p) => (
-                  <div key={p.id} className="py-4 flex items-center justify-between">
+                  <div key={p.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <p className="font-extrabold text-sm text-slate-900">{p.name}</p>
-                      <p className="text-xs text-slate-400 font-medium">
+                      <p className="text-xs text-slate-400 font-medium mt-0.5">
                         {p.phone} • Age: {p.age ? `${p.age} yrs` : "NA"} • Gender: {p.gender || detectGenderFromName(p.name)} • Status: <strong className="text-slate-700">{p.status}</strong> • Billing:{" "}
                         <strong className="text-[#065f46]">{p.billingStatus || "Pending"}</strong>
                       </p>
@@ -2989,7 +3097,7 @@ export function DoctorPortal({
                         if (onFetchHistory) onFetchHistory(p.phone);
                         setIsHistoryOpen(true);
                       }}
-                      className="px-4 py-2 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                      className="w-full sm:w-auto px-4 py-2 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
                     >
                       View Clinical File
                     </button>
@@ -3002,14 +3110,14 @@ export function DoctorPortal({
 
         {/* TAB E: PRESCRIPTIONS LIST */}
         {activeTab === "prescriptions" && (
-          <div className="p-8 max-w-7xl mx-auto w-full space-y-6">
-            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+          <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-5 sm:space-y-6">
+            <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm space-y-4">
               <h3 className="text-base font-extrabold text-slate-900">Issued Prescriptions (Rx)</h3>
               <div className="divide-y divide-slate-100">
                 {doctorPatientsList
                   .filter((p) => p.prescription)
                   .map((p) => (
-                    <div key={p.id} className="py-4 flex items-center justify-between">
+                    <div key={p.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <p className="font-extrabold text-sm text-slate-900">{p.name}</p>
                         <p className="text-xs text-slate-500 font-medium mt-1">Diagnosis: {p.diagnosis || "General"}</p>
@@ -3019,7 +3127,7 @@ export function DoctorPortal({
                           if (onFetchHistory) onFetchHistory(p.phone);
                           setIsHistoryOpen(true);
                         }}
-                        className="px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
                       >
                         Review Rx
                       </button>
@@ -3032,8 +3140,8 @@ export function DoctorPortal({
 
         {/* TAB F: LAB ORDERS / DENTAL CHART */}
         {activeTab === "lab_orders" && (
-          <div className="p-8 max-w-7xl mx-auto w-full space-y-6">
-            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+          <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-5 sm:space-y-6">
+            <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm space-y-4">
               <h3 className="text-base font-extrabold text-slate-900">
                 {category === "DENTIST" ? "Dental Charting & Treatment Procedures" : "Lab Diagnostic Orders"}
               </h3>
@@ -3048,8 +3156,8 @@ export function DoctorPortal({
 
         {/* TAB: PROFILE WORKSPACE */}
         {activeTab === "profile" && (
-          <div className="p-8 max-w-4xl mx-auto w-full space-y-6">
-            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6">
+          <div className="p-3.5 sm:p-6 md:p-8 max-w-4xl mx-auto w-full space-y-5 sm:space-y-6">
+            <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm space-y-6">
               {/* Top Banner & Avatar */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
                 <div className="flex items-center gap-4">
@@ -3186,7 +3294,7 @@ export function DoctorPortal({
               exit={{ scale: 0.95, y: 10, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "420px", width: "100%" }}
-              className="bg-white rounded-2xl p-5 shadow-2xl border border-slate-100 space-y-3.5 mx-auto"
+              className="bg-white rounded-2xl p-5 shadow-2xl border border-slate-100 space-y-3.5 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             >
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                 <div className="flex items-center gap-2">
@@ -3412,10 +3520,12 @@ export function DoctorPortal({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-8 right-8 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl font-extrabold text-xs shadow-xl flex items-center gap-2"
+            className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-8 sm:bottom-8 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl font-extrabold text-xs shadow-xl flex items-center justify-between sm:justify-start gap-2"
           >
-            <CheckCircle2 size={16} className="text-emerald-400" />
-            <span>{toastMessage}</span>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+              <span>{toastMessage}</span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

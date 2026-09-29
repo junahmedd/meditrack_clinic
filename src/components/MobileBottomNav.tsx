@@ -28,7 +28,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onOpenSidePanel,
 }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-black border-t border-neutral-800/80 z-40 md:hidden select-none shadow-[0_-4px_25px_rgba(0,0,0,0.7)]">
+    <nav className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-neutral-800/80 z-40 md:hidden select-none shadow-[0_-4px_25px_rgba(0,0,0,0.7)] pb-[env(safe-area-inset-bottom,0px)]">
       <div className="h-16 px-1 flex items-center justify-around max-w-lg mx-auto">
         {/* Tab 1: Dashboard */}
         <button
@@ -159,9 +159,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           </span>
         </button>
       </div>
-
-      {/* iOS Home Indicator Safe Area Inset Spacing */}
-      <div className="h-[max(env(safe-area-inset-bottom),0px)]" />
     </nav>
   );
 };
