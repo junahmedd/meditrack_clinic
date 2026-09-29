@@ -190,7 +190,7 @@ export interface AppointmentItem {
   phone: string;
   doctor: string;
   type: "General Consultation" | "Check Up" | "General" | "Dental" | "Follow-up";
-  status: "Completed" | "Consulting" | "Waiting" | "Scheduled" | "In Billing" | "Cancelled";
+  status: "Completed" | "Consulting" | "Waiting" | "Scheduled" | "In Billing" | "Billing" | "Cancelled";
   age?: string;
   notes?: string;
   date?: string;
@@ -220,7 +220,7 @@ export interface QueueItem {
   doctor: string;
   specialty: string;
   time: string;
-  status: "In Consultation" | "Waiting" | "Scheduled" | "Completed";
+  status: "In Consultation" | "Consulting" | "Waiting" | "Scheduled" | "Billing" | "In Billing" | "Completed";
   age?: string;
 }
 
@@ -483,7 +483,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           : "Live Queue",
         status:
           p.status === "Called" || p.status === "Consulting" || p.status === "In Consultation" || p.status === "CONSULTING"
-            ? ("In Consultation" as const)
+            ? ("Consulting" as const)
             : ("Waiting" as const),
         age: p.age,
       }));
@@ -619,11 +619,11 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         : p.status === "Called" || p.status === "Consulting" || p.status === "In Consultation"
         ? "Consulting"
         : p.status === "In Billing" || p.status === "Billing"
-        ? "In Billing"
+        ? "Billing"
         : p.status === "Completed" || p.status === "PAID"
         ? p.billingStatus === "Paid" || p.status === "PAID"
           ? "Completed"
-          : "In Billing"
+          : "Billing"
         : p.status === "Cancelled"
         ? "Cancelled"
         : "Waiting") as AppointmentItem["status"],
@@ -1119,16 +1119,42 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     [scopedPatients]
   );
 
+  // All Paid Patients (for 7-day trend chart)
   const paidBillingPatients = useMemo(
     () => scopedPatients.filter((p) => p.billingStatus === "Paid" || p.status === "PAID" || p.status === "Paid"),
     [scopedPatients]
   );
 
-  // Dynamic Revenue Stats (100% Live from Firestore)
+  // Helper to test if payment was recorded TODAY (Strict New-Day Basis)
+  const isPaidToday = (p: Patient) => {
+    const isPaid = p.billingStatus === "Paid" || p.status === "PAID" || (p.status === "Completed" && p.billingStatus === "Paid");
+    if (!isPaid) return false;
+    const ts: any = p.paidAt || p.consultationCompletedAt || p.billedAt || p.timestamp || p.createdAt;
+    if (!ts) return false;
+    let d: Date | null = null;
+    if (ts.toDate && typeof ts.toDate === "function") d = ts.toDate();
+    else if (ts.seconds) d = new Date(ts.seconds * 1000);
+    else if (typeof ts === "string" || typeof ts === "number") d = new Date(ts);
+    if (!d || isNaN(d.getTime())) return false;
+    const now = new Date();
+    return (
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear()
+    );
+  };
+
+  // Patients billed and paid TODAY
+  const paidTodayPatients = useMemo(
+    () => scopedPatients.filter(isPaidToday),
+    [scopedPatients]
+  );
+
+  // Dynamic Revenue Stats (Strictly Today on New Day Basis)
   const revenueStats = useMemo(() => {
     let upiTotal = 0;
     let cashTotal = 0;
-    paidBillingPatients.forEach((p) => {
+    paidTodayPatients.forEach((p) => {
       const fee = typeof p.consultationFee === "number" ? p.consultationFee : (p.billingAmount ? Number(p.billingAmount) : 500);
       if (p.paymentMethod === "Cash") {
         cashTotal += fee;
@@ -1141,8 +1167,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       cash: cashTotal,
       total: upiTotal + cashTotal,
       todayPatients: scopedPatients.length,
+      settledInvoices: paidTodayPatients.length,
     };
-  }, [paidBillingPatients, scopedPatients]);
+  }, [paidTodayPatients, scopedPatients]);
 
   // Dynamic Doctor Visits from Live Scoped Patients (Strictly scoped to assigned doctor)
   const DOCTOR_VISITS_DATA = useMemo(() => {
@@ -1724,7 +1751,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">UPI</p>
                     <p className="text-2xl font-black text-slate-900 mt-1">₹{revenueStats.upi.toLocaleString()}</p>
                     <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                      {paidBillingPatients.filter((p) => p.paymentMethod !== "Cash").length} digital payment{paidBillingPatients.filter((p) => p.paymentMethod !== "Cash").length === 1 ? "" : "s"}
+                      {paidTodayPatients.filter((p) => p.paymentMethod !== "Cash").length} digital payment{paidTodayPatients.filter((p) => p.paymentMethod !== "Cash").length === 1 ? "" : "s"}
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -1738,7 +1765,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cash</p>
                     <p className="text-2xl font-black text-slate-900 mt-1">₹{revenueStats.cash.toLocaleString()}</p>
                     <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                      {paidBillingPatients.filter((p) => p.paymentMethod === "Cash").length} cash payment{paidBillingPatients.filter((p) => p.paymentMethod === "Cash").length === 1 ? "" : "s"}
+                      {paidTodayPatients.filter((p) => p.paymentMethod === "Cash").length} cash payment{paidTodayPatients.filter((p) => p.paymentMethod === "Cash").length === 1 ? "" : "s"}
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -1752,7 +1779,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
                     <p className="text-2xl font-black text-slate-900 mt-1">₹{revenueStats.total.toLocaleString()}</p>
                     <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                      {paidBillingPatients.length} invoice{paidBillingPatients.length === 1 ? "" : "s"} settled
+                      {paidTodayPatients.length} invoice{paidTodayPatients.length === 1 ? "" : "s"} settled
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -2168,14 +2195,24 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </td>
                           <td className="py-2.5 px-4 text-slate-700 font-mono font-medium">{q.time}</td>
                           <td className="py-2.5 px-4">
-                            {q.status === "In Consultation" && (
+                            {(q.status === "Consulting" || q.status === "In Consultation") && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                                In Consultation
+                                Consulting
+                              </span>
+                            )}
+                            {(q.status === "Billing" || q.status === "In Billing") && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
+                                Billing
                               </span>
                             )}
                             {q.status === "Waiting" && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
                                 Waiting
+                              </span>
+                            )}
+                            {q.status === "Completed" && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80">
+                                Completed
                               </span>
                             )}
                             {q.status === "Scheduled" && (
@@ -2186,9 +2223,13 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </td>
                           <td className="py-2.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              {q.status === "In Consultation" ? (
+                              {q.status === "Consulting" || q.status === "In Consultation" ? (
                                 <span className="px-2.5 py-1 bg-slate-100 text-slate-500 font-bold text-xs rounded-lg cursor-not-allowed">
                                   Consulting
+                                </span>
+                              ) : q.status === "Billing" || q.status === "In Billing" ? (
+                                <span className="px-2.5 py-1 bg-cyan-50 text-cyan-700 font-bold text-xs rounded-lg cursor-not-allowed">
+                                  In Billing
                                 </span>
                               ) : (
                                 <button
@@ -2543,9 +2584,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                                 Scheduled
                               </span>
                             )}
-                            {apt.status === "In Billing" && (
+                            {(apt.status === "In Billing" || apt.status === "Billing") && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
-                                In Billing
+                                Billing
                               </span>
                             )}
                             {apt.status === "Cancelled" && (

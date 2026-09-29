@@ -571,27 +571,18 @@ export function DoctorPortal({
   const [diagnosisSearch, setDiagnosisSearch] = useState("");
   const [showDiagnosisDropdown, setShowDiagnosisDropdown] = useState(false);
 
-  // Automatically detect patient gender from active patient's name, with manual toggle option
-  const [doctorSelectedGender, setDoctorSelectedGender] = useState<"Male" | "Female" | null>(null);
+  // Automatically detect patient gender strictly from active patient's name (no manual switch)
+  const detectedGender: "Male" | "Female" = activePatient?.name
+    ? detectGenderFromName(activePatient.name)
+    : (activePatient?.gender === "Male" || activePatient?.gender === "Female" ? activePatient.gender : "Male");
 
   useEffect(() => {
-    if (!activePatient) {
-      setDoctorSelectedGender(null);
-      return;
-    }
-    if (activePatient.gender === "Male" || activePatient.gender === "Female") {
-      setDoctorSelectedGender(activePatient.gender);
-    } else {
-      const autoGender = detectGenderFromName(activePatient.name);
-      setDoctorSelectedGender(autoGender);
-      // Auto-save to Firestore so subsequent loads remember it
-      if (activePatient.id) {
-        updateDoc(doc(db, "patients", activePatient.id), { gender: autoGender }).catch(console.error);
-      }
+    if (!activePatient?.id || !activePatient?.name) return;
+    const autoGender = detectGenderFromName(activePatient.name);
+    if (activePatient.gender !== autoGender) {
+      updateDoc(doc(db, "patients", activePatient.id), { gender: autoGender }).catch(console.error);
     }
   }, [activePatient?.id, activePatient?.name, activePatient?.gender]);
-
-  const detectedGender: "Male" | "Female" = doctorSelectedGender || (activePatient ? detectGenderFromName(activePatient.name) : "Male");
 
   // Vitals State (Empty initial values, populated dynamically from active patient)
   const [vitals, setVitals] = useState({
@@ -826,43 +817,50 @@ export function DoctorPortal({
   }, [doctorPatientsList]);
 
   // Revenue Overview Chart Data (Strict Live Firebase Data - Starts at ₹0)
+  // Revenue Overview (Strictly on New Day Basis - updated ONLY after billing is done/paid)
   const revenueData = useMemo(() => {
-    // 1. Consultation Revenue from completed/paid patients in live Firestore
-    const completedPatients = doctorPatientsList.filter(
-      (p) => p.status === "Completed" || p.status === "COMPLETED" || p.status === "PAID" || p.status === "Paid" || p.billingStatus === "Paid"
-    );
-    const consultationRev = completedPatients.reduce((sum, p) => {
+    const isBilledToday = (p: Patient) => {
+      const isPaid = p.billingStatus === "Paid" || p.status === "PAID" || (p.status === "Completed" && p.billingStatus === "Paid");
+      if (!isPaid) return false;
+      const ts: any = p.paidAt || p.consultationCompletedAt || p.billedAt || p.timestamp || p.createdAt;
+      if (!ts) return false;
+      let d: Date | null = null;
+      if (ts.toDate && typeof ts.toDate === "function") d = ts.toDate();
+      else if (ts.seconds) d = new Date(ts.seconds * 1000);
+      else if (typeof ts === "string" || typeof ts === "number") d = new Date(ts);
+      if (!d || isNaN(d.getTime())) return false;
+      const now = new Date();
+      return (
+        d.getDate() === now.getDate() &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear()
+      );
+    };
+
+    // Consultation Revenue ONLY from patients whose billing is completed/paid TODAY
+    const billedTodayPatients = doctorPatientsList.filter(isBilledToday);
+    const consultationRev = billedTodayPatients.reduce((sum, p) => {
       const fee = typeof p.consultationFee === "number" ? p.consultationFee : (p.billingAmount ? Number(p.billingAmount) : consultationFee);
       return sum + (fee > 0 ? fee : consultationFee);
     }, 0);
 
-    // 2. Check-in Registration Revenue from checked-in / waiting queue patients
-    const checkInPatients = doctorPatientsList.filter(
-      (p) => p.status === "Waiting" || (p.status as any) === "Checked-In" || p.status === "In Consultation"
-    );
-    const checkInRev = checkInPatients.length * 100; // Rs 100 registration fee per check-in
-
-    const total = consultationRev + checkInRev;
-    const consultationPct = total > 0 ? Math.round((consultationRev / total) * 100) : 0;
-    const checkInPct = total > 0 ? Math.round((checkInRev / total) * 100) : 0;
-
+    const total = consultationRev;
     const chartSlices = total > 0
       ? [
-          { name: "Consultation", value: consultationRev, color: "#064e3b", percentage: consultationPct },
-          { name: "Check in", value: checkInRev, color: "#10b981", percentage: checkInPct },
+          { name: "Consultation Fee", value: consultationRev, color: "#064e3b", percentage: 100 },
         ]
       : [
           { name: "No Revenue", value: 1, color: "#e2e8f0", percentage: 0 },
         ];
 
     const legendSlices = [
-      { name: "Consultation", value: consultationRev, color: "#064e3b", percentage: consultationPct },
-      { name: "Check in", value: checkInRev, color: "#10b981", percentage: checkInPct },
+      { name: "Consultation Fee", value: consultationRev, color: "#064e3b", percentage: total > 0 ? 100 : 0 },
     ];
 
     return {
       total,
       consultationRev,
+      billedCount: billedTodayPatients.length,
       chartSlices,
       legendSlices,
     };
@@ -1744,7 +1742,7 @@ export function DoctorPortal({
                                     : "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
                                 }`}
                               >
-                                {statusStr === "Consulting" ? "IN CONSULTATION" : statusStr}
+                                {statusStr === "Consulting" ? "Consulting" : statusStr}
                               </span>
                             )}
                           </div>
@@ -1782,6 +1780,9 @@ export function DoctorPortal({
                             <span className="text-xs font-mono font-bold text-slate-400">
                               PT-{activePatient.id.slice(-6).toUpperCase()}
                             </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                              Consulting
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1804,25 +1805,15 @@ export function DoctorPortal({
                           <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">
                             Gender
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const nextGender = detectedGender === "Male" ? "Female" : "Male";
-                              setDoctorSelectedGender(nextGender);
-                              if (activePatient?.id) {
-                                updateDoc(doc(db, "patients", activePatient.id), { gender: nextGender }).catch(console.error);
-                              }
-                            }}
-                            title="Click to toggle between Male and Female"
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-lg font-extrabold text-xs select-none shadow-2xs ${
                               detectedGender === "Male"
-                                ? "bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100"
-                                : "bg-pink-50 text-pink-800 border border-pink-300 hover:bg-pink-100"
+                                ? "bg-emerald-50 text-emerald-800 border border-emerald-300"
+                                : "bg-pink-50 text-pink-800 border border-pink-300"
                             }`}
                           >
-                            <span>{detectedGender}</span>
-                            <span className="text-[10px] text-slate-400">⇄</span>
-                          </button>
+                            {detectedGender}
+                          </span>
                         </div>
                         <div>
                           <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">
@@ -1854,14 +1845,6 @@ export function DoctorPortal({
                             Patient Vitals &amp; Diagnosis
                           </h3>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowVitalsSection(!showVitalsSection)}
-                          className="text-xs font-bold text-[#065f46] hover:text-[#065f46] bg-emerald-50 px-3 py-1 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
-                        >
-                          <Plus size={13} />
-                          <span>Add / Edit Vitals</span>
-                        </button>
                       </div>
 
                       {/* 6 Vitals Inputs Grid */}
@@ -3218,51 +3201,51 @@ export function DoctorPortal({
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[80vh] relative"
+              className="bg-white rounded-2xl max-w-sm sm:max-w-md w-full p-4 shadow-2xl border border-slate-100 flex flex-col max-h-[75vh] relative"
             >
-              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black shrink-0">
-                    <Clock size={18} />
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                    <Clock size={15} />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-slate-900 text-sm font-display">Patient Medical History</h3>
-                    <p className="text-[11px] text-slate-400 font-medium">Previous clinical notes and diagnoses</p>
+                    <h3 className="font-extrabold text-slate-900 text-xs font-display">Patient Medical History</h3>
+                    <p className="text-[10px] text-slate-400 font-medium">Previous clinical notes and diagnoses</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsHistoryOpen(false)}
-                  className="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
                 >
-                  <X size={15} />
+                  <X size={13} />
                 </button>
               </div>
 
-              <div className="my-3.5 space-y-2.5 overflow-y-auto pr-1 flex-1 min-h-0 custom-scrollbar">
+              <div className="my-2.5 space-y-2 overflow-y-auto pr-1 flex-1 min-h-0 custom-scrollbar">
                 {medicalHistory.length > 0 ? (
                   medicalHistory.map((item: any, i: number) => {
                     let meds: any[] = [];
                     try { if (item.prescription) meds = JSON.parse(item.prescription); } catch {}
                     const dateStr = item.timestamp?.toDate ? item.timestamp.toDate().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : item.date || "Recent";
                     return (
-                    <div key={i} className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 space-y-1.5">
-                      <div className="flex items-center justify-between text-xs font-bold text-[#065f46]">
+                    <div key={i} className="p-2.5 bg-slate-50/90 rounded-xl border border-slate-100/90 space-y-1 text-xs">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-[#065f46]">
                         <span>Visit #{medicalHistory.length - i}</span>
-                        <span className="text-slate-400 text-[11px]">{dateStr}</span>
+                        <span className="text-slate-400 text-[10px]">{dateStr}</span>
                       </div>
                       {item.doctorName && (
-                        <p className="text-[11px] font-semibold text-slate-500">Dr. {item.doctorName}</p>
+                        <p className="text-[10.5px] font-semibold text-slate-500">Dr. {item.doctorName}</p>
                       )}
                       {item.diagnosis && (
-                        <p className="text-xs font-extrabold text-slate-900">Diagnosis: {item.diagnosis}</p>
+                        <p className="text-[11px] font-extrabold text-slate-900">Diagnosis: {item.diagnosis}</p>
                       )}
-                      {item.notes && <p className="text-xs text-slate-600 leading-relaxed font-medium">{item.notes}</p>}
+                      {item.notes && <p className="text-[10.5px] text-slate-600 leading-snug font-medium line-clamp-2">{item.notes}</p>}
                       {Array.isArray(meds) && meds.length > 0 && (
-                        <div className="pt-1">
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-0.5">Prescription</p>
+                        <div className="pt-0.5">
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Prescription</p>
                           <div className="flex flex-wrap gap-1">
                             {meds.map((m: any, j: number) => m.medicine && (
-                              <span key={j} className="text-[11px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
+                              <span key={j} className="text-[10px] font-medium text-slate-700 bg-white border border-slate-200/80 rounded px-1.5 py-0.5">
                                 {m.medicine} — {m.dosage || "1-0-1"}
                               </span>
                             ))}
@@ -3270,30 +3253,30 @@ export function DoctorPortal({
                         </div>
                       )}
                       {item.vitals && (item.vitals.bp || item.vitals.temperature || item.vitals.pulse) && (
-                        <div className="pt-1 flex flex-wrap gap-2 text-[10px] font-semibold text-slate-500">
-                          {item.vitals.bp && <span>BP: {item.vitals.bp}</span>}
-                          {item.vitals.temperature && <span>Temp: {item.vitals.temperature}°F</span>}
-                          {item.vitals.pulse && <span>Pulse: {item.vitals.pulse}</span>}
-                          {item.vitals.spo2 && <span>SpO₂: {item.vitals.spo2}%</span>}
-                          {item.vitals.weight && <span>Wt: {item.vitals.weight}kg</span>}
+                        <div className="pt-0.5 flex flex-wrap gap-2 text-[9.5px] font-medium text-slate-400">
+                          {item.vitals.bp && <span>BP: <strong className="text-slate-600">{item.vitals.bp}</strong></span>}
+                          {item.vitals.temperature && <span>Temp: <strong className="text-slate-600">{item.vitals.temperature}°F</strong></span>}
+                          {item.vitals.pulse && <span>Pulse: <strong className="text-slate-600">{item.vitals.pulse}</strong></span>}
+                          {item.vitals.spo2 && <span>SpO₂: <strong className="text-slate-600">{item.vitals.spo2}%</strong></span>}
+                          {item.vitals.weight && <span>Wt: <strong className="text-slate-600">{item.vitals.weight}kg</strong></span>}
                         </div>
                       )}
                     </div>
                     );
                   })
                 ) : (
-                  <p className="text-xs text-slate-400 font-bold text-center py-8">
+                  <p className="text-xs text-slate-400 font-bold text-center py-6">
                     No previous clinical history records found for this patient.
                   </p>
                 )}
               </div>
 
-              <div className="pt-3 border-t border-slate-100 shrink-0 flex justify-end">
+              <div className="pt-2 border-t border-slate-100 shrink-0 flex justify-end">
                 <button
                   onClick={() => setIsHistoryOpen(false)}
-                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl cursor-pointer transition-colors shadow-sm"
+                  className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl cursor-pointer transition-colors shadow-xs"
                 >
-                  Close History
+                  Close
                 </button>
               </div>
             </motion.div>

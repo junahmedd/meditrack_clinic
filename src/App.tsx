@@ -2515,8 +2515,8 @@ export default function App() {
       // Update patient status in queue
       const patientRef = doc(db, "patients", patient.id);
       const updateData: any = {
-        status: "In Billing",
-        billingStatus: "Unpaid",
+        status: "Billing",
+        billingStatus: "unpaid",
         consultationCompletedAt: serverTimestamp(),
         billedAt: serverTimestamp(),
         consultationFee: consultationFee || 500,
@@ -2630,9 +2630,9 @@ export default function App() {
 
       const batch = writeBatch(db);
 
-      // 1. Patient / Appointment document -> status = "PAID"
+      // 1. Patient / Appointment document -> status = "Completed", billingStatus = "Paid"
       batch.update(patientRef, {
-        status: "PAID",
+        status: "Completed",
         billingStatus: "Paid",
         paymentMethod: paymentMethod || "Cash",
         consultationFee: amount || 0,
