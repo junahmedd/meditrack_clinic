@@ -58,6 +58,7 @@ import {
   Stethoscope,
   Phone,
   UserCircle,
+  FileText,
   ChevronDown,
   Pill,
   Monitor,
@@ -3584,6 +3585,18 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Official Product Brochure Link */}
+          <a
+            href="/brochure.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open MediTrack Official Product Brochure"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#e8fbf3] hover:bg-[#d1fae5] text-[#065f46] text-xs font-bold rounded-xl border border-[#a7f3d0] transition-colors shadow-2xs cursor-pointer"
+          >
+            <FileText size={14} className="text-[#065f46]" />
+            <span>Brochure</span>
+          </a>
+
           {/* Notification Bell */}
           <button
             title="Notifications"
@@ -3649,6 +3662,16 @@ export default function App() {
                   >
                     <UserIcon size={18} /> Profile Settings
                   </button>
+
+                  <a
+                    href="/brochure.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsProfileDropdownOpen(false)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-emerald-800 hover:bg-emerald-50 transition-colors cursor-pointer"
+                  >
+                    <FileText size={18} className="text-[#065f46]" /> Product Brochure
+                  </a>
 
                   {isAdmin && (
                     <button

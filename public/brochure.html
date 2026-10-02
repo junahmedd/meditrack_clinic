@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediTrack Clinic OS — Official Product Brochure</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              950: '#022c22',
+              900: '#064e3b',
+              800: '#065f46',
+              700: '#047857',
+              600: '#059669',
+              500: '#10b981',
+              400: '#34d399',
+              100: '#d1fae5',
+              50: '#ecfdf5',
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+      }
+      .brochure-card {
+        box-shadow: none !important;
+        border: 1px solid #e2e8f0 !important;
+      }
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans selection:bg-brand-500 selection:text-white antialiased">
+
+  <!-- Top Floating Action Bar (Sticky, No-Print) -->
+  <div class="no-print sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <!-- Heart Cross Icon -->
+        <div class="w-8 h-8 relative flex items-center justify-center">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-[0_2px_8px_rgba(16,185,129,0.5)]">
+            <path d="M50 88C50 88 12 62 12 36C12 21 24 10 38 10C46 10 50 16 50 16C50 16 54 10 62 10C76 10 88 21 88 36C88 62 50 88 50 88Z" fill="#065f46" />
+            <path d="M50 82C50 82 18 58 18 36C18 24 28 15 39 15C46 15 50 20 50 20C50 20 54 15 61 15C72 15 82 24 82 36C82 58 50 82 50 82Z" fill="#10b981" />
+            <rect x="44" y="27" width="12" height="34" rx="4" fill="white" />
+            <rect x="33" y="38" width="34" height="12" rx="4" fill="white" />
+          </svg>
+        </div>
+        <div>
+          <span class="font-black text-white text-sm tracking-tight">Medi<span class="text-brand-400">Track</span></span>
+          <span class="hidden sm:inline-block ml-2 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-brand-900/60 text-brand-300 border border-brand-700/50">Brochure Edition</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <a href="/" class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+          ← Back to App
+        </a>
+        <button onclick="window.print()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-900/40 flex items-center gap-2 cursor-pointer transition-all active:scale-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+          <span>Print / Save as PDF</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Brochure Body -->
+  <main class="max-w-5xl mx-auto p-4 sm:p-8 space-y-12">
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 1: COVER & EXECUTIVE SUMMARY                                     -->
+    <!-- ========================================================================= -->
+    <section class="bg-gradient-to-br from-[#064e3b] via-[#043d2e] to-[#022c22] rounded-3xl p-8 sm:p-14 border border-emerald-600/30 shadow-2xl relative overflow-hidden text-white">
+      <!-- Glow ambient backdrops -->
+      <div class="absolute -right-24 -top-24 w-96 h-96 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-brand-400/10 rounded-full blur-2xl pointer-events-none"></div>
+
+      <div class="relative z-10 space-y-6">
+        <!-- Logo Header -->
+        <div class="flex items-center gap-3.5">
+          <div class="w-14 h-14 relative flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-[0_4px_16px_rgba(16,185,129,0.6)]">
+              <path d="M50 88C50 88 12 62 12 36C12 21 24 10 38 10C46 10 50 16 50 16C50 16 54 10 62 10C76 10 88 21 88 36C88 62 50 88 50 88Z" fill="#047857" />
+              <path d="M50 82C50 82 18 58 18 36C18 24 28 15 39 15C46 15 50 20 50 20C50 20 54 15 61 15C72 15 82 24 82 36C82 58 50 82 50 82Z" fill="#10b981" />
+              <rect x="44" y="27" width="12" height="34" rx="4" fill="white" />
+              <rect x="33" y="38" width="34" height="12" rx="4" fill="white" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-3xl sm:text-4xl font-black tracking-tight leading-none">
+              Medi<span class="text-brand-300">Track</span>
+            </h1>
+            <p class="text-[11px] sm:text-xs font-extrabold uppercase tracking-widest text-emerald-200/80 mt-1">
+              Clinic Management Operating System
+            </p>
+          </div>
+        </div>
+
+        <!-- Hero Headline -->
+        <div class="space-y-3 pt-4">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+            Smart Cloud Healthcare Platform
+          </span>
+          <h2 class="text-3xl sm:text-5xl font-black tracking-tight leading-tight max-w-3xl">
+            Real-Time Clinic Operations, Instant Consultation &amp; Practice Intelligence.
+          </h2>
+          <p class="text-emerald-100/90 text-sm sm:text-base font-medium max-w-2xl leading-relaxed">
+            MediTrack connects your front desk receptionists, consulting physicians, dental surgeons, and patients into a synchronized, paperless clinical workflow with zero hardware installations.
+          </p>
+        </div>
+
+        <!-- 4 Key Value Pillars -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-emerald-500/20">
+          <div class="bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
+            <span class="text-2xl font-black text-white block">100%</span>
+            <span class="text-xs font-bold text-emerald-200">Paperless Workflow</span>
+            <p class="text-[10px] text-emerald-100/70 mt-1">Digital Rx &amp; WhatsApp bills</p>
+          </div>
+          <div class="bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
+            <span class="text-2xl font-black text-brand-300 block">&lt; 1s</span>
+            <span class="text-xs font-bold text-emerald-200">Queue Sync Speed</span>
+            <p class="text-[10px] text-emerald-100/70 mt-1">Live Firestore cloud sync</p>
+          </div>
+          <div class="bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
+            <span class="text-2xl font-black text-white block">32-Tooth</span>
+            <span class="text-xs font-bold text-emerald-200">4D Dental FDI Chart</span>
+            <p class="text-[10px] text-emerald-100/70 mt-1">Built-in procedure billing</p>
+          </div>
+          <div class="bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
+            <span class="text-2xl font-black text-brand-300 block">PWA</span>
+            <span class="text-xs font-bold text-emerald-200">iOS &amp; Android Ready</span>
+            <p class="text-[10px] text-emerald-100/70 mt-1">Zero app store installs</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 2: THE 3 CORE PILLARS & ARCHITECTURE                             -->
+    <!-- ========================================================================= -->
+    <section class="space-y-6">
+      <div class="text-center max-w-2xl mx-auto space-y-2">
+        <span class="text-xs font-black uppercase tracking-widest text-brand-400">Integrated Suite</span>
+        <h3 class="text-2xl sm:text-3xl font-black text-white tracking-tight">Tailored Portals for Every Clinic Stakeholder</h3>
+        <p class="text-xs sm:text-sm text-slate-400">Each role gets a customized workspace with dedicated access permissions, instant responsiveness, and zero clutter.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Role 1: Doctor Portal -->
+        <div class="bg-slate-800/80 rounded-2xl p-6 border border-slate-700/80 space-y-4 hover:border-brand-500/50 transition-colors">
+          <div class="w-12 h-12 rounded-xl bg-brand-900/60 border border-brand-500/30 text-brand-300 flex items-center justify-center font-black">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+          </div>
+          <div class="space-y-1">
+            <h4 class="text-lg font-black text-white">Doctor Portal</h4>
+            <p class="text-xs text-brand-400 font-bold uppercase tracking-wider">Physicians, Dentists &amp; Pediatricians</p>
+          </div>
+          <ul class="space-y-2 text-xs text-slate-300 font-medium">
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>1-Tap <strong>Call Patient</strong> from live waiting room</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>Interactive <strong>FDI 32-Tooth 4D Dental Charting</strong></span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>Smart Formulary autocomplete with 1-0-1 dosage</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>Complete historical clinical record archives</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Role 2: Receptionist Portal -->
+        <div class="bg-slate-800/80 rounded-2xl p-6 border border-slate-700/80 space-y-4 hover:border-brand-500/50 transition-colors">
+          <div class="w-12 h-12 rounded-xl bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 flex items-center justify-center font-black">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+          </div>
+          <div class="space-y-1">
+            <h4 class="text-lg font-black text-white">Front Desk Portal</h4>
+            <p class="text-xs text-emerald-400 font-bold uppercase tracking-wider">Receptionists &amp; Billing Staff</p>
+          </div>
+          <ul class="space-y-2 text-xs text-slate-300 font-medium">
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>Rapid intake with <strong>Auto Gender Detection</strong></span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>Live Queue token generator with instant doctor sync</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>Dual <strong>UPI QR &amp; Cash Billing</strong> collection</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>Direct <strong>WhatsApp PDF Invoice</strong> dispatch</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Role 3: Admin & Operations Hub -->
+        <div class="bg-slate-800/80 rounded-2xl p-6 border border-slate-700/80 space-y-4 hover:border-brand-500/50 transition-colors">
+          <div class="w-12 h-12 rounded-xl bg-purple-900/60 border border-purple-500/30 text-purple-300 flex items-center justify-center font-black">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+          </div>
+          <div class="space-y-1">
+            <h4 class="text-lg font-black text-white">Clinic Admin Hub</h4>
+            <p class="text-xs text-purple-400 font-bold uppercase tracking-wider">Clinic Owners &amp; Directors</p>
+          </div>
+          <ul class="space-y-2 text-xs text-slate-300 font-medium">
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>Live daily clinic revenue &amp; doctor fee split</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>Staff user management &amp; fixed desk assignment</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>Clinic GST, letterhead, timings &amp; address controls</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand-400 font-bold">✓</span>
+              <span>Secure Cloud Firestore role-based rules</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page Break for Clean Printing -->
+    <div class="page-break"></div>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 3: IN-DEPTH FEATURE BREAKDOWN (DOCTOR SUITE)                     -->
+    <!-- ========================================================================= -->
+    <section class="bg-slate-800/60 rounded-3xl p-6 sm:p-10 border border-slate-700/80 space-y-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700/80 pb-6">
+        <div>
+          <span class="text-xs font-black uppercase tracking-widest text-brand-400">Clinical Focus</span>
+          <h3 class="text-2xl sm:text-3xl font-black text-white">Doctor Consultation Suite</h3>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">Built to empower doctors to focus on patient diagnosis rather than typing notes.</p>
+        </div>
+        <span class="px-3.5 py-1.5 rounded-full bg-brand-900/60 text-brand-300 text-xs font-extrabold border border-brand-600/40 shrink-0">
+          Doctor Experience
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Feature 1: Live Patient Queue Sync -->
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-brand-900 text-brand-300 flex items-center justify-center font-bold text-xs">1</div>
+            <h4 class="text-base font-extrabold text-white">Real-Time Patient Calling &amp; Queue Sync</h4>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            The doctor's queue automatically updates in real time as front desk registers patients. When the doctor clicks <strong>"Call Patient"</strong>, the status updates simultaneously in the doctor portal, receptionist screen, and clinic waiting monitors from <span class="text-amber-400 font-bold">Waiting</span> $\rightarrow$ <span class="text-emerald-400 font-bold">Consulting</span>.
+          </p>
+        </div>
+
+        <!-- Feature 2: 4D Dental FDI Charting -->
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-brand-900 text-brand-300 flex items-center justify-center font-bold text-xs">2</div>
+            <h4 class="text-base font-extrabold text-white">Interactive 4D FDI Dental Charting (32 Teeth)</h4>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            For Dental practitioners, MediTrack features an FDI two-digit world-standard dental chart (Upper Right, Upper Left, Lower Left, Lower Right). Doctors tap individual teeth to assign conditions (Caries, Missing, Crown, Root Canal) and select clinical procedures that automatically tally procedure billing.
+          </p>
+        </div>
+
+        <!-- Feature 3: Smart Prescription & Formulary -->
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-brand-900 text-brand-300 flex items-center justify-center font-bold text-xs">3</div>
+            <h4 class="text-base font-extrabold text-white">Smart Prescription Builder &amp; Dosages</h4>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Prescribing takes seconds with the smart medicine catalog. As the doctor types, autocomplete suggests brand names and generic strengths. Doctors pick dosage patterns (<code>1-0-1</code>, <code>1-0-0</code>, <code>0-0-1</code>), duration (e.g. <code>5 Days</code>), and timings (<code>After food</code> / <code>Before food</code>).
+          </p>
+        </div>
+
+        <!-- Feature 4: Compact Medical History -->
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-brand-900 text-brand-300 flex items-center justify-center font-bold text-xs">4</div>
+            <h4 class="text-base font-extrabold text-white">One-Click Patient Medical History</h4>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Instantly view prior consultations, previous prescriptions, recorded vitals (BP, Pulse, Temperature, SpO2, Weight), and past diagnoses. Past medical history opens instantly in a compact modal without leaving the current consultation.
+          </p>
+        </div>
+      </div>
+
+      <!-- Mockup Simulation Box -->
+      <div class="bg-slate-900/90 rounded-2xl p-4 sm:p-5 border border-slate-700 font-mono text-xs space-y-3">
+        <div class="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800 pb-2">
+          <span>CONSULTATION WORKSPACE PREVIEW</span>
+          <span class="text-brand-400 font-bold">STATUS: CONSULTING • TOKEN #01</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60">
+            <span class="text-slate-400 text-[10px] block">PATIENT DETAILS</span>
+            <span class="text-white font-bold text-sm block">Ramesh Kumar (34 M)</span>
+            <span class="text-brand-300 text-[11px]">+91 98765 43210</span>
+          </div>
+          <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60">
+            <span class="text-slate-400 text-[10px] block">DIAGNOSIS</span>
+            <span class="text-white font-bold text-sm block">Acute Bronchitis</span>
+            <span class="text-slate-400 text-[11px]">Vitals: BP 120/80 • SpO2 99%</span>
+          </div>
+          <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60">
+            <span class="text-slate-400 text-[10px] block">PRESCRIBED MEDICINES</span>
+            <span class="text-emerald-400 font-bold text-[11px] block">Amoxicillin 500mg (1-0-1)</span>
+            <span class="text-emerald-400 font-bold text-[11px] block">Paracetamol 650mg (1-0-1)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page Break for Clean Printing -->
+    <div class="page-break"></div>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 4: FRONT DESK, GST BILLING & WHATSAPP INTEGRATION                -->
+    <!-- ========================================================================= -->
+    <section class="bg-slate-800/60 rounded-3xl p-6 sm:p-10 border border-slate-700/80 space-y-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700/80 pb-6">
+        <div>
+          <span class="text-xs font-black uppercase tracking-widest text-emerald-400">Front Desk &amp; Finance</span>
+          <h3 class="text-2xl sm:text-3xl font-black text-white">Smart Reception &amp; GST Invoicing</h3>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">Accelerate patient check-in, eliminate billing errors, and automatically dispatch invoices.</p>
+        </div>
+        <span class="px-3.5 py-1.5 rounded-full bg-emerald-900/60 text-emerald-300 text-xs font-extrabold border border-emerald-600/40 shrink-0">
+          Receptionist &amp; Accounts
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Feature 1: Intelligent Gender Detection -->
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-emerald-900 text-emerald-300 flex items-center justify-center font-bold text-xs">A</div>
+            <h4 class="text-base font-extrabold text-white">Auto Gender Detection from Patient Name</h4>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Receptionists register patients in under 10 seconds. MediTrack automatically infers gender based on patient name recognition, eliminating manual toggles while allowing quick adjustments when needed.
+          </p>
+        </div>
+
+        <!-- Feature 2: Lifecycle Flow -->
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-emerald-900 text-emerald-300 flex items-center justify-center font-bold text-xs">B</div>
+            <h4 class="text-base font-extrabold text-white">End-to-End Status Lifecycle Synchronization</h4>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            When consultation completes in the doctor portal, patient status transitions instantly to <span class="text-cyan-400 font-bold">Billing (Unpaid)</span> on the receptionist desk. Once payment is recorded, status transitions to <span class="text-emerald-400 font-bold">Paid</span> and <span class="text-slate-400 font-bold">Completed</span>, with doctor consultation fees credited immediately to revenue analytics.
+          </p>
+        </div>
+
+        <!-- Feature 3: Dual Payment Modes -->
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-emerald-900 text-emerald-300 flex items-center justify-center font-bold text-xs">C</div>
+            <h4 class="text-base font-extrabold text-white">Dual UPI QR &amp; Cash Payment Collection</h4>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Support instant UPI dynamic QR codes (Google Pay, PhonePe, Paytm, BHIM) and cash collection. MediTrack keeps an exact daily cash counter split vs digital payments for painless end-of-day bank reconciliations.
+          </p>
+        </div>
+
+        <!-- Feature 4: WhatsApp PDF Dispatch -->
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-emerald-900 text-emerald-300 flex items-center justify-center font-bold text-xs">D</div>
+            <h4 class="text-base font-extrabold text-white">Automated WhatsApp PDF Invoice Dispatch</h4>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            No expensive thermal paper or printer jams. Upon payment, MediTrack automatically generates an official GST Tax Invoice PDF with clinic letterhead, consultation charges, procedure fees, and prescribed medicines, sending it straight to the patient's WhatsApp.
+          </p>
+        </div>
+      </div>
+
+      <!-- Live Lifecycle Diagram -->
+      <div class="bg-slate-900/90 rounded-2xl p-4 sm:p-6 border border-slate-700 space-y-3">
+        <span class="text-slate-400 text-[10px] font-black uppercase tracking-wider block">CLINICAL &amp; BILLING LIFECYCLE PIPELINE</span>
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-black">
+          <div class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 text-center">
+            1. WAITING (Queue)
+          </div>
+          <span class="text-slate-500 hidden sm:inline">→</span>
+          <div class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-center">
+            2. CONSULTING (Doctor)
+          </div>
+          <span class="text-slate-500 hidden sm:inline">→</span>
+          <div class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-center">
+            3. BILLING (Unpaid)
+          </div>
+          <span class="text-slate-500 hidden sm:inline">→</span>
+          <div class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-brand-500/20 text-brand-300 border border-brand-500/30 text-center">
+            4. PAID &amp; WHATSAPP
+          </div>
+          <span class="text-slate-500 hidden sm:inline">→</span>
+          <div class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-700 text-slate-300 border border-slate-600 text-center">
+            5. COMPLETED
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page Break for Clean Printing -->
+    <div class="page-break"></div>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 5: PRACTICE INTELLIGENCE & REVENUE REPORTING                     -->
+    <!-- ========================================================================= -->
+    <section class="bg-gradient-to-br from-slate-800 via-slate-850 to-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-700/80 space-y-8">
+      <div>
+        <span class="text-xs font-black uppercase tracking-widest text-brand-400">Analytics &amp; Audit</span>
+        <h3 class="text-2xl sm:text-3xl font-black text-white">Daily Live Revenue &amp; Practice Intelligence</h3>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">Every morning starts fresh with real-time live data, preserving cumulative monthly and yearly archives.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+          <p class="text-xs font-bold text-slate-400 uppercase">UPI Digital Revenue</p>
+          <p class="text-2xl font-black text-white mt-1">Live QR Tracking</p>
+          <p class="text-[11px] text-emerald-400 font-semibold mt-1">Instant Bank Credited</p>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+          <p class="text-xs font-bold text-slate-400 uppercase">Cash at Reception</p>
+          <p class="text-2xl font-black text-white mt-1">Drawer Balance</p>
+          <p class="text-[11px] text-amber-400 font-semibold mt-1">Audit Reconciled</p>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+          <p class="text-xs font-bold text-slate-400 uppercase">Doctor Fee Split</p>
+          <p class="text-2xl font-black text-white mt-1">By Practitioner</p>
+          <p class="text-[11px] text-purple-400 font-semibold mt-1">Automated Accounts</p>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+          <p class="text-xs font-bold text-slate-400 uppercase">Patient Footfall</p>
+          <p class="text-2xl font-black text-white mt-1">Live Queue Count</p>
+          <p class="text-[11px] text-brand-400 font-semibold mt-1">Wait Times Optimized</p>
+        </div>
+      </div>
+
+      <!-- Security & Cloud Spec Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-700/80">
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <h5 class="text-sm font-extrabold text-white">Zero Server Maintenance</h5>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Built serverless on Google Firebase Cloud Firestore with automatic scaling, end-to-end HTTPS encryption, and daily redundant backups.
+          </p>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-brand-400"></span>
+            <h5 class="text-sm font-extrabold text-white">Full Mobile PWA Support</h5>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Doctors and staff can manage consultations and billing directly on iPhone, iPad, Android tablets, or desktop browsers with zero app store hassle.
+          </p>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+            <h5 class="text-sm font-extrabold text-white">Multi-Doctor Scalability</h5>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Support solo practitioners or multi-specialty polyclinics with dozens of consulting rooms, custom consultation fees, and assigned receptionists.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 6: GETTING STARTED & CLINIC ONBOARDING CTA                       -->
+    <!-- ========================================================================= -->
+    <section class="bg-gradient-to-r from-brand-900 via-brand-800 to-emerald-900 rounded-3xl p-8 sm:p-12 border border-brand-500/40 text-center space-y-6">
+      <div class="max-w-2xl mx-auto space-y-3">
+        <h3 class="text-2xl sm:text-4xl font-black text-white tracking-tight">
+          Ready to Modernize Your Clinic?
+        </h3>
+        <p class="text-emerald-100/90 text-xs sm:text-sm font-medium leading-relaxed">
+          Join doctors, dentists, and clinics transforming outpatient healthcare with MediTrack Clinic OS. Get started in less than 5 minutes without technical setup.
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+        <a href="/" class="w-full sm:w-auto px-6 py-3.5 bg-white text-[#064e3b] hover:bg-emerald-50 rounded-xl text-xs font-black uppercase tracking-wider shadow-lg transition-all active:scale-95 text-center">
+          Launch MediTrack Web App →
+        </a>
+        <button onclick="window.print()" class="w-full sm:w-auto px-6 py-3.5 bg-black/30 hover:bg-black/40 text-white rounded-xl text-xs font-black uppercase tracking-wider border border-white/20 transition-all cursor-pointer">
+          Download PDF Brochure
+        </button>
+      </div>
+
+      <div class="pt-6 border-t border-emerald-500/30 text-emerald-200/70 text-[11px] font-semibold flex flex-col sm:flex-row items-center justify-between gap-2">
+        <span>© 2026 MediTrack Clinic Management System. All rights reserved.</span>
+        <span>Secure Cloud Hosted on Google Firebase • HIPAA &amp; GST Ready</span>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

@@ -1773,6 +1773,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             <Settings size={14} className="text-slate-400" />
                             <span>Settings & Preferences</span>
                           </button>
+                          <a
+                            href="/brochure.html"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setIsProfileMenuOpen(false)}
+                            className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-800 hover:bg-emerald-50 flex items-center gap-2 transition-colors cursor-pointer"
+                          >
+                            <FileText size={14} className="text-[#065f46]" />
+                            <span>Product Brochure</span>
+                          </a>
                         </div>
                         <div className="border-t border-slate-100 pt-1">
                           <button

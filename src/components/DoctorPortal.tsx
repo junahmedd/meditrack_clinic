@@ -1662,6 +1662,16 @@ export function DoctorPortal({
                             <Settings size={15} className="text-slate-400" />
                             <span>Settings & Preferences</span>
                           </button>
+                          <a
+                            href="/brochure.html"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setShowProfileDropdown(false)}
+                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-emerald-800 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <FileText size={15} className="text-[#065f46]" />
+                            <span>Product Brochure</span>
+                          </a>
                         </div>
                         <div className="border-t border-slate-100 pt-1">
                           <button
