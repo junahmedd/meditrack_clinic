@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MediTrack Clinic OS — General Physician Practice Brochure</title>
+  <title>MediTrack — Clinical Operating System for General Physicians</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -14,8 +14,9 @@
         extend: {
           colors: {
             brand: {
-              950: '#022c22',
+              950: '#021f18',
               900: '#064e3b',
+              850: '#043d2e',
               800: '#065f46',
               700: '#047857',
               600: '#059669',
@@ -37,7 +38,7 @@
   </script>
   <style>
     @page {
-      size: A4 portrait;
+      size: 210mm 297mm;
       margin: 0;
     }
     @media print {
@@ -45,40 +46,40 @@
         display: none !important;
       }
       body {
-        background: #ffffff !important;
-        color: #0f172a !important;
-        print-color-adjust: exact !important;
+        background: #021f18 !important;
+        margin: 0 !important;
+        padding: 0 !important;
         -webkit-print-color-adjust: exact !important;
-      }
-      .page-break {
-        page-break-after: always;
-        break-after: page;
+        print-color-adjust: exact !important;
       }
       .page {
-        height: 100vh !important;
-        min-height: 100vh !important;
-        max-height: 100vh !important;
-        overflow: hidden !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        max-height: 297mm !important;
         margin: 0 !important;
-        padding: 12mm !important;
-        box-sizing: border-box !important;
         box-shadow: none !important;
         border: none !important;
-      }
-      .cover-page {
-        padding: 16mm !important;
+        border-radius: 0 !important;
+        page-break-inside: avoid !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        overflow: hidden !important;
       }
     }
-    .page {
+    .a4-sheet {
+      width: 210mm;
       min-height: 297mm;
+      max-height: 297mm;
+      height: 297mm;
       box-sizing: border-box;
+      overflow: hidden;
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans selection:bg-brand-500 selection:text-white antialiased">
+<body class="bg-slate-950 text-slate-100 font-sans selection:bg-brand-500 selection:text-white antialiased py-0 sm:py-8">
 
-  <!-- Top Sticky Navigation (No-Print) -->
-  <header class="no-print sticky top-0 z-50 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 px-4 py-3 shadow-xl">
+  <!-- Top Sticky Navigation (Screen Only) -->
+  <header class="no-print sticky top-0 z-50 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800 px-4 py-3 shadow-2xl mb-6">
     <div class="max-w-4xl mx-auto flex items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 relative flex items-center justify-center shrink-0">
@@ -93,8 +94,8 @@
           <span class="font-black text-white text-base tracking-tight leading-none block">
             Medi<span class="text-brand-400">Track</span>
           </span>
-          <span class="text-[9.5px] font-extrabold uppercase tracking-widest text-slate-400">
-            General Physician Edition
+          <span class="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">
+            Clean A4 Executive Brochure
           </span>
         </div>
       </div>
@@ -105,7 +106,7 @@
         </a>
         <a href="/MediTrack_Official_Brochure.pdf" download="MediTrack_Official_Brochure.pdf" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-900/50 flex items-center gap-2 cursor-pointer transition-all active:scale-95">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          <span>Download PDF</span>
+          <span>Download PDF Brochure</span>
         </a>
         <button onclick="window.print()" class="hidden sm:flex px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold items-center gap-1.5 border border-slate-700 transition-colors cursor-pointer">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
@@ -115,367 +116,367 @@
     </div>
   </header>
 
-  <!-- Document Wrapper -->
-  <main class="max-w-4xl mx-auto my-0 sm:my-6 space-y-8">
+  <!-- Document Pages Container -->
+  <div class="flex flex-col items-center gap-10">
 
     <!-- ========================================================================= -->
-    <!-- PAGE 1: FULL-PAGE COVER (SIMPLE, MAGICAL, HIGH-TECH)                      -->
+    <!-- PAGE 1: DEDICATED FULL A4 COVER PAGE                                      -->
     <!-- ========================================================================= -->
-    <div class="page cover-page page-break bg-gradient-to-br from-[#064e3b] via-[#043d2e] to-[#022c22] rounded-none sm:rounded-3xl p-8 sm:p-14 border border-emerald-600/30 shadow-2xl relative overflow-hidden text-white flex flex-col justify-between">
-      <!-- Glow ambient backdrops -->
-      <div class="absolute -right-20 -top-20 w-96 h-96 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-brand-400/10 rounded-full blur-2xl pointer-events-none"></div>
+    <div class="page a4-sheet bg-gradient-to-b from-[#022c22] via-[#064e3b] to-[#021f18] text-white p-12 sm:p-14 flex flex-col justify-between shadow-2xl relative overflow-hidden border border-emerald-800/40 sm:rounded-2xl">
+      <!-- Glow ambient lighting -->
+      <div class="absolute -right-24 -top-24 w-96 h-96 bg-brand-400/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-20 -bottom-20 w-96 h-96 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div>
 
-      <!-- Top Cover Bar -->
-      <div class="relative z-10 space-y-6">
-        <div class="flex items-center justify-between border-b border-emerald-500/30 pb-6">
-          <div class="flex items-center gap-3.5">
-            <div class="w-14 h-14 relative flex items-center justify-center shrink-0">
-              <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-[0_4px_16px_rgba(16,185,129,0.7)]">
-                <path d="M50 88C50 88 12 62 12 36C12 21 24 10 38 10C46 10 50 16 50 16C50 16 54 10 62 10C76 10 88 21 88 36C88 62 50 88 50 88Z" fill="#047857" />
-                <path d="M50 82C50 82 18 58 18 36C18 24 28 15 39 15C46 15 50 20 50 20C50 20 54 15 61 15C72 15 82 24 82 36C82 58 50 82 50 82Z" fill="#10b981" />
-                <rect x="44" y="27" width="12" height="34" rx="4" fill="white" />
-                <rect x="33" y="38" width="34" height="12" rx="4" fill="white" />
-              </svg>
-            </div>
-            <div>
-              <h1 class="text-3xl sm:text-4xl font-black tracking-tight leading-none">
-                Medi<span class="text-brand-300">Track</span>
-              </h1>
-              <p class="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-emerald-200 mt-1">
-                Clinic Management System
-              </p>
-            </div>
+      <!-- Cover Header: Logo & Badge -->
+      <div class="relative z-10 flex items-center justify-between border-b border-emerald-500/25 pb-8">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 relative flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-[0_4px_16px_rgba(16,185,129,0.8)]">
+              <path d="M50 88C50 88 12 62 12 36C12 21 24 10 38 10C46 10 50 16 50 16C50 16 54 10 62 10C76 10 88 21 88 36C88 62 50 88 50 88Z" fill="#047857" />
+              <path d="M50 82C50 82 18 58 18 36C18 24 28 15 39 15C46 15 50 20 50 20C50 20 54 15 61 15C72 15 82 24 82 36C82 58 50 82 50 82Z" fill="#10b981" />
+              <rect x="44" y="27" width="12" height="34" rx="4" fill="white" />
+              <rect x="33" y="38" width="34" height="12" rx="4" fill="white" />
+            </svg>
           </div>
-
-          <span class="px-3.5 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-400/40 text-[10px] font-black uppercase tracking-wider text-emerald-300">
-            General Practice Edition
-          </span>
+          <div>
+            <span class="text-3xl font-black tracking-tight leading-none block">
+              Medi<span class="text-brand-300">Track</span>
+            </span>
+            <span class="text-[10px] font-extrabold uppercase tracking-widest text-emerald-200 mt-1 block">
+              Clinic Management System
+            </span>
+          </div>
         </div>
 
-        <!-- Cover Headline -->
-        <div class="space-y-4 pt-4">
-          <span class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-brand-500/20 text-brand-300 border border-brand-400/40">
-            Smart Cloud Healthcare Platform
+        <span class="px-4 py-1.5 rounded-full bg-emerald-950/80 border border-emerald-400/40 text-xs font-black uppercase tracking-wider text-emerald-300">
+          General Practice Edition
+        </span>
+      </div>
+
+      <!-- Cover Body: Clean, Bold, Impactful -->
+      <div class="relative z-10 space-y-7 my-auto">
+        <div class="space-y-4">
+          <span class="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-brand-500/20 text-brand-300 border border-brand-400/40">
+            Next-Generation Healthcare Cloud
           </span>
-          <h2 class="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-            Seamless Consultations &amp; Smart Front Desk for General Physicians.
-          </h2>
-          <p class="text-emerald-100/90 text-sm sm:text-base font-medium max-w-2xl leading-relaxed">
-            A synchronized clinical operating system connecting your reception desk, consulting doctor, and patients with real-time queue management, fast digital prescriptions, and automated WhatsApp GST invoicing.
+          <h1 class="text-4xl sm:text-5xl font-black tracking-tight leading-[1.15] text-white">
+            Smart Clinical Operations for General Physicians.
+          </h1>
+          <p class="text-emerald-100/90 text-base sm:text-lg font-medium max-w-xl leading-relaxed">
+            Eliminate paper clutter, mismanaged queues, and manual billing. Connect your front desk reception, consulting doctor, and patients into a synchronized clinical workflow with sub-second cloud latency.
           </p>
         </div>
 
-        <!-- Real Clinical Visual Banner -->
-        <div class="relative rounded-2xl overflow-hidden border border-emerald-400/30 shadow-2xl h-56 sm:h-72 bg-cover bg-center" style="background-image: url('/doctor_welcome_banner.jpg');">
+        <!-- Real Clinical Visual Showcase Card -->
+        <div class="relative rounded-2xl overflow-hidden border border-emerald-400/40 shadow-2xl h-56 bg-cover bg-center" style="background-image: url('/doctor_welcome_banner.jpg');">
           <div class="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/60 to-transparent"></div>
-          <div class="relative z-10 h-full p-6 flex flex-col justify-end max-w-md space-y-1.5">
-            <span class="text-xs font-extrabold text-brand-300 uppercase tracking-wider">Outpatient Care Redefined</span>
-            <h3 class="text-xl sm:text-2xl font-black text-white">Better Care. Healthier Tomorrows.</h3>
-            <p class="text-xs text-slate-200 font-medium">Zero paper prescriptions. Zero missing patient records. Real-time clinic synchronization.</p>
+          <div class="relative z-10 h-full p-6 flex flex-col justify-end max-w-sm space-y-1.5">
+            <span class="text-[11px] font-black uppercase tracking-wider text-brand-300">Outpatient Excellence</span>
+            <h2 class="text-2xl font-black text-white leading-tight">Better Care. Healthier Tomorrows.</h2>
+            <p class="text-xs text-slate-200 font-medium">Digital prescriptions, live queue tokens, and instant WhatsApp GST invoicing.</p>
           </div>
         </div>
       </div>
 
-      <!-- Bottom 4 Core Value Cards -->
-      <div class="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-emerald-500/30">
-        <div class="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10">
-          <span class="text-xl font-black text-white block">100%</span>
-          <span class="text-xs font-bold text-emerald-200">Paperless</span>
-          <p class="text-[10px] text-emerald-100/70 mt-0.5">Digital Rx &amp; WhatsApp bills</p>
+      <!-- Cover Footer: 4 Clean Metrics & Assurance -->
+      <div class="relative z-10 pt-6 border-t border-emerald-500/25 space-y-4">
+        <div class="grid grid-cols-4 gap-4 text-center">
+          <div class="p-3 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
+            <span class="text-xl font-black text-white block">100%</span>
+            <span class="text-[10px] font-bold text-emerald-200 uppercase tracking-wider">Paperless</span>
+          </div>
+          <div class="p-3 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
+            <span class="text-xl font-black text-brand-300 block">&lt; 1 sec</span>
+            <span class="text-[10px] font-bold text-emerald-200 uppercase tracking-wider">Cloud Sync</span>
+          </div>
+          <div class="p-3 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
+            <span class="text-xl font-black text-white block">1-0-1</span>
+            <span class="text-[10px] font-bold text-emerald-200 uppercase tracking-wider">Smart Rx</span>
+          </div>
+          <div class="p-3 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
+            <span class="text-xl font-black text-brand-300 block">PWA</span>
+            <span class="text-[10px] font-bold text-emerald-200 uppercase tracking-wider">Mobile Ready</span>
+          </div>
         </div>
-        <div class="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10">
-          <span class="text-xl font-black text-brand-300 block">&lt; 1 sec</span>
-          <span class="text-xs font-bold text-emerald-200">Live Sync</span>
-          <p class="text-[10px] text-emerald-100/70 mt-0.5">Instant queue status updates</p>
-        </div>
-        <div class="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10">
-          <span class="text-xl font-black text-white block">Smart Rx</span>
-          <span class="text-xs font-bold text-emerald-200">1-0-1 Dosage</span>
-          <p class="text-[10px] text-emerald-100/70 mt-0.5">Medicine autocomplete</p>
-        </div>
-        <div class="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10">
-          <span class="text-xl font-black text-brand-300 block">PWA</span>
-          <span class="text-xs font-bold text-emerald-200">Mobile Ready</span>
-          <p class="text-[10px] text-emerald-100/70 mt-0.5">iOS Safari &amp; Android</p>
+
+        <div class="flex items-center justify-between text-xs text-emerald-200/80 font-medium pt-1">
+          <span>Official Product Briefing • 2026 Edition</span>
+          <span>Google Firebase Cloud • ABDM &amp; GST Ready</span>
         </div>
       </div>
     </div>
 
     <!-- ========================================================================= -->
-    <!-- PAGE 2: GENERAL PHYSICIAN CONSULTATION SUITE                             -->
+    <!-- PAGE 2: GENERAL PHYSICIAN CONSULTATION WORKFLOW                           -->
     <!-- ========================================================================= -->
-    <div class="page page-break bg-slate-900 rounded-none sm:rounded-3xl p-6 sm:p-10 border border-slate-800 shadow-2xl space-y-6 flex flex-col justify-between">
-      <div>
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
-          <div>
-            <span class="text-xs font-black uppercase tracking-widest text-brand-400">Clinical Suite</span>
-            <h3 class="text-2xl sm:text-3xl font-black text-white">General Physician Consultation</h3>
-            <p class="text-xs sm:text-sm text-slate-400 mt-1">Focus on examining patients and writing prescriptions in seconds.</p>
+    <div class="page a4-sheet bg-slate-900 text-white p-12 sm:p-14 flex flex-col justify-between shadow-2xl relative border border-slate-800 sm:rounded-2xl">
+      <!-- Page Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-5">
+        <div>
+          <span class="text-xs font-black uppercase tracking-widest text-brand-400">Clinical Suite</span>
+          <h2 class="text-2xl sm:text-3xl font-black text-white">General Physician Consultation</h2>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-brand-900/60 text-brand-300 text-xs font-black border border-brand-500/40">
+          Doctor Workspace
+        </span>
+      </div>
+
+      <!-- Real Doctor Consultation Screen Mockup -->
+      <div class="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+        <!-- Window Chrome -->
+        <div class="bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+            <span class="text-[11px] font-mono font-bold text-slate-400 ml-2">Doctor Portal — Dr. Ahmed (Room #01)</span>
           </div>
-          <span class="px-3 py-1 rounded-full bg-brand-900/60 text-brand-300 text-xs font-black border border-brand-500/40 shrink-0 self-start sm:self-auto">
-            Doctor Workflow
+          <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            CONSULTING • TOKEN #01
           </span>
         </div>
 
-        <!-- Realistic General Physician UI Window Frame -->
-        <div class="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden mt-6">
-          <!-- Window Header -->
-          <div class="bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+        <!-- Consultation Body -->
+        <div class="p-5 space-y-4 text-xs">
+          <!-- Active Patient Details -->
+          <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-brand-900 text-brand-300 font-black text-sm flex items-center justify-center border border-brand-500/40">
+                RK
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-base font-black text-white">Ramesh Kumar</span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">34 Yrs • Male</span>
+                  <span class="text-[10px] font-black px-2 py-0.5 rounded bg-brand-900/80 text-brand-300 border border-brand-700">Token #01</span>
+                </div>
+                <p class="text-slate-400 font-mono text-[11px] mt-0.5">+91 98765 43210 • General OPD Visit</p>
+              </div>
+            </div>
+
+            <!-- Vitals Badges -->
             <div class="flex items-center gap-2">
-              <div class="w-3 h-3 rounded-full bg-rose-500"></div>
-              <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-              <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
-              <span class="text-[11px] font-mono font-bold text-slate-400 ml-2">Doctor Portal — Dr. Ahmed (General Physician)</span>
+              <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/30">
+                BP 120/80
+              </span>
+              <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/30">
+                SpO₂ 99%
+              </span>
+              <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/30">
+                Pulse 72
+              </span>
+              <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/30">
+                98.6°F
+              </span>
             </div>
-            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-              CONSULTING • TOKEN #01
-            </span>
           </div>
 
-          <!-- Consultation Workspace -->
-          <div class="p-5 space-y-4 text-xs">
-            <!-- Active Patient Strip -->
-            <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-brand-900 text-brand-300 font-black text-sm flex items-center justify-center border border-brand-500/40">
-                  RK
-                </div>
+          <!-- Diagnosis -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+              <span class="text-slate-400 text-[10px] font-bold uppercase block mb-1">Chief Complaints</span>
+              <p class="text-white font-medium">Fever for 2 days, dry cough, body fatigue.</p>
+            </div>
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+              <span class="text-slate-400 text-[10px] font-bold uppercase block mb-1">Clinical Diagnosis</span>
+              <p class="text-emerald-400 font-extrabold text-sm">Acute Viral Pharyngitis</p>
+            </div>
+          </div>
+
+          <!-- Prescription Formulary Items -->
+          <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2">
+            <span class="text-[11px] font-extrabold text-brand-400 uppercase tracking-wider block">
+              💊 Prescribed Medications (Autocompleted Formulary)
+            </span>
+            <div class="divide-y divide-slate-800">
+              <div class="py-2 flex items-center justify-between">
                 <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-base font-black text-white">Ramesh Kumar</span>
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">34 Yrs • Male</span>
-                    <span class="text-[10px] font-black px-2 py-0.5 rounded bg-brand-900/80 text-brand-300 border border-brand-700">Token #01</span>
-                  </div>
-                  <p class="text-slate-400 font-mono text-[11px] mt-0.5">+91 98765 43210 • General OPD Consultation</p>
+                  <strong class="text-white font-bold text-xs block">Amoxicillin 500mg Capsule</strong>
+                  <span class="text-[10px] text-slate-400 font-mono">Antibiotic • After food</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-1 rounded bg-brand-900/60 text-brand-300 border border-brand-700 font-mono font-bold text-xs">1-0-1</span>
+                  <span class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono text-xs">5 Days</span>
                 </div>
               </div>
-              <div class="flex items-center gap-2">
-                <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/30">
-                  BP: 120/80
-                </span>
-                <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/30">
-                  SpO₂: 99%
-                </span>
-                <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/30">
-                  Pulse: 72
-                </span>
-                <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/30">
-                  Temp: 98.6°F
-                </span>
-              </div>
-            </div>
-
-            <!-- Diagnosis & Symptoms -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                <span class="text-slate-400 text-[10px] font-bold uppercase block mb-1">Chief Complaints &amp; Symptoms</span>
-                <p class="text-white font-medium">Mild fever for 2 days, dry cough, body ache, fatigue.</p>
-              </div>
-              <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                <span class="text-slate-400 text-[10px] font-bold uppercase block mb-1">Clinical Diagnosis</span>
-                <p class="text-emerald-400 font-extrabold text-sm">Viral Upper Respiratory Tract Infection (URTI)</p>
-              </div>
-            </div>
-
-            <!-- Prescribed Medications -->
-            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2">
-              <span class="text-[11px] font-extrabold text-brand-400 uppercase tracking-wider block">
-                💊 Prescribed Medications (Autocompleted Formulary)
-              </span>
-              <div class="divide-y divide-slate-800">
-                <div class="py-2 flex items-center justify-between">
-                  <div>
-                    <strong class="text-white font-bold text-xs block">Amoxicillin 500mg Capsule</strong>
-                    <span class="text-[10px] text-slate-400 font-mono">Antibiotic • After food</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="px-2.5 py-1 rounded bg-brand-900/60 text-brand-300 border border-brand-700 font-mono font-bold text-xs">1-0-1</span>
-                    <span class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono text-xs">5 Days</span>
-                  </div>
+              <div class="py-2 flex items-center justify-between">
+                <div>
+                  <strong class="text-white font-bold text-xs block">Paracetamol 650mg Tablet</strong>
+                  <span class="text-[10px] text-slate-400 font-mono">Analgesic / Antipyretic • After food</span>
                 </div>
-                <div class="py-2 flex items-center justify-between">
-                  <div>
-                    <strong class="text-white font-bold text-xs block">Paracetamol 650mg Tablet</strong>
-                    <span class="text-[10px] text-slate-400 font-mono">Antipyretic / Analgesic • After food</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="px-2.5 py-1 rounded bg-brand-900/60 text-brand-300 border border-brand-700 font-mono font-bold text-xs">1-0-1</span>
-                    <span class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono text-xs">3 Days</span>
-                  </div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-1 rounded bg-brand-900/60 text-brand-300 border border-brand-700 font-mono font-bold text-xs">1-0-1</span>
+                  <span class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono text-xs">3 Days</span>
                 </div>
-                <div class="py-2 flex items-center justify-between">
-                  <div>
-                    <strong class="text-white font-bold text-xs block">Levocetirizine 5mg Tablet</strong>
-                    <span class="text-[10px] text-slate-400 font-mono">Antihistamine • At bedtime</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="px-2.5 py-1 rounded bg-brand-900/60 text-brand-300 border border-brand-700 font-mono font-bold text-xs">0-0-1</span>
-                    <span class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono text-xs">5 Days</span>
-                  </div>
+              </div>
+              <div class="py-2 flex items-center justify-between">
+                <div>
+                  <strong class="text-white font-bold text-xs block">Levocetirizine 5mg Tablet</strong>
+                  <span class="text-[10px] text-slate-400 font-mono">Antihistamine • At bedtime</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-1 rounded bg-brand-900/60 text-brand-300 border border-brand-700 font-mono font-bold text-xs">0-0-1</span>
+                  <span class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono text-xs">5 Days</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- 3 Feature Pillars -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
-          <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
-            <h4 class="text-sm font-black text-white">1-Tap "Call Patient"</h4>
-            <p class="text-xs text-slate-400 leading-relaxed">
-              Updates waiting room screen and reception queue from Waiting to Consulting with zero verbal shouting.
-            </p>
-          </div>
-          <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
-            <h4 class="text-sm font-black text-white">Compact Medical History</h4>
-            <p class="text-xs text-slate-400 leading-relaxed">
-              Quickly view past visit dates, prior vitals, and earlier prescriptions without leaving the consultation view.
-            </p>
-          </div>
-          <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
-            <h4 class="text-sm font-black text-white">Instant Billing Handoff</h4>
-            <p class="text-xs text-slate-400 leading-relaxed">
-              Clicking Complete Consultation sends doctor fee to reception desk as Unpaid Billing immediately.
-            </p>
-          </div>
+      <!-- 3 Clean Value Cards -->
+      <div class="grid grid-cols-3 gap-4">
+        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+          <h3 class="text-sm font-black text-white">1-Tap "Call Patient"</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Synchronizes with waiting room displays and changes queue status from Waiting to Consulting instantly.
+          </p>
+        </div>
+        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+          <h3 class="text-sm font-black text-white">Compact History File</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Look up previous consultations, past prescriptions, and vitals history in a compact modal without leaving.
+          </p>
+        </div>
+        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+          <h3 class="text-sm font-black text-white">Auto Billing Hand-Off</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Completing consult transfers consultation fee to reception desk as Unpaid Billing with zero phone calls.
+          </p>
         </div>
       </div>
     </div>
 
     <!-- ========================================================================= -->
-    <!-- PAGE 3: FRONT DESK, WHATSAPP BILLING & PRACTICE INTELLIGENCE             -->
+    <!-- PAGE 3: FRONT DESK, WHATSAPP BILLING & REVENUE ANALYTICS                 -->
     <!-- ========================================================================= -->
-    <div class="page page-break bg-slate-900 rounded-none sm:rounded-3xl p-6 sm:p-10 border border-slate-800 shadow-2xl space-y-6 flex flex-col justify-between">
-      <div>
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
-          <div>
-            <span class="text-xs font-black uppercase tracking-widest text-emerald-400">Front Desk &amp; Finance</span>
-            <h3 class="text-2xl sm:text-3xl font-black text-white">Smart Reception &amp; WhatsApp GST Invoicing</h3>
-            <p class="text-xs sm:text-sm text-slate-400 mt-1">10-second intake with Auto-Gender detection, UPI QR checkout, and WhatsApp receipts.</p>
+    <div class="page a4-sheet bg-slate-900 text-white p-12 sm:p-14 flex flex-col justify-between shadow-2xl relative border border-slate-800 sm:rounded-2xl">
+      <!-- Page Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-5">
+        <div>
+          <span class="text-xs font-black uppercase tracking-widest text-emerald-400">Front Desk &amp; Finance</span>
+          <h2 class="text-2xl sm:text-3xl font-black text-white">Smart Reception &amp; WhatsApp GST Invoicing</h2>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-emerald-900/60 text-emerald-300 text-xs font-black border border-emerald-500/40">
+          Reception &amp; Billing
+        </span>
+      </div>
+
+      <!-- Real Tax Invoice & WhatsApp Delivery Grid -->
+      <div class="grid grid-cols-2 gap-5 my-auto">
+        <!-- Official Tax Invoice Simulation -->
+        <div class="bg-white text-slate-900 rounded-2xl p-5 border border-slate-200 shadow-xl space-y-3 font-sans text-xs">
+          <div class="flex items-start justify-between border-b-2 border-emerald-900 pb-3">
+            <div>
+              <h3 class="font-black text-sm text-slate-900">Dr. Ahmed Family Clinic</h3>
+              <p class="text-[10px] text-slate-500 mt-0.5">123 Health Ave, Medical Center • Ph: +91 98765 00000</p>
+              <p class="text-[10px] text-slate-500 font-mono">GSTIN: 29AAAAA0000A1Z5</p>
+            </div>
+            <div class="text-right">
+              <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-extrabold text-[9px] uppercase">PAID • UPI</span>
+              <p class="font-mono font-black text-xs text-slate-900 mt-1">INV-2026-4892</p>
+            </div>
           </div>
-          <span class="px-3 py-1 rounded-full bg-emerald-900/60 text-emerald-300 text-xs font-black border border-emerald-500/40 shrink-0 self-start sm:self-auto">
-            Reception &amp; Billing
-          </span>
+
+          <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200 text-[11px]">
+            <div>
+              <span class="text-slate-400 font-bold uppercase text-[9px] block">Patient Name</span>
+              <strong class="text-slate-900">Ramesh Kumar (34 M)</strong>
+            </div>
+            <div>
+              <span class="text-slate-400 font-bold uppercase text-[9px] block">Doctor</span>
+              <strong class="text-slate-900">Dr. Ahmed (GP)</strong>
+            </div>
+          </div>
+
+          <table class="w-full text-left border-collapse text-[11px]">
+            <thead>
+              <tr class="border-b border-slate-200 text-[10px] font-black uppercase text-slate-400">
+                <th class="py-1">Description</th>
+                <th class="py-1 text-center">Qty</th>
+                <th class="py-1 text-right">Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr>
+                <td class="py-1.5 font-bold text-slate-800">General Physician Consultation Fee</td>
+                <td class="py-1.5 text-center">1</td>
+                <td class="py-1.5 text-right font-mono font-bold">500.00</td>
+              </tr>
+              <tr>
+                <td class="py-1.5 font-bold text-slate-800">Prescription Medicines (3 Rx items)</td>
+                <td class="py-1.5 text-center">1</td>
+                <td class="py-1.5 text-right font-mono text-slate-400">Included</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="border-t-2 border-slate-200 text-xs font-black text-slate-900">
+                <td colspan="2" class="pt-2">Total Amount Paid</td>
+                <td class="pt-2 text-right text-emerald-800 font-mono text-sm">₹500.00</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div class="text-[9px] text-slate-400 border-t border-slate-100 pt-2 flex justify-between items-center">
+            <span>• Computer Generated Tax Invoice. Prescriptions valid 15 days.</span>
+            <span class="font-bold text-slate-600">Authorized Signatory ✓</span>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <!-- Real GST Tax Invoice Simulation -->
-          <div class="bg-white text-slate-900 rounded-2xl p-5 border border-slate-200 shadow-xl space-y-3 font-sans text-xs">
-            <div class="flex items-start justify-between border-b-2 border-emerald-900 pb-3">
-              <div>
-                <h4 class="font-black text-sm text-slate-900">Dr. Ahmed Family Clinic</h4>
-                <p class="text-[10px] text-slate-500 mt-0.5">123 Health Ave, Medical Center • Ph: +91 98765 00000</p>
-                <p class="text-[10px] text-slate-500 font-mono">GSTIN: 29AAAAA0000A1Z5</p>
+        <!-- WhatsApp Delivery Preview & Highlights -->
+        <div class="space-y-4">
+          <div class="bg-[#0b141a] text-slate-100 rounded-2xl p-4 border border-emerald-900/50 shadow-xl space-y-3 font-sans">
+            <div class="flex items-center gap-2 border-b border-emerald-950 pb-2">
+              <div class="w-6 h-6 rounded-full bg-[#25d366] flex items-center justify-center text-slate-950 font-black text-xs">
+                WA
               </div>
-              <div class="text-right">
-                <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-extrabold text-[9px] uppercase">PAID • UPI</span>
-                <p class="font-mono font-black text-xs text-slate-900 mt-1">INV-2026-4892</p>
-              </div>
+              <span class="text-xs font-bold text-slate-200">Instant WhatsApp Delivery</span>
             </div>
-
-            <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200 text-[11px]">
-              <div>
-                <span class="text-slate-400 font-bold uppercase text-[9px] block">Patient Name</span>
-                <strong class="text-slate-900">Ramesh Kumar (34 M)</strong>
+            <div class="bg-[#005c4b] p-3 rounded-2xl rounded-tr-xs text-xs space-y-1.5">
+              <p class="font-bold text-white">🏥 Dr. Ahmed Family Clinic</p>
+              <p class="text-slate-200">Hello <strong>Ramesh Kumar</strong>, your consultation payment of <strong>₹500.00</strong> was received successfully. ✅</p>
+              <p class="text-[11px] font-mono text-emerald-200">
+                🧾 Invoice: INV-2026-4892<br>
+                💳 Mode: UPI (GPay)<br>
+                📌 Status: PAID &amp; COMPLETED
+              </p>
+              <div class="p-2 bg-emerald-950/60 rounded-xl border border-emerald-700/50 flex items-center justify-between mt-1">
+                <span class="text-[11px] font-mono font-bold text-emerald-300">📄 MediTrack_Invoice.pdf</span>
+                <span class="text-[10px] font-black text-[#25d366] uppercase">Delivered ✓</span>
               </div>
-              <div>
-                <span class="text-slate-400 font-bold uppercase text-[9px] block">Doctor</span>
-                <strong class="text-slate-900">Dr. Ahmed (General Physician)</strong>
-              </div>
-            </div>
-
-            <table class="w-full text-left border-collapse text-[11px]">
-              <thead>
-                <tr class="border-b border-slate-200 text-[10px] font-black uppercase text-slate-400">
-                  <th class="py-1">Description</th>
-                  <th class="py-1 text-center">Qty</th>
-                  <th class="py-1 text-right">Amount (₹)</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                <tr>
-                  <td class="py-1.5 font-bold text-slate-800">General Physician Consultation Fee</td>
-                  <td class="py-1.5 text-center">1</td>
-                  <td class="py-1.5 text-right font-mono font-bold">500.00</td>
-                </tr>
-                <tr>
-                  <td class="py-1.5 font-bold text-slate-800">Prescription Medicines (3 Rx items)</td>
-                  <td class="py-1.5 text-center">1</td>
-                  <td class="py-1.5 text-right font-mono text-slate-400">Included</td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr class="border-t-2 border-slate-200 text-xs font-black text-slate-900">
-                  <td colspan="2" class="pt-2">Total Amount Paid</td>
-                  <td class="pt-2 text-right text-emerald-800 font-mono text-sm">₹500.00</td>
-                </tr>
-              </tfoot>
-            </table>
-
-            <div class="text-[9px] text-slate-400 border-t border-slate-100 pt-2 flex justify-between items-center">
-              <span>• Official GST Invoice. Prescriptions valid 15 days.</span>
-              <span class="font-bold text-slate-600">Authorized Signatory ✓</span>
             </div>
           </div>
 
-          <!-- WhatsApp Chat Delivery & Benefits -->
-          <div class="space-y-4">
-            <!-- WhatsApp Chat Preview -->
-            <div class="bg-[#0b141a] text-slate-100 rounded-2xl p-4 border border-emerald-900/50 shadow-xl space-y-3 font-sans">
-              <div class="flex items-center gap-2 border-b border-emerald-950 pb-2">
-                <div class="w-6 h-6 rounded-full bg-[#25d366] flex items-center justify-center text-slate-950 font-black text-xs">
-                  WA
-                </div>
-                <span class="text-xs font-bold text-slate-200">Instant WhatsApp Delivery</span>
-              </div>
-              <div class="bg-[#005c4b] p-3 rounded-2xl rounded-tr-xs text-xs space-y-1.5">
-                <p class="font-bold text-white">🏥 Dr. Ahmed Family Clinic</p>
-                <p class="text-slate-200">Hello <strong>Ramesh Kumar</strong>, your consultation payment of <strong>₹500.00</strong> was received successfully. ✅</p>
-                <p class="text-[11px] font-mono text-emerald-200">
-                  🧾 Invoice: INV-2026-4892<br>
-                  💳 Mode: UPI (GPay)<br>
-                  📌 Status: PAID &amp; COMPLETED
-                </p>
-                <div class="p-2 bg-emerald-950/60 rounded-xl border border-emerald-700/50 flex items-center justify-between mt-1">
-                  <span class="text-[11px] font-mono font-bold text-emerald-300">📄 MediTrack_Invoice.pdf</span>
-                  <span class="text-[10px] font-black text-[#25d366] uppercase">Delivered ✓</span>
-                </div>
-              </div>
+          <div class="space-y-2 text-xs text-slate-300">
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span><strong>Auto-Gender Inference:</strong> Recognizes gender from patient names, saving front desk registration time.</span>
             </div>
-
-            <!-- Bullet Points -->
-            <div class="space-y-2 text-xs text-slate-300">
-              <div class="flex items-start gap-2">
-                <span class="text-emerald-400 font-bold">✓</span>
-                <span><strong>Auto-Gender Detection:</strong> Recognizes gender from names like "Pooja" (Female) or "Ramesh" (Male), saving front desk time.</span>
-              </div>
-              <div class="flex items-start gap-2">
-                <span class="text-emerald-400 font-bold">✓</span>
-                <span><strong>Dual UPI &amp; Cash Counters:</strong> Keep digital UPI settlements separated from physical cash drawer accounting.</span>
-              </div>
-              <div class="flex items-start gap-2">
-                <span class="text-emerald-400 font-bold">✓</span>
-                <span><strong>Live Revenue Analytics:</strong> Every new morning resets to fresh daily intake with lifetime historical archives preserved.</span>
-              </div>
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span><strong>Dual Payment Counters:</strong> Strictly reconciles digital UPI settlements against physical cash drawer balance.</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span><strong>Live Daily Revenue:</strong> Resets every morning to live day collection while preserving cumulative archives.</span>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Footer Call to Action -->
-      <div class="bg-gradient-to-r from-brand-900 via-brand-800 to-emerald-900 rounded-2xl p-6 border border-brand-500/40 text-center space-y-3 mt-4">
-        <h4 class="text-lg sm:text-xl font-black text-white">
-          Ready to Modernize Your Outpatient Practice?
-        </h4>
+      <div class="bg-gradient-to-r from-brand-900 via-brand-800 to-emerald-900 rounded-2xl p-6 border border-brand-500/40 text-center space-y-3">
+        <h3 class="text-xl font-black text-white">
+          Transform Your Outpatient Practice Today.
+        </h3>
         <p class="text-emerald-100/90 text-xs font-medium max-w-lg mx-auto">
-          Start operating with zero server installations. Available on desktop, tablet, and mobile browsers.
+          Start your clinic operations with zero software installation. Available on desktop, tablet, and mobile browsers.
         </p>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
-          <a href="/" class="w-full sm:w-auto px-5 py-2.5 bg-white text-[#064e3b] hover:bg-emerald-50 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 text-center">
+        <div class="flex items-center justify-center gap-3 pt-1">
+          <a href="/" class="px-5 py-2.5 bg-white text-[#064e3b] hover:bg-emerald-50 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 text-center">
             Launch MediTrack Live App →
           </a>
-          <a href="/MediTrack_Official_Brochure.pdf" download="MediTrack_Official_Brochure.pdf" class="w-full sm:w-auto px-5 py-2.5 bg-black/40 hover:bg-black/50 text-white rounded-xl text-xs font-black uppercase tracking-wider border border-white/20 transition-all text-center">
+          <a href="/MediTrack_Official_Brochure.pdf" download="MediTrack_Official_Brochure.pdf" class="px-5 py-2.5 bg-black/40 hover:bg-black/50 text-white rounded-xl text-xs font-black uppercase tracking-wider border border-white/20 transition-all text-center">
             Download PDF Brochure (.pdf)
           </a>
         </div>
@@ -486,6 +487,7 @@
       </div>
     </div>
 
-  </main>
+  </div>
+
 </body>
 </html>
