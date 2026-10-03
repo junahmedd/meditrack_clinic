@@ -46,7 +46,8 @@
         display: none !important;
       }
       body {
-        background: #021f18 !important;
+        background: #f8fafc !important;
+        color: #0f172a !important;
         margin: 0 !important;
         padding: 0 !important;
         -webkit-print-color-adjust: exact !important;
@@ -74,41 +75,60 @@
       box-sizing: border-box;
       overflow: hidden;
     }
+    /* 3D Realistic Elevation Styles */
+    .card-3d {
+      background: #ffffff;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.06), 0 4px 10px -2px rgba(15, 23, 42, 0.03), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+      border-radius: 18px;
+    }
+    .window-chrome-3d {
+      background: #ffffff;
+      border: 1px solid rgba(203, 213, 225, 0.7);
+      box-shadow: 0 20px 45px -8px rgba(15, 23, 42, 0.09), 0 8px 16px -4px rgba(15, 23, 42, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 1);
+      border-radius: 20px;
+    }
+    .badge-3d {
+      box-shadow: 0 2px 6px -1px rgba(16, 185, 129, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+    }
+    .btn-3d {
+      box-shadow: 0 6px 16px -2px rgba(5, 150, 105, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans selection:bg-brand-500 selection:text-white antialiased py-0 sm:py-8">
+<body class="bg-slate-100 text-slate-800 font-sans selection:bg-brand-500 selection:text-white antialiased py-0 sm:py-8">
 
   <!-- Top Sticky Navigation (Screen Only) -->
-  <header class="no-print sticky top-0 z-50 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800 px-4 py-3 shadow-2xl mb-6">
+  <header class="no-print sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 px-4 py-3 shadow-md mb-6">
     <div class="max-w-4xl mx-auto flex items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 relative flex items-center justify-center shrink-0">
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-[0_2px_10px_rgba(16,185,129,0.5)]">
-            <path d="M50 88C50 88 12 62 12 36C12 21 24 10 38 10C46 10 50 16 50 16C50 16 54 10 62 10C76 10 88 21 88 36C88 62 50 88 50 88Z" fill="#065f46" />
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-[0_2px_8px_rgba(16,185,129,0.4)]">
+            <path d="M50 88C50 88 12 62 12 36C12 21 24 10 38 10C46 10 50 16 50 16C50 16 54 10 62 10C76 10 88 21 88 36C88 62 50 88 50 88Z" fill="#047857" />
             <path d="M50 82C50 82 18 58 18 36C18 24 28 15 39 15C46 15 50 20 50 20C50 20 54 15 61 15C72 15 82 24 82 36C82 58 50 82 50 82Z" fill="#10b981" />
             <rect x="44" y="27" width="12" height="34" rx="4" fill="white" />
             <rect x="33" y="38" width="34" height="12" rx="4" fill="white" />
           </svg>
         </div>
         <div>
-          <span class="font-black text-white text-base tracking-tight leading-none block">
-            Medi<span class="text-brand-400">Track</span>
+          <span class="font-black text-slate-900 text-base tracking-tight leading-none block">
+            Medi<span class="text-emerald-600">Track</span>
           </span>
-          <span class="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">
-            Enterprise Client Evaluation Brochure • 2026 Edition
+          <span class="text-[9px] font-extrabold uppercase tracking-widest text-slate-500">
+            Enterprise Client Evaluation Brochure • 2026 Light 3D Edition
           </span>
         </div>
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
-        <a href="/" class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+        <a href="/" class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors">
           ← Back to App
         </a>
-        <a href="/MediTrack_Official_Brochure.pdf" download="MediTrack_Official_Brochure.pdf" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-900/50 flex items-center gap-2 cursor-pointer transition-all active:scale-95">
+        <a href="/MediTrack_Official_Brochure.pdf" download="MediTrack_Official_Brochure.pdf" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-700/20 flex items-center gap-2 cursor-pointer transition-all active:scale-95 btn-3d">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
           <span>Download PDF Brochure</span>
         </a>
-        <button onclick="window.print()" class="hidden sm:flex px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold items-center gap-1.5 border border-slate-700 transition-colors cursor-pointer">
+        <button onclick="window.print()" class="hidden sm:flex px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold items-center gap-1.5 border border-slate-200 transition-colors shadow-xs cursor-pointer">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
           <span>Print</span>
         </button>
@@ -120,18 +140,18 @@
   <div class="flex flex-col items-center gap-10">
 
     <!-- ========================================================================= -->
-    <!-- PAGE 1: DEDICATED FULL A4 EXECUTIVE COVER & CLIENT BRIEFING               -->
+    <!-- PAGE 1: DEDICATED FULL A4 EXECUTIVE COVER (LIGHT 3D CLINICAL EDITION)     -->
     <!-- ========================================================================= -->
-    <div class="page a4-sheet bg-gradient-to-b from-[#022c22] via-[#064e3b] to-[#021f18] text-white p-11 sm:p-13 flex flex-col justify-between shadow-2xl relative overflow-hidden border border-emerald-800/40 sm:rounded-2xl">
-      <!-- Glow ambient lighting -->
-      <div class="absolute -right-24 -top-24 w-96 h-96 bg-brand-400/20 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="absolute -left-20 -bottom-20 w-96 h-96 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="page a4-sheet bg-gradient-to-br from-[#ffffff] via-[#f8fafc] to-[#ecfdf5] text-slate-800 p-11 sm:p-13 flex flex-col justify-between shadow-2xl relative overflow-hidden border border-slate-200/90 sm:rounded-2xl">
+      <!-- 3D Luminous Ambient Halos -->
+      <div class="absolute -right-28 -top-28 w-96 h-96 bg-emerald-300/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-20 -bottom-20 w-96 h-96 bg-teal-200/25 rounded-full blur-3xl pointer-events-none"></div>
 
-      <!-- Top Header: Logo, Client Evaluation Badge & Document Ref -->
-      <div class="relative z-10 flex items-center justify-between border-b border-emerald-500/25 pb-5">
+      <!-- Top Header: Logo, 3D Badge & Document Ref -->
+      <div class="relative z-10 flex items-center justify-between border-b border-emerald-100/90 pb-5">
         <div class="flex items-center gap-3.5">
           <div class="w-13 h-13 relative flex items-center justify-center shrink-0">
-            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 drop-shadow-[0_4px_16px_rgba(16,185,129,0.8)]">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 drop-shadow-[0_4px_14px_rgba(16,185,129,0.35)]">
               <path d="M50 88C50 88 12 62 12 36C12 21 24 10 38 10C46 10 50 16 50 16C50 16 54 10 62 10C76 10 88 21 88 36C88 62 50 88 50 88Z" fill="#047857" />
               <path d="M50 82C50 82 18 58 18 36C18 24 28 15 39 15C46 15 50 20 50 20C50 20 54 15 61 15C72 15 82 24 82 36C82 58 50 82 50 82Z" fill="#10b981" />
               <rect x="44" y="27" width="12" height="34" rx="4" fill="white" />
@@ -140,120 +160,129 @@
           </div>
           <div>
             <div class="flex items-center gap-2">
-              <span class="text-3xl font-black tracking-tight leading-none block">
-                Medi<span class="text-brand-300">Track</span>
+              <span class="text-3xl font-black tracking-tight leading-none text-slate-900 block font-display">
+                Medi<span class="text-emerald-600">Track</span>
               </span>
-              <span class="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 font-mono text-[9px] font-black uppercase border border-emerald-500/40">
+              <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-mono text-[9px] font-black uppercase border border-emerald-200 badge-3d">
                 PROD v4.2
               </span>
             </div>
-            <span class="text-[10px] font-extrabold uppercase tracking-widest text-emerald-200 mt-1 block">
+            <span class="text-[10px] font-extrabold uppercase tracking-widest text-emerald-700 mt-1 block">
               Outpatient Clinical Intelligence OS
             </span>
           </div>
         </div>
 
         <div class="text-right">
-          <span class="inline-block px-3 py-1 rounded-full bg-emerald-950/90 border border-emerald-400/50 text-[10px] font-black uppercase tracking-wider text-emerald-300">
+          <span class="inline-block px-3 py-1 rounded-full bg-white border border-emerald-200 text-[10px] font-black uppercase tracking-wider text-emerald-800 shadow-xs badge-3d">
             Client Briefing Document
           </span>
-          <p class="text-[9px] font-mono text-emerald-300/70 mt-1">REF: MT-ENT-2026-CL4</p>
+          <p class="text-[9px] font-mono text-slate-400 mt-1">REF: MT-ENT-2026-CL4</p>
         </div>
       </div>
 
-      <!-- Cover Body: Clean, Bold, Impactful -->
-      <div class="relative z-10 space-y-5 my-auto">
-        <div class="space-y-3">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/20 text-brand-300 border border-brand-400/40 text-xs font-black uppercase tracking-wider">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <!-- Cover Body: Clean, 3D, Impactful -->
+      <div class="relative z-10 space-y-4 sm:space-y-5 my-auto">
+        <div class="space-y-2.5">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black uppercase tracking-wider shadow-xs badge-3d">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>Tri-Portal Architecture for Outpatient Clinics</span>
           </div>
-          <h1 class="text-4xl sm:text-[42px] font-black tracking-tight leading-[1.12] text-white">
+          <h1 class="text-4xl sm:text-[42px] font-black tracking-tight leading-[1.12] text-slate-900">
             The Complete Operating System for General Practice Clinics.
           </h1>
-          <p class="text-emerald-100/90 text-sm sm:text-base font-medium max-w-xl leading-relaxed">
-            Engineered to eliminate paper records, waiting room chaos, and revenue leakage. MediTrack seamlessly integrates the <strong>Doctor Suite</strong>, <strong>Reception Desk</strong>, and <strong>Clinic Admin Hub</strong> into a synchronized cloud ecosystem with sub-second latency.
+          <p class="text-slate-600 text-sm sm:text-base font-medium max-w-xl leading-relaxed">
+            Eliminate paper records, waiting room chaos, and revenue leakage. MediTrack seamlessly integrates the <strong>Doctor Suite</strong>, <strong>Reception Desk</strong>, and <strong>Clinic Admin Hub</strong> into a synchronized cloud ecosystem with sub-second latency.
           </p>
         </div>
 
-        <!-- Tri-Portal Micro-Cards -->
+        <!-- 3D Tri-Portal Floating Cards -->
         <div class="grid grid-cols-3 gap-3">
-          <div class="bg-black/35 backdrop-blur-md p-3.5 rounded-xl border border-emerald-400/30 space-y-1">
+          <div class="card-3d p-3.5 space-y-1 hover:border-emerald-300 transition-all">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-black text-brand-300">🩺 Doctor Suite</span>
-              <span class="text-[9px] font-mono font-bold text-emerald-400">PORTAL 01</span>
+              <span class="text-xs font-black text-emerald-800 flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px]">🩺</span>
+                Doctor Suite
+              </span>
+              <span class="text-[9px] font-mono font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">PORTAL 01</span>
             </div>
-            <p class="text-[11px] text-slate-300 leading-tight">1-0-1 Smart Rx, Live vitals monitor, ICD-10 diagnosis formulary &amp; patient medical history.</p>
+            <p class="text-[11px] text-slate-600 leading-tight">1-0-1 Smart Rx, Live vitals monitor, ICD-10 diagnosis formulary &amp; patient medical history.</p>
           </div>
-          <div class="bg-black/35 backdrop-blur-md p-3.5 rounded-xl border border-emerald-400/30 space-y-1">
+          <div class="card-3d p-3.5 space-y-1 hover:border-emerald-300 transition-all">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-black text-brand-300">📋 Reception Desk</span>
-              <span class="text-[9px] font-mono font-bold text-emerald-400">PORTAL 02</span>
+              <span class="text-xs font-black text-teal-800 flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-teal-100 text-teal-700 flex items-center justify-center text-[10px]">📋</span>
+                Reception Desk
+              </span>
+              <span class="text-[9px] font-mono font-bold text-teal-600 bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200">PORTAL 02</span>
             </div>
-            <p class="text-[11px] text-slate-300 leading-tight">5-sec OPD token dispatch, dual payment counters (Cash vs UPI), &amp; WhatsApp GST billing.</p>
+            <p class="text-[11px] text-slate-600 leading-tight">5-sec OPD token dispatch, dual payment counters (Cash vs UPI), &amp; WhatsApp GST billing.</p>
           </div>
-          <div class="bg-black/35 backdrop-blur-md p-3.5 rounded-xl border border-emerald-400/30 space-y-1">
+          <div class="card-3d p-3.5 space-y-1 hover:border-emerald-300 transition-all">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-black text-brand-300">🛡️ Admin Hub</span>
-              <span class="text-[9px] font-mono font-bold text-emerald-400">PORTAL 03</span>
+              <span class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-slate-100 text-slate-700 flex items-center justify-center text-[10px]">🛡️</span>
+                Admin Hub
+              </span>
+              <span class="text-[9px] font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">PORTAL 03</span>
             </div>
-            <p class="text-[11px] text-slate-300 leading-tight">Staff credential provisioning, doctor-desk chamber pairing, real-time queues, &amp; audit logs.</p>
+            <p class="text-[11px] text-slate-600 leading-tight">Staff credential provisioning, doctor-desk chamber pairing, real-time queues, &amp; audit logs.</p>
           </div>
         </div>
 
-        <!-- Real Clinical Visual Showcase Banner -->
-        <div class="relative rounded-2xl overflow-hidden border border-emerald-400/40 shadow-2xl h-44 bg-cover bg-center" style="background-image: url('/doctor_welcome_banner.jpg');">
-          <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/70 to-transparent"></div>
-          <div class="relative z-10 h-full p-5 flex flex-col justify-end max-w-sm space-y-1">
-            <span class="text-[10px] font-black uppercase tracking-wider text-brand-300">Clinical Excellence Guarantee</span>
-            <h2 class="text-xl font-black text-white leading-tight">Zero Hardware Lock-In. Instant Onboarding.</h2>
+        <!-- 3D Clinical Showcase Hero Frame -->
+        <div class="relative rounded-2xl overflow-hidden border border-slate-200 shadow-xl h-44 bg-cover bg-center" style="background-image: url('/doctor_welcome_banner.jpg');">
+          <div class="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-900/50 to-transparent"></div>
+          <div class="relative z-10 h-full p-5 flex flex-col justify-end max-w-sm space-y-1 text-white">
+            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-300">Clinical Excellence Guarantee</span>
+            <h2 class="text-xl font-black leading-tight">Zero Hardware Lock-In. Instant Onboarding.</h2>
             <p class="text-[11px] text-slate-200 font-medium">Runs natively on Android, iOS, Windows, Mac, iPad, and Bluetooth thermal printers.</p>
           </div>
         </div>
 
-        <!-- Verified Client ROI Impact Metrics -->
+        <!-- 4 3D Raised ROI Metric Blocks -->
         <div class="grid grid-cols-4 gap-3 text-center">
-          <div class="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-            <span class="text-xl font-black text-brand-300 block">-68%</span>
-            <span class="text-[9px] font-bold text-emerald-200 uppercase tracking-wider">Patient Wait Time</span>
+          <div class="card-3d p-2.5 bg-white">
+            <span class="text-xl font-black text-emerald-600 block">-68%</span>
+            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Patient Wait Time</span>
           </div>
-          <div class="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-            <span class="text-xl font-black text-white block">100%</span>
-            <span class="text-[9px] font-bold text-emerald-200 uppercase tracking-wider">Revenue Capture</span>
+          <div class="card-3d p-2.5 bg-white">
+            <span class="text-xl font-black text-slate-900 block">100%</span>
+            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Revenue Capture</span>
           </div>
-          <div class="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-            <span class="text-xl font-black text-brand-300 block">&lt; 45 sec</span>
-            <span class="text-[9px] font-bold text-emerald-200 uppercase tracking-wider">Consult to Rx</span>
+          <div class="card-3d p-2.5 bg-white">
+            <span class="text-xl font-black text-emerald-600 block">&lt; 45 sec</span>
+            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Consult to Rx</span>
           </div>
-          <div class="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-            <span class="text-xl font-black text-white block">₹ 0</span>
-            <span class="text-[9px] font-bold text-emerald-200 uppercase tracking-wider">Paper &amp; SMS Cost</span>
+          <div class="card-3d p-2.5 bg-white">
+            <span class="text-xl font-black text-slate-900 block">₹ 0</span>
+            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Paper &amp; SMS Cost</span>
           </div>
         </div>
       </div>
 
       <!-- Cover Footer: Certifications & Assurance -->
-      <div class="relative z-10 pt-4 border-t border-emerald-500/25 space-y-2">
-        <div class="flex items-center justify-between text-[10px] text-emerald-200 font-medium">
+      <div class="relative z-10 pt-4 border-t border-slate-200 space-y-2">
+        <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
           <div class="flex items-center gap-4">
-            <span class="flex items-center gap-1 font-bold">
-              <svg class="w-3.5 h-3.5 text-brand-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+            <span class="flex items-center gap-1 font-bold text-slate-700">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
               HIPAA Compliant
             </span>
-            <span class="flex items-center gap-1 font-bold">
-              <svg class="w-3.5 h-3.5 text-brand-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+            <span class="flex items-center gap-1 font-bold text-slate-700">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
               ABDM Sandbox Ready
             </span>
-            <span class="flex items-center gap-1 font-bold">
-              <svg class="w-3.5 h-3.5 text-brand-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+            <span class="flex items-center gap-1 font-bold text-slate-700">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
               GST SAC 999312 Ready
             </span>
-            <span class="flex items-center gap-1 font-bold">
-              <svg class="w-3.5 h-3.5 text-brand-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+            <span class="flex items-center gap-1 font-bold text-slate-700">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
               Google Cloud 99.99% SLA
             </span>
           </div>
-          <span class="font-mono text-emerald-300/80">Page 1 / 4</span>
+          <span class="font-mono text-slate-400">Page 1 / 4</span>
         </div>
       </div>
     </div>
@@ -261,149 +290,149 @@
     <!-- ========================================================================= -->
     <!-- PAGE 2: GENERAL PHYSICIAN CONSULTATION WORKFLOW (DOCTOR PORTAL)           -->
     <!-- ========================================================================= -->
-    <div class="page a4-sheet bg-slate-900 text-white p-11 sm:p-13 flex flex-col justify-between shadow-2xl relative border border-slate-800 sm:rounded-2xl">
+    <div class="page a4-sheet bg-[#f8fafc] text-slate-800 p-11 sm:p-13 flex flex-col justify-between shadow-2xl relative border border-slate-200/90 sm:rounded-2xl">
       <!-- Page Header -->
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3.5">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3.5">
         <div>
           <div class="flex items-center gap-2">
-            <span class="text-xs font-black uppercase tracking-widest text-brand-400">Portal 01 • Clinical Care Suite</span>
-            <span class="px-2 py-0.2 rounded bg-slate-800 text-[10px] font-mono text-slate-300">PWA &amp; Desktop</span>
+            <span class="text-xs font-black uppercase tracking-widest text-emerald-700">Portal 01 • Clinical Care Suite</span>
+            <span class="px-2 py-0.2 rounded bg-emerald-50 text-[10px] font-mono text-emerald-800 border border-emerald-200 font-bold">PWA &amp; Desktop</span>
           </div>
-          <h2 class="text-2xl sm:text-3xl font-black text-white">General Physician Consultation Suite</h2>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900">General Physician Consultation Suite</h2>
         </div>
         <div class="text-right">
-          <span class="px-3 py-1 rounded-full bg-brand-900/60 text-brand-300 text-xs font-black border border-brand-500/40">
+          <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-black border border-emerald-200 badge-3d">
             Doctor Workspace
           </span>
-          <p class="text-[9px] font-mono text-slate-400 mt-1">Instant Billing Handshake</p>
+          <p class="text-[9px] font-mono text-slate-500 mt-1">Instant Billing Handshake</p>
         </div>
       </div>
 
-      <!-- Real Doctor Consultation Screen Mockup -->
-      <div class="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden my-auto">
-        <!-- Window Chrome -->
-        <div class="bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+      <!-- Real Doctor Consultation Screen Mockup (Light 3D Edition) -->
+      <div class="window-chrome-3d overflow-hidden my-auto">
+        <!-- 3D Window Chrome Bar -->
+        <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <div class="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
-            <div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-            <span class="text-[11px] font-mono font-bold text-slate-400 ml-2">MediTrack Doctor Workstation • Dr. Ahmed, MD (KMC #58492) • Chamber Room #01</span>
+            <div class="w-3 h-3 rounded-full bg-rose-500 shadow-xs"></div>
+            <div class="w-3 h-3 rounded-full bg-amber-500 shadow-xs"></div>
+            <div class="w-3 h-3 rounded-full bg-emerald-500 shadow-xs"></div>
+            <span class="text-[11px] font-mono font-bold text-slate-600 ml-2">MediTrack Doctor Workstation • Dr. Ahmed, MD (KMC #58492) • Chamber Room #01</span>
           </div>
-          <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shadow-2xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             ACTIVE CONSULTATION • TOKEN #01
           </span>
         </div>
 
         <!-- Consultation Body -->
-        <div class="p-4 sm:p-5 space-y-3.5 text-xs">
-          <!-- Active Patient Details -->
-          <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+        <div class="p-4 sm:p-5 space-y-3.5 text-xs bg-white">
+          <!-- Active Patient Details (Raised 3D Card) -->
+          <div class="card-3d p-3.5 flex items-center justify-between bg-slate-50/50">
             <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-full bg-gradient-to-br from-brand-700 to-brand-950 text-brand-200 font-black text-sm flex items-center justify-center border border-brand-400/50 shadow-md">
+              <div class="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-600 to-teal-800 text-white font-black text-sm flex items-center justify-center border-2 border-white shadow-md">
                 RK
               </div>
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="text-base font-black text-white">Ramesh Kumar</span>
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">34 Yrs • Male</span>
-                  <span class="text-[10px] font-black px-2 py-0.5 rounded bg-brand-900/80 text-brand-300 border border-brand-700">Token #01</span>
-                  <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-rose-950/60 text-rose-300 border border-rose-800">O+ve • NKDA</span>
+                  <span class="text-base font-black text-slate-900">Ramesh Kumar</span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">34 Yrs • Male</span>
+                  <span class="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">Token #01</span>
+                  <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">O+ve • NKDA</span>
                 </div>
-                <p class="text-slate-400 font-mono text-[11px] mt-0.5">Mobile: +91 98765 43210 • UHID: MT-2026-9041 • General OPD Walk-in</p>
+                <p class="text-slate-500 font-mono text-[11px] mt-0.5">Mobile: +91 98765 43210 • UHID: MT-2026-9041 • General OPD Walk-in</p>
               </div>
             </div>
 
-            <!-- Vitals Badges -->
+            <!-- 3D Vitals Badges -->
             <div class="flex items-center gap-2 text-[11px]">
-              <div class="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-center">
-                <span class="text-[9px] text-slate-400 block">BP</span>
-                <strong class="text-emerald-400 font-mono">120/80</strong>
+              <div class="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-center shadow-xs">
+                <span class="text-[9px] text-slate-500 font-semibold block">BP</span>
+                <strong class="text-emerald-700 font-mono font-bold">120/80</strong>
               </div>
-              <div class="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-center">
-                <span class="text-[9px] text-slate-400 block">SpO₂</span>
-                <strong class="text-emerald-400 font-mono">99%</strong>
+              <div class="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-center shadow-xs">
+                <span class="text-[9px] text-slate-500 font-semibold block">SpO₂</span>
+                <strong class="text-emerald-700 font-mono font-bold">99%</strong>
               </div>
-              <div class="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-center">
-                <span class="text-[9px] text-slate-400 block">Pulse</span>
-                <strong class="text-emerald-400 font-mono">72 bpm</strong>
+              <div class="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-center shadow-xs">
+                <span class="text-[9px] text-slate-500 font-semibold block">Pulse</span>
+                <strong class="text-emerald-700 font-mono font-bold">72 bpm</strong>
               </div>
-              <div class="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-center">
-                <span class="text-[9px] text-slate-400 block">Temp</span>
-                <strong class="text-emerald-400 font-mono">98.6°F</strong>
+              <div class="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-center shadow-xs">
+                <span class="text-[9px] text-slate-500 font-semibold block">Temp</span>
+                <strong class="text-emerald-700 font-mono font-bold">98.6°F</strong>
               </div>
             </div>
           </div>
 
           <!-- Diagnosis -->
           <div class="grid grid-cols-2 gap-3">
-            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-              <span class="text-slate-400 text-[10px] font-bold uppercase block mb-1">Chief Complaints &amp; Clinical History</span>
-              <p class="text-white font-medium">Low-grade fever for 48 hrs, severe throat soreness, dry hacking cough, body malaise.</p>
+            <div class="card-3d p-3 bg-white">
+              <span class="text-slate-500 text-[10px] font-bold uppercase block mb-1">Chief Complaints &amp; Clinical History</span>
+              <p class="text-slate-800 font-medium">Low-grade fever for 48 hrs, severe throat soreness, dry hacking cough, body malaise.</p>
             </div>
-            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-              <span class="text-slate-400 text-[10px] font-bold uppercase block mb-1">Clinical Diagnosis (ICD-10 Compatible)</span>
+            <div class="card-3d p-3 bg-white">
+              <span class="text-slate-500 text-[10px] font-bold uppercase block mb-1">Clinical Diagnosis (ICD-10 Compatible)</span>
               <div class="flex items-center justify-between mt-0.5">
-                <p class="text-emerald-400 font-black text-sm">Acute Viral Pharyngitis</p>
-                <span class="font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/60">ICD: J02.9</span>
+                <p class="text-emerald-700 font-black text-sm">Acute Viral Pharyngitis</p>
+                <span class="font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold">ICD: J02.9</span>
               </div>
             </div>
           </div>
 
           <!-- Prescription Formulary Items -->
-          <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <div class="card-3d p-3.5 space-y-2 bg-white">
             <div class="flex items-center justify-between">
-              <span class="text-[11px] font-extrabold text-brand-400 uppercase tracking-wider block">
+              <span class="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider block">
                 💊 Prescribed Medications (Autocompleted Clinical Formulary)
               </span>
-              <span class="text-[10px] font-mono text-slate-400">3 Items Prescribed</span>
+              <span class="text-[10px] font-mono text-slate-500">3 Items Prescribed</span>
             </div>
-            <div class="divide-y divide-slate-800">
+            <div class="divide-y divide-slate-100">
               <div class="py-1.5 flex items-center justify-between">
                 <div>
-                  <strong class="text-white font-bold text-xs block">Amoxicillin 500mg Capsule</strong>
-                  <span class="text-[10px] text-slate-400 font-mono">Broad-spectrum Antibiotic • After food</span>
+                  <strong class="text-slate-900 font-bold text-xs block">Amoxicillin 500mg Capsule</strong>
+                  <span class="text-[10px] text-slate-500 font-mono">Broad-spectrum Antibiotic • After food</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="px-2.5 py-0.5 rounded bg-brand-900/60 text-brand-300 border border-brand-700 font-mono font-bold text-xs">1-0-1</span>
-                  <span class="px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-xs">5 Days</span>
+                  <span class="px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono font-bold text-xs shadow-2xs">1-0-1</span>
+                  <span class="px-2.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-xs">5 Days</span>
                 </div>
               </div>
               <div class="py-1.5 flex items-center justify-between">
                 <div>
-                  <strong class="text-white font-bold text-xs block">Paracetamol 650mg Tablet</strong>
-                  <span class="text-[10px] text-slate-400 font-mono">Analgesic / Antipyretic • After food / SOS</span>
+                  <strong class="text-slate-900 font-bold text-xs block">Paracetamol 650mg Tablet</strong>
+                  <span class="text-[10px] text-slate-500 font-mono">Analgesic / Antipyretic • After food / SOS</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="px-2.5 py-0.5 rounded bg-brand-900/60 text-brand-300 border border-brand-700 font-mono font-bold text-xs">1-0-1</span>
-                  <span class="px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-xs">3 Days</span>
+                  <span class="px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono font-bold text-xs shadow-2xs">1-0-1</span>
+                  <span class="px-2.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-xs">3 Days</span>
                 </div>
               </div>
               <div class="py-1.5 flex items-center justify-between">
                 <div>
-                  <strong class="text-white font-bold text-xs block">Levocetirizine 5mg Tablet</strong>
-                  <span class="text-[10px] text-slate-400 font-mono">Non-sedating Antihistamine • At bedtime</span>
+                  <strong class="text-slate-900 font-bold text-xs block">Levocetirizine 5mg Tablet</strong>
+                  <span class="text-[10px] text-slate-500 font-mono">Non-sedating Antihistamine • At bedtime</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="px-2.5 py-0.5 rounded bg-brand-900/60 text-brand-300 border border-brand-700 font-mono font-bold text-xs">0-0-1</span>
-                  <span class="px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-xs">5 Days</span>
+                  <span class="px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono font-bold text-xs shadow-2xs">0-0-1</span>
+                  <span class="px-2.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-xs">5 Days</span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Doctor Action Bar -->
-          <div class="pt-1 flex items-center justify-between border-t border-slate-800 text-[11px]">
+          <div class="pt-1 flex items-center justify-between border-t border-slate-100 text-[11px]">
             <div class="flex items-center gap-2">
-              <span class="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold border border-slate-700">
+              <span class="px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 shadow-2xs cursor-pointer">
                 📁 Patient History (3 Prior Encounters)
               </span>
-              <span class="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold border border-slate-700">
+              <span class="px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 shadow-2xs cursor-pointer">
                 🖨️ Print Prescription (A4/A5)
               </span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="px-3.5 py-1 rounded-lg bg-[#064e3b] text-emerald-200 font-black border border-[#10b981]/40">
+              <span class="px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white font-black border border-emerald-700 shadow-sm btn-3d">
                 ✓ Complete Consult &amp; Bill ₹500 →
               </span>
             </div>
@@ -411,39 +440,39 @@
         </div>
       </div>
 
-      <!-- 3 Clean Value Cards -->
+      <!-- 3 3D Clean Value Cards -->
       <div class="grid grid-cols-3 gap-4">
-        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+        <div class="card-3d p-4 space-y-1.5 bg-white">
           <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">01</span>
-            <h3 class="text-sm font-black text-white">1-Tap "Call Patient"</h3>
+            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shadow-2xs">01</span>
+            <h3 class="text-sm font-black text-slate-900">1-Tap "Call Patient"</h3>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">
+          <p class="text-xs text-slate-600 leading-relaxed">
             Synchronizes with waiting room displays and changes queue status from Waiting to In Room across all terminals in &lt;1 second.
           </p>
         </div>
-        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+        <div class="card-3d p-4 space-y-1.5 bg-white">
           <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">02</span>
-            <h3 class="text-sm font-black text-white">Compact History Modal</h3>
+            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shadow-2xs">02</span>
+            <h3 class="text-sm font-black text-slate-900">Compact History Modal</h3>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">
+          <p class="text-xs text-slate-600 leading-relaxed">
             Review past consultations, old medications, and vitals trend lines instantly without leaving or navigating away from the current patient file.
           </p>
         </div>
-        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+        <div class="card-3d p-4 space-y-1.5 bg-white">
           <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">03</span>
-            <h3 class="text-sm font-black text-white">Zero Phone Billing Hand-Off</h3>
+            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shadow-2xs">03</span>
+            <h3 class="text-sm font-black text-slate-900">Zero Phone Billing Hand-Off</h3>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">
+          <p class="text-xs text-slate-600 leading-relaxed">
             Completing consult transfers consultation fees straight to the reception desk as an Unpaid Invoice with 100% revenue capture.
           </p>
         </div>
       </div>
 
       <!-- Page 2 Footer -->
-      <div class="flex items-center justify-between text-[10px] text-slate-400 border-t border-slate-800 pt-3">
+      <div class="flex items-center justify-between text-[10px] text-slate-500 border-t border-slate-200 pt-3">
         <span>MediTrack Doctor Consultation Suite • Designed strictly for Outpatient General Practice</span>
         <span class="font-mono">Page 2 / 4</span>
       </div>
@@ -452,45 +481,45 @@
     <!-- ========================================================================= -->
     <!-- PAGE 3: FRONT DESK & RECEPTION DESK (RECEPTIONIST PORTAL)                 -->
     <!-- ========================================================================= -->
-    <div class="page a4-sheet bg-slate-900 text-white p-11 sm:p-13 flex flex-col justify-between shadow-2xl relative border border-slate-800 sm:rounded-2xl">
+    <div class="page a4-sheet bg-[#f8fafc] text-slate-800 p-11 sm:p-13 flex flex-col justify-between shadow-2xl relative border border-slate-200/90 sm:rounded-2xl">
       <!-- Page Header -->
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3.5">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3.5">
         <div>
           <div class="flex items-center gap-2">
-            <span class="text-xs font-black uppercase tracking-widest text-emerald-400">Portal 02 • Front Desk &amp; Finance</span>
-            <span class="px-2 py-0.2 rounded bg-slate-800 text-[10px] font-mono text-slate-300">Counter Desk</span>
+            <span class="text-xs font-black uppercase tracking-widest text-teal-700">Portal 02 • Front Desk &amp; Finance</span>
+            <span class="px-2 py-0.2 rounded bg-teal-50 text-[10px] font-mono text-teal-800 border border-teal-200 font-bold">Counter Desk</span>
           </div>
-          <h2 class="text-2xl sm:text-3xl font-black text-white">Smart Reception Desk &amp; WhatsApp GST Invoicing</h2>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Smart Reception Desk &amp; WhatsApp GST Invoicing</h2>
         </div>
         <div class="text-right">
-          <span class="px-3 py-1 rounded-full bg-emerald-900/60 text-emerald-300 text-xs font-black border border-emerald-500/40">
+          <span class="px-3 py-1 rounded-full bg-teal-50 text-teal-800 text-xs font-black border border-teal-200 badge-3d">
             Receptionist Workspace
           </span>
-          <p class="text-[9px] font-mono text-slate-400 mt-1">Dual Cash/UPI Reconciled</p>
+          <p class="text-[9px] font-mono text-slate-500 mt-1">Dual Cash/UPI Reconciled</p>
         </div>
       </div>
 
       <!-- Real Tax Invoice & WhatsApp Delivery Grid -->
       <div class="grid grid-cols-2 gap-5 my-auto">
-        <!-- Official Tax Invoice Simulation -->
-        <div class="bg-white text-slate-900 rounded-2xl p-5 border border-slate-200 shadow-xl space-y-3 font-sans text-xs">
-          <div class="flex items-start justify-between border-b-2 border-emerald-900 pb-3">
+        <!-- Official Tax Invoice Simulation (Raised 3D Card) -->
+        <div class="window-chrome-3d p-5 space-y-3 font-sans text-xs bg-white">
+          <div class="flex items-start justify-between border-b-2 border-emerald-600 pb-3">
             <div>
               <div class="flex items-center gap-2">
                 <h3 class="font-black text-sm text-slate-900">Dr. Ahmed Family Clinic</h3>
-                <span class="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold text-[9px]">TAX INVOICE</span>
+                <span class="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-800 font-bold text-[9px] border border-emerald-200">TAX INVOICE</span>
               </div>
               <p class="text-[10px] text-slate-500 mt-0.5">123 Health Ave, Medical Center • Ph: +91 98765 00000</p>
               <p class="text-[10px] text-slate-500 font-mono">GSTIN: 29AAAAA0000A1Z5 • SAC: 999312</p>
             </div>
             <div class="text-right">
-              <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-extrabold text-[9px] uppercase">PAID • UPI QR</span>
+              <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[9px] uppercase border border-emerald-300">PAID • UPI QR</span>
               <p class="font-mono font-black text-xs text-slate-900 mt-1">INV-2026-4892</p>
               <p class="text-[9px] text-slate-400 font-mono">02 Oct 2026 • 10:45 AM</p>
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px]">
+          <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-[11px]">
             <div>
               <span class="text-slate-400 font-bold uppercase text-[9px] block">Patient Name &amp; UHID</span>
               <strong class="text-slate-900 block">Ramesh Kumar (34 M)</strong>
@@ -505,7 +534,7 @@
 
           <table class="w-full text-left border-collapse text-[11px]">
             <thead>
-              <tr class="border-b border-slate-200 text-[10px] font-black uppercase text-slate-400">
+              <tr class="border-b border-slate-200 text-[10px] font-black uppercase text-slate-500">
                 <th class="py-1">Description / SAC</th>
                 <th class="py-1 text-center">Qty</th>
                 <th class="py-1 text-right">Amount (₹)</th>
@@ -518,7 +547,7 @@
                   <span class="text-[9px] text-slate-400 font-mono">SAC: 999312 • Clinical Assessment</span>
                 </td>
                 <td class="py-1.5 text-center font-mono">1</td>
-                <td class="py-1.5 text-right font-mono font-bold">500.00</td>
+                <td class="py-1.5 text-right font-mono font-bold text-slate-900">500.00</td>
               </tr>
               <tr>
                 <td class="py-1.5">
@@ -536,70 +565,70 @@
               </tr>
               <tr class="border-t-2 border-slate-200 text-xs font-black text-slate-900">
                 <td colspan="2" class="pt-2">Total Amount Settled (UPI)</td>
-                <td class="pt-2 text-right text-emerald-800 font-mono text-sm">₹500.00</td>
+                <td class="pt-2 text-right text-emerald-700 font-mono text-sm font-black">₹500.00</td>
               </tr>
             </tfoot>
           </table>
 
-          <div class="text-[9px] text-slate-400 border-t border-slate-100 pt-2 flex justify-between items-center">
+          <div class="text-[9px] text-slate-500 border-t border-slate-100 pt-2 flex justify-between items-center">
             <span>• Computer Generated Tax Invoice. No signature required.</span>
             <div class="flex items-center gap-1.5 text-emerald-700 font-bold">
               <span>Verified ✓</span>
-              <span class="font-mono text-[8px] px-1 py-0.2 bg-emerald-50 rounded border border-emerald-200">UPI-3498102</span>
+              <span class="font-mono text-[8px] px-1.5 py-0.2 bg-emerald-50 rounded border border-emerald-200">UPI-3498102</span>
             </div>
           </div>
         </div>
 
-        <!-- WhatsApp Delivery Preview & Highlights -->
+        <!-- 3D Phone / WhatsApp Delivery Card -->
         <div class="space-y-3.5">
-          <div class="bg-[#0b141a] text-slate-100 rounded-2xl p-4 border border-emerald-900/50 shadow-xl space-y-3 font-sans">
-            <div class="flex items-center justify-between border-b border-emerald-950 pb-2">
+          <div class="window-chrome-3d p-4 space-y-3 font-sans bg-white">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
               <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-full bg-[#25d366] flex items-center justify-center text-slate-950 font-black text-xs">
+                <div class="w-7 h-7 rounded-full bg-[#25d366] flex items-center justify-center text-white font-black text-xs shadow-xs">
                   WA
                 </div>
                 <div>
-                  <span class="text-xs font-bold text-slate-200 block">Dr. Ahmed Family Clinic</span>
-                  <span class="text-[9px] text-emerald-400 font-mono">Official WhatsApp Gateway ✓</span>
+                  <span class="text-xs font-bold text-slate-900 block">Dr. Ahmed Family Clinic</span>
+                  <span class="text-[9px] text-emerald-600 font-mono font-bold">Official WhatsApp Gateway ✓</span>
                 </div>
               </div>
               <span class="text-[9px] text-slate-400 font-mono">10:45 AM</span>
             </div>
 
-            <div class="bg-[#005c4b] p-3 rounded-2xl rounded-tr-xs text-xs space-y-1.5">
-              <p class="font-bold text-white">🏥 Clinic Consultation Complete</p>
-              <p class="text-slate-200 text-[11px] leading-relaxed">
+            <div class="bg-[#dcf8c6]/60 border border-[#bbf7d0] p-3 rounded-2xl rounded-tr-xs text-xs space-y-1.5 text-slate-800 shadow-2xs">
+              <p class="font-bold text-slate-900">🏥 Clinic Consultation Complete</p>
+              <p class="text-slate-700 text-[11px] leading-relaxed">
                 Hello <strong>Ramesh Kumar</strong>, your consultation payment of <strong>₹500.00</strong> was received successfully. ✅
               </p>
-              <p class="text-[10px] font-mono text-emerald-200 leading-tight">
+              <p class="text-[10px] font-mono text-slate-600 leading-tight">
                 🧾 Invoice: INV-2026-4892<br>
                 💳 Mode: UPI QR (PhonePe/GPay)<br>
                 📌 Doctor: Dr. Ahmed, MD
               </p>
-              <div class="p-2 bg-emerald-950/60 rounded-xl border border-emerald-700/50 flex items-center justify-between mt-1">
+              <div class="p-2 bg-white rounded-xl border border-emerald-300 flex items-center justify-between mt-1 shadow-2xs">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm">📄</span>
+                  <span class="text-base">📄</span>
                   <div>
-                    <span class="text-[10px] font-mono font-bold text-emerald-300 block">MediTrack_Invoice_4892.pdf</span>
+                    <span class="text-[10px] font-mono font-bold text-emerald-800 block">MediTrack_Invoice_4892.pdf</span>
                     <span class="text-[8px] text-slate-400">PDF • 142 KB</span>
                   </div>
                 </div>
-                <span class="text-[9px] font-black text-[#25d366] uppercase">Delivered ✓</span>
+                <span class="text-[9px] font-black text-emerald-700 uppercase bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Delivered ✓</span>
               </div>
             </div>
           </div>
 
-          <div class="space-y-2 text-xs text-slate-300">
+          <div class="space-y-2 text-xs text-slate-600">
             <div class="flex items-start gap-2">
-              <span class="text-emerald-400 font-bold">✓</span>
+              <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">✓</span>
               <span><strong>Auto-Gender Inference:</strong> Recognizes gender automatically from patient names, cutting front desk intake down to 5 seconds.</span>
             </div>
             <div class="flex items-start gap-2">
-              <span class="text-emerald-400 font-bold">✓</span>
+              <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">✓</span>
               <span><strong>Dual Payment Counters:</strong> Strictly separates digital UPI settlements from cash drawer balances to prevent end-of-day tally issues.</span>
             </div>
             <div class="flex items-start gap-2">
-              <span class="text-emerald-400 font-bold">✓</span>
+              <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">✓</span>
               <span><strong>Thermal Slip &amp; A4 Print:</strong> Instant Bluetooth 80mm thermal token slips, summary bills, and full A4 GST tax invoices.</span>
             </div>
           </div>
@@ -608,37 +637,37 @@
 
       <!-- 3 Reception Feature Cards -->
       <div class="grid grid-cols-3 gap-4">
-        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+        <div class="card-3d p-4 space-y-1.5 bg-white">
           <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">01</span>
-            <h3 class="text-sm font-black text-white">5-Second Token Dispatch</h3>
+            <span class="w-6 h-6 rounded-lg bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-xs shadow-2xs">01</span>
+            <h3 class="text-sm font-black text-slate-900">5-Second Token Dispatch</h3>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">
+          <p class="text-xs text-slate-600 leading-relaxed">
             Instant patient intake with mobile number lookup, auto-name capitalization, and automated doctor chamber queue assignment.
           </p>
         </div>
-        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+        <div class="card-3d p-4 space-y-1.5 bg-white">
           <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">02</span>
-            <h3 class="text-sm font-black text-white">Cash vs. UPI Reconciled</h3>
+            <span class="w-6 h-6 rounded-lg bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-xs shadow-2xs">02</span>
+            <h3 class="text-sm font-black text-slate-900">Cash vs. UPI Reconciled</h3>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">
+          <p class="text-xs text-slate-600 leading-relaxed">
             Eliminates counter cash shortages. Every cash transaction is logged separately from UPI QR digital bank credits.
           </p>
         </div>
-        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+        <div class="card-3d p-4 space-y-1.5 bg-white">
           <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">03</span>
-            <h3 class="text-sm font-black text-white">Live OPD Queue Monitor</h3>
+            <span class="w-6 h-6 rounded-lg bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-xs shadow-2xs">03</span>
+            <h3 class="text-sm font-black text-slate-900">Live OPD Queue Monitor</h3>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">
+          <p class="text-xs text-slate-600 leading-relaxed">
             Real-time status updates (Waiting, In Room, Completed) keep front desk staff perfectly informed of doctor capacity and patient turns.
           </p>
         </div>
       </div>
 
       <!-- Page 3 Footer -->
-      <div class="flex items-center justify-between text-[10px] text-slate-400 border-t border-slate-800 pt-3">
+      <div class="flex items-center justify-between text-[10px] text-slate-500 border-t border-slate-200 pt-3">
         <span>MediTrack Smart Reception &amp; WhatsApp GST Invoicing • Zero Paper &amp; SMS Overhead</span>
         <span class="font-mono">Page 3 / 4</span>
       </div>
@@ -647,166 +676,166 @@
     <!-- ========================================================================= -->
     <!-- PAGE 4: CLINIC ADMINISTRATION & GOVERNANCE (ADMIN PORTAL)                 -->
     <!-- ========================================================================= -->
-    <div class="page a4-sheet bg-slate-900 text-white p-11 sm:p-13 flex flex-col justify-between shadow-2xl relative border border-slate-800 sm:rounded-2xl">
+    <div class="page a4-sheet bg-[#f8fafc] text-slate-800 p-11 sm:p-13 flex flex-col justify-between shadow-2xl relative border border-slate-200/90 sm:rounded-2xl">
       <!-- Page Header -->
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3.5">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3.5">
         <div>
           <div class="flex items-center gap-2">
-            <span class="text-xs font-black uppercase tracking-widest text-[#10b981]">Portal 03 • Practice Governance &amp; Security</span>
-            <span class="px-2 py-0.2 rounded bg-slate-800 text-[10px] font-mono text-slate-300">Executive Control</span>
+            <span class="text-xs font-black uppercase tracking-widest text-emerald-700">Portal 03 • Practice Governance &amp; Security</span>
+            <span class="px-2 py-0.2 rounded bg-emerald-50 text-[10px] font-mono text-emerald-800 border border-emerald-200 font-bold">Executive Control</span>
           </div>
-          <h2 class="text-2xl sm:text-3xl font-black text-white">Clinic Admin Hub &amp; Practice Governance</h2>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Clinic Admin Hub &amp; Practice Governance</h2>
         </div>
         <div class="text-right">
-          <span class="px-3 py-1 rounded-full bg-[#064e3b] text-[#a7f3d0] text-xs font-black border border-[#10b981]/50">
+          <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-black border border-emerald-200 badge-3d">
             Admin Portal Workspace
           </span>
-          <p class="text-[9px] font-mono text-slate-400 mt-1">Multi-Role RBAC Enforced</p>
+          <p class="text-[9px] font-mono text-slate-500 mt-1">Multi-Role RBAC Enforced</p>
         </div>
       </div>
 
-      <!-- Real Admin Control Center Mockup -->
-      <div class="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden my-auto">
-        <!-- Window Chrome -->
-        <div class="bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+      <!-- Real Admin Control Center Mockup (3D Light Edition) -->
+      <div class="window-chrome-3d overflow-hidden my-auto">
+        <!-- 3D Window Bar -->
+        <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <div class="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
-            <div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-            <span class="text-[11px] font-mono font-bold text-slate-400 ml-2">MediTrack Admin Control — Dr. Ahmed Family Health Center (ID: MT-CLN-2026-01)</span>
+            <div class="w-3 h-3 rounded-full bg-rose-500 shadow-xs"></div>
+            <div class="w-3 h-3 rounded-full bg-amber-500 shadow-xs"></div>
+            <div class="w-3 h-3 rounded-full bg-emerald-500 shadow-xs"></div>
+            <span class="text-[11px] font-mono font-bold text-slate-600 ml-2">MediTrack Admin Control — Dr. Ahmed Family Health Center (ID: MT-CLN-2026-01)</span>
           </div>
-          <span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+          <span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
             SYSTEM ADMIN • FULL ACCESS
           </span>
         </div>
 
-        <div class="p-4 sm:p-5 space-y-3.5 text-xs">
-          <!-- Live Clinic Queue & Activity Summary Banner -->
-          <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+        <div class="p-4 sm:p-5 space-y-3.5 text-xs bg-white">
+          <!-- Live Clinic Queue & Activity Summary Banner (Raised 3D Card) -->
+          <div class="card-3d p-3.5 flex items-center justify-between bg-slate-50/50">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-[#064e3b] text-[#34d399] flex items-center justify-center font-bold">
+              <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shadow-xs">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
               </div>
               <div>
-                <h4 class="text-sm font-black text-white">Clinic Live Activity &amp; Queue Overview</h4>
-                <p class="text-[11px] text-slate-400">Live synchronized monitoring across all consultation rooms and front desk counters.</p>
+                <h4 class="text-sm font-black text-slate-900">Clinic Live Activity &amp; Queue Overview</h4>
+                <p class="text-[11px] text-slate-500">Live synchronized monitoring across all consultation rooms and front desk counters.</p>
               </div>
             </div>
 
             <!-- Queue Counter Badges -->
             <div class="flex items-center gap-2.5">
-              <div class="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-center min-w-[70px]">
-                <span class="text-[9px] font-black uppercase text-amber-400 block">Waiting</span>
-                <span class="text-base font-black text-amber-300">04</span>
+              <div class="px-3 py-1 rounded-xl bg-amber-50 border border-amber-200 text-center min-w-[70px] shadow-2xs">
+                <span class="text-[9px] font-black uppercase text-amber-700 block">Waiting</span>
+                <span class="text-base font-black text-amber-800">04</span>
               </div>
-              <div class="px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-center min-w-[70px]">
-                <span class="text-[9px] font-black uppercase text-emerald-400 block">In Room</span>
-                <span class="text-base font-black text-emerald-300">02</span>
+              <div class="px-3 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-center min-w-[70px] shadow-2xs">
+                <span class="text-[9px] font-black uppercase text-emerald-700 block">In Room</span>
+                <span class="text-base font-black text-emerald-800">02</span>
               </div>
-              <div class="px-3 py-1 rounded-lg bg-brand-500/10 border border-brand-500/30 text-center min-w-[70px]">
-                <span class="text-[9px] font-black uppercase text-brand-300 block">Completed</span>
-                <span class="text-base font-black text-brand-300">18</span>
+              <div class="px-3 py-1 rounded-xl bg-teal-50 border border-teal-200 text-center min-w-[70px] shadow-2xs">
+                <span class="text-[9px] font-black uppercase text-teal-700 block">Completed</span>
+                <span class="text-base font-black text-teal-800">18</span>
               </div>
-              <div class="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 text-center min-w-[90px]">
-                <span class="text-[9px] font-black uppercase text-slate-400 block">Day Total</span>
-                <span class="text-sm font-black text-emerald-400 font-mono">₹9,500</span>
+              <div class="px-3 py-1 rounded-xl bg-slate-100 border border-slate-200 text-center min-w-[90px] shadow-2xs">
+                <span class="text-[9px] font-black uppercase text-slate-500 block">Day Total</span>
+                <span class="text-sm font-black text-emerald-700 font-mono">₹9,500</span>
               </div>
             </div>
           </div>
 
-          <!-- Dual Admin Module Cards: Staff Management & Clinic Profile -->
+          <!-- Dual 3D Admin Module Cards: Staff Management & Clinic Profile -->
           <div class="grid grid-cols-2 gap-4">
             <!-- Module 1: Manage Staff & Users -->
-            <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800 space-y-2">
-              <div class="h-20 rounded-lg overflow-hidden relative">
+            <div class="card-3d p-3.5 space-y-2 bg-white">
+              <div class="h-20 rounded-xl overflow-hidden relative border border-slate-100 shadow-2xs">
                 <img src="/assets/staff_team_photo.jpg" alt="Staff Management" class="w-full h-full object-cover object-top" />
-                <span class="absolute top-2 right-2 px-2 py-0.5 rounded bg-emerald-950/90 text-emerald-300 text-[9px] font-black uppercase border border-emerald-600/50">
+                <span class="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-white/95 text-emerald-800 text-[9px] font-black uppercase border border-emerald-200 shadow-xs">
                   Staff Control
                 </span>
               </div>
               <div>
-                <h5 class="text-xs font-black text-white">Manage Staff, Doctors &amp; Receptionists</h5>
-                <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                <h5 class="text-xs font-black text-slate-900">Manage Staff, Doctors &amp; Receptionists</h5>
+                <p class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                   Provision email credentials, assign General Physician categories, map doctor-receptionist desk pairings, and manage access roles.
                 </p>
               </div>
-              <div class="pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-emerald-400">
+              <div class="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono text-emerald-700 font-bold">
                 <span>✓ 2 Doctors • 2 Receptionists</span>
-                <span class="text-slate-500 font-sans font-bold">Chamber Pairing Active</span>
+                <span class="text-slate-400 font-sans font-medium">Chamber Pairing Active</span>
               </div>
             </div>
 
             <!-- Module 2: Clinic Profile & Security Settings -->
-            <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800 space-y-2">
-              <div class="h-20 rounded-lg overflow-hidden relative">
+            <div class="card-3d p-3.5 space-y-2 bg-white">
+              <div class="h-20 rounded-xl overflow-hidden relative border border-slate-100 shadow-2xs">
                 <img src="/assets/clinic_building_photo.png" alt="Clinic Profile" class="w-full h-full object-cover object-center" />
-                <span class="absolute top-2 right-2 px-2 py-0.5 rounded bg-emerald-950/90 text-emerald-300 text-[9px] font-black uppercase border border-emerald-600/50">
+                <span class="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-white/95 text-emerald-800 text-[9px] font-black uppercase border border-emerald-200 shadow-xs">
                   Settings
                 </span>
               </div>
               <div>
-                <h5 class="text-xs font-black text-white">Clinic Profile, GSTIN &amp; System Security</h5>
-                <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                <h5 class="text-xs font-black text-slate-900">Clinic Profile, GSTIN &amp; System Security</h5>
+                <p class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                   Configure clinic legal name, GST tax rules, prescription letterhead headers, security tokens, and multi-device connection preferences.
                 </p>
               </div>
-              <div class="pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-emerald-400">
+              <div class="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono text-emerald-700 font-bold">
                 <span>✓ GSTIN: 29AAAAA0000A1Z5</span>
-                <span class="text-slate-500 font-sans font-bold">ABDM Ready</span>
+                <span class="text-slate-400 font-sans font-medium">ABDM Ready</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 3 Governance Pillars -->
+      <!-- 3 3D Governance Pillars -->
       <div class="grid grid-cols-3 gap-4">
-        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+        <div class="card-3d p-4 space-y-1.5 bg-white">
           <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">01</span>
-            <h3 class="text-sm font-black text-white">Strict Role Isolation</h3>
+            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shadow-2xs">01</span>
+            <h3 class="text-sm font-black text-slate-900">Strict Role Isolation</h3>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">
+          <p class="text-xs text-slate-600 leading-relaxed">
             Doctor consultation notes, front desk cash registers, and administrative user controls are strictly compartmentalized by Firestore security rules.
           </p>
         </div>
-        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+        <div class="card-3d p-4 space-y-1.5 bg-white">
           <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">02</span>
-            <h3 class="text-sm font-black text-white">Doctor-Desk Chamber Pairing</h3>
+            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shadow-2xs">02</span>
+            <h3 class="text-sm font-black text-slate-900">Doctor-Desk Pairing</h3>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">
+          <p class="text-xs text-slate-600 leading-relaxed">
             Link any front desk counter to specific doctor chambers, ensuring patient queues route seamlessly to the right consulting room.
           </p>
         </div>
-        <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-1.5">
+        <div class="card-3d p-4 space-y-1.5 bg-white">
           <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">03</span>
-            <h3 class="text-sm font-black text-white">15-Minute Cloud Rollout</h3>
+            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shadow-2xs">03</span>
+            <h3 class="text-sm font-black text-slate-900">15-Minute Cloud Rollout</h3>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">
+          <p class="text-xs text-slate-600 leading-relaxed">
             Serverless cloud architecture with zero software installations, real-time multi-device sync, and automated daily cloud snapshots.
           </p>
         </div>
       </div>
 
-      <!-- Footer Call to Action -->
-      <div class="bg-gradient-to-r from-brand-900 via-brand-800 to-emerald-900 rounded-2xl p-4 sm:p-5 border border-brand-500/40 text-center space-y-2">
-        <h3 class="text-lg sm:text-xl font-black text-white">
+      <!-- Footer Call to Action (Light 3D Banner) -->
+      <div class="bg-gradient-to-r from-emerald-700 via-emerald-800 to-teal-900 rounded-2xl p-4 sm:p-5 text-center space-y-2 text-white shadow-lg shadow-emerald-950/20">
+        <h3 class="text-lg sm:text-xl font-black">
           Transform Your Outpatient Clinic Operations Today.
         </h3>
         <p class="text-emerald-100/90 text-xs font-medium max-w-lg mx-auto">
           Start your clinic operations with zero software installation. Available on desktop, tablet, and mobile browsers.
         </p>
         <div class="flex items-center justify-center gap-3 pt-1">
-          <a href="/" class="px-5 py-2.5 bg-white text-[#064e3b] hover:bg-emerald-50 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 text-center">
+          <a href="/" class="px-5 py-2 bg-white text-emerald-900 hover:bg-emerald-50 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 text-center">
             Launch MediTrack Live App →
           </a>
-          <a href="/MediTrack_Official_Brochure.pdf" download="MediTrack_Official_Brochure.pdf" class="px-5 py-2.5 bg-black/40 hover:bg-black/50 text-white rounded-xl text-xs font-black uppercase tracking-wider border border-white/20 transition-all text-center">
+          <a href="/MediTrack_Official_Brochure.pdf" download="MediTrack_Official_Brochure.pdf" class="px-5 py-2 bg-emerald-900/60 hover:bg-emerald-900 text-white rounded-xl text-xs font-black uppercase tracking-wider border border-emerald-400/40 transition-all text-center">
             Download PDF Brochure (.pdf)
           </a>
         </div>
-        <div class="pt-2 border-t border-emerald-500/30 text-emerald-200/70 text-[10px] flex justify-between items-center">
+        <div class="pt-2 border-t border-emerald-500/40 text-emerald-200/80 text-[10px] flex justify-between items-center">
           <span>© 2026 MediTrack Health Systems • Confidential Client Briefing</span>
           <span>Google Firebase Cloud • 100% HIPAA &amp; ABDM Ready • Page 4 / 4</span>
         </div>
