@@ -3400,7 +3400,8 @@ export function DoctorPortal({
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl max-w-sm sm:max-w-md w-full p-4 shadow-2xl border border-slate-100 flex flex-col max-h-[75vh] relative"
+              style={{ maxWidth: "440px", width: "100%" }}
+              className="bg-white rounded-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 flex flex-col max-h-[75vh] relative mx-auto"
             >
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 shrink-0">
                 <div className="flex items-center gap-2">
