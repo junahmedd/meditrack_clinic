@@ -1705,9 +1705,6 @@ export function DoctorPortal({
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display tracking-tight">
                   Consultation
                 </h2>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">
-                  View patient details, add notes, diagnose and prescribe.
-                </p>
               </div>
 
               <button
@@ -2575,9 +2572,6 @@ export function DoctorPortal({
                   {doctorDisplayName}
                 </h2>
                 <p className="text-sm font-bold text-emerald-300 pt-1 tracking-wide">Better care. Healthier tomorrows.</p>
-                <p className="text-xs text-slate-200/90 font-medium max-w-lg hidden sm:block">
-                  Welcome to MediTrack. Manage your patients, consultations and clinic with ease.
-                </p>
               </div>
 
               {/* Quick Consultation Action */}
@@ -2788,9 +2782,6 @@ export function DoctorPortal({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Medicine</h2>
-                <p className="text-xs text-slate-400 font-medium mt-1">
-                  Manage your clinic medicine catalog. Add medicines and use them during consultation.
-                </p>
               </div>
               <button
                 onClick={handleOpenAddModal}
