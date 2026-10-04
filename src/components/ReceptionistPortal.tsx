@@ -3407,7 +3407,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
 
                   {/* Date */}
-                  <div>
+                  <div className="sm:col-span-2">
                     <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
                       Appointment Date
                     </label>
@@ -3416,20 +3416,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       disabled
                       value={dynamicTodayDateStr}
                       className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 font-extrabold cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Reason / Notes */}
-                  <div className="sm:col-span-2">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                      Clinical Notes / Reason
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Symptoms, past history, or reason for appointment..."
-                      value={newAptNotes}
-                      onChange={(e) => setNewAptNotes(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
                     />
                   </div>
                 </div>
@@ -3580,21 +3566,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       <option value="Cancelled">Cancelled</option>
                     </select>
                   </div>
-                </div>
-
-
-
-                {/* Notes */}
-                <div>
-                  <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                    Clinical Notes / Reason
-                  </label>
-                  <input
-                    type="text"
-                    value={editAptNotes}
-                    onChange={(e) => setEditAptNotes(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
-                  />
                 </div>
 
                 {/* Submit Actions */}
