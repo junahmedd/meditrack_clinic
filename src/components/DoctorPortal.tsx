@@ -2579,11 +2579,11 @@ export function DoctorPortal({
         {/* TAB B: DASHBOARD OVERVIEW */}
         {activeTab === "dashboard" && (
           <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-5">
-            {/* Top Welcome Banner Matching Requested High-Tech Design with doctor upper face and head fully visible */}
-            <div className="relative rounded-3xl overflow-hidden min-h-[195px] sm:min-h-[210px] flex flex-col md:flex-row md:items-center justify-between p-6 md:p-8 border border-slate-200/80 shadow-md">
-              {/* Background image layer anchored on doctor face with RTL flipping support */}
+            {/* Top Welcome Banner Matching Requested High-Tech Design with reduced doctor image size (half body and upper head) */}
+            <div className="relative rounded-3xl overflow-hidden min-h-[195px] sm:min-h-[210px] flex flex-col md:flex-row md:items-center justify-between p-6 md:p-8 border border-slate-200/80 shadow-md bg-slate-950">
+              {/* Background HUD image layer */}
               <div
-                className={`absolute inset-0 bg-[url('/doctor_welcome_banner.jpg')] bg-cover bg-[position:82%_10%] sm:bg-[position:84%_12%] bg-no-repeat transition-transform duration-300 ${
+                className={`absolute inset-0 bg-[url('/doctor_hud_bg.jpg')] bg-cover bg-left bg-no-repeat opacity-50 pointer-events-none transition-transform duration-300 ${
                   isRTL ? "-scale-x-100" : ""
                 }`}
               />
@@ -2592,10 +2592,25 @@ export function DoctorPortal({
               <div
                 className={`absolute inset-0 z-0 pointer-events-none ${
                   isRTL
-                    ? "bg-gradient-to-l from-slate-950/95 via-slate-900/80 to-slate-900/25"
-                    : "bg-gradient-to-r from-slate-950/95 via-slate-900/80 to-slate-900/25"
+                    ? "bg-gradient-to-l from-slate-950/95 via-slate-900/85 to-slate-950/40"
+                    : "bg-gradient-to-r from-slate-950/95 via-slate-900/85 to-slate-950/40"
                 }`}
               />
+
+              {/* Doctor Half-Body & Upper Head - Reduced Size */}
+              <div
+                className={`absolute bottom-0 ${
+                  isRTL
+                    ? "left-4 sm:left-12 md:left-28 lg:left-44"
+                    : "right-4 sm:right-12 md:right-28 lg:right-44"
+                } h-full flex items-end justify-center pointer-events-none z-0`}
+              >
+                <img
+                  src="/doctor_halfbody.png"
+                  alt="Doctor"
+                  className="h-[92%] sm:h-[96%] max-h-[215px] w-auto object-contain drop-shadow-2xl select-none"
+                />
+              </div>
 
               {/* Text content */}
               <div className="space-y-1 z-10 relative">
