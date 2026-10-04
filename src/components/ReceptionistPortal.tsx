@@ -11,6 +11,7 @@ import {
   Calendar,
   Users,
   UserPlus,
+  UserCheck,
   CreditCard,
   BarChart2,
   Settings,
@@ -1269,6 +1270,120 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     return null;
   };
 
+  // Helper to extract patient identity key (10-digit phone or normalized name)
+  const getPatientKey = (p: any): string => {
+    const rawPhone = (p.phone || "").replace(/\D/g, "");
+    if (rawPhone.length >= 10) return rawPhone.slice(-10);
+    return (p.name || "").trim().toLowerCase();
+  };
+
+  // Find the earliest record timestamp for each unique patient across all scoped records
+  const patientFirstVisitMap = useMemo(() => {
+    const map = new Map<string, number>();
+    scopedPatients.forEach((p) => {
+      const key = getPatientKey(p);
+      if (!key) return;
+      const d = getPatientDate(p);
+      if (d) {
+        const ms = d.getTime();
+        const existing = map.get(key);
+        if (existing === undefined || ms < existing) {
+          map.set(key, ms);
+        }
+      }
+    });
+    return map;
+  }, [scopedPatients]);
+
+  // Real-time calculation of Old Patient, New Patient, Total Patient, Today Patient
+  const patientStats = useMemo(() => {
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0).getTime();
+    const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).getTime();
+
+    // Today's patient visits
+    const todayList = scopedPatients.filter((p) => {
+      const d = getPatientDate(p);
+      if (d) {
+        const ms = d.getTime();
+        return ms >= startOfToday && ms <= endOfToday;
+      }
+      return matchesReceptionistPeriod(p, "today");
+    });
+
+    // Filter for current active period (today by default)
+    const periodPatients = scopedPatients.filter((p) => matchesReceptionistPeriod(p, receptionistPeriod));
+
+    let periodNew = 0;
+    let periodOld = 0;
+
+    periodPatients.forEach((p) => {
+      const key = getPatientKey(p);
+      if (!key) {
+        periodNew++;
+        return;
+      }
+      const firstTs = patientFirstVisitMap.get(key);
+      const d = getPatientDate(p);
+      const recordDayStart = d ? new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime() : startOfToday;
+      if (firstTs !== undefined && firstTs < recordDayStart) {
+        periodOld++;
+      } else {
+        periodNew++;
+      }
+    });
+
+    const uniqueKeys = new Set<string>();
+    scopedPatients.forEach((p) => {
+      const key = getPatientKey(p);
+      if (key) uniqueKeys.add(key);
+    });
+
+    return {
+      oldPatients: periodOld,
+      newPatients: periodNew,
+      todayPatients: todayList.length,
+      totalPatients: scopedPatients.length,
+      uniquePatients: uniqueKeys.size,
+    };
+  }, [scopedPatients, receptionistPeriod, patientFirstVisitMap]);
+
+  // 7-Day New vs. Old (Returning) Patients Distribution (Bar Graph Data)
+  const PATIENTS_7DAY_DATA = useMemo(() => {
+    return last7Days.map(({ dayLabel, startTs, endTs }) => {
+      const dayPatients = scopedPatients.filter((p) => {
+        const d = getPatientDate(p);
+        if (!d) return false;
+        const ms = d.getTime();
+        return ms >= startTs && ms <= endTs;
+      });
+
+      let dayNew = 0;
+      let dayOld = 0;
+
+      dayPatients.forEach((p) => {
+        const key = getPatientKey(p);
+        if (!key) {
+          dayNew++;
+          return;
+        }
+        const firstTs = patientFirstVisitMap.get(key);
+        if (firstTs !== undefined && firstTs < startTs) {
+          dayOld++;
+        } else {
+          dayNew++;
+        }
+      });
+
+      return {
+        day: dayLabel,
+        newPatients: dayNew,
+        oldPatients: dayOld,
+        total: dayNew + dayOld,
+      };
+    });
+  }, [last7Days, scopedPatients, patientFirstVisitMap]);
+
   // Dynamic 7-Day Revenue Data (100% genuine live Firestore aggregation)
   const REVENUE_DATA = useMemo(() => {
     return last7Days.map(({ dayLabel, startTs, endTs }) => {
@@ -1810,71 +1925,61 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           {/* ========================================================================= */}
           {activeTab === "dashboard" && (
             <div className="space-y-6">
-              {/* 4 Summary Stat Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {/* 1. UPI Revenue */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">UPI Revenue</p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">₹{receptionistAnalytics.active.upi.toLocaleString()}</p>
-                    <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                      {receptionistPeriod === "today" ? "Today's digital" : `Digital (${receptionistPeriod})`}
+              {/* 4 Summary Stat Cards (Old Patient, New Patient, Total Patient, Today Patient) */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+                {/* 1. Old Patient (Returning) */}
+                <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
+                  <div className="min-w-0 pr-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">Old Patient</p>
+                    <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{patientStats.oldPatients}</p>
+                    <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">
+                      {receptionistPeriod === "today" ? "Returning today" : `Returning (${receptionistPeriod})`}
                     </p>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <Wallet size={22} />
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <UserCheck size={20} />
                   </div>
                 </div>
 
-                {/* 2. Cash Revenue */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cash Revenue</p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">₹{receptionistAnalytics.active.cash.toLocaleString()}</p>
-                    <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                      {receptionistPeriod === "today" ? "Today's cash" : `Cash (${receptionistPeriod})`}
+                {/* 2. New Patient (First-Time) */}
+                <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
+                  <div className="min-w-0 pr-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">New Patient</p>
+                    <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{patientStats.newPatients}</p>
+                    <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">
+                      {receptionistPeriod === "today" ? "First-time today" : `First-time (${receptionistPeriod})`}
                     </p>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                    <Banknote size={22} />
-                  </div>
-                </div>
-
-                {/* 3. Total Revenue */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      {receptionistPeriod === "today"
-                        ? "Today's Revenue"
-                        : receptionistPeriod === "month"
-                        ? "This Month Total"
-                        : receptionistPeriod === "year"
-                        ? "This Year Total"
-                        : "All-Time Revenue"}
-                    </p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">₹{receptionistAnalytics.active.total.toLocaleString()}</p>
-                    <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                      {receptionistAnalytics.active.settledCount} invoice{receptionistAnalytics.active.settledCount === 1 ? "" : "s"} settled
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <CheckCircle2 size={22} />
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <UserPlus size={20} />
                   </div>
                 </div>
 
-                {/* 4. Patients Count */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      {receptionistPeriod === "today" ? "Today's Patients" : "Patients"}
-                    </p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">{receptionistAnalytics.active.patientsCount}</p>
-                    <p className="text-[11px] font-semibold text-slate-400 mt-1">
-                      {receptionistPeriod === "today" ? `${waitingPatients.length} in queue today` : `Registered in ${receptionistPeriod}`}
+                {/* 3. Total Patient (Clinic Database) */}
+                <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
+                  <div className="min-w-0 pr-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">Total Patient</p>
+                    <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{patientStats.totalPatients}</p>
+                    <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">
+                      {patientStats.uniquePatients} registered
                     </p>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                    <Clock size={22} />
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                    <Users size={20} />
+                  </div>
+                </div>
+
+                {/* 4. Today Patient (Active Queue + Visits) */}
+                <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
+                  <div className="min-w-0 pr-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">Today Patient</p>
+                    <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{patientStats.todayPatients}</p>
+                    <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">
+                      {waitingPatients.length} in queue today
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <Clock size={20} />
                   </div>
                 </div>
               </div>
@@ -1907,19 +2012,27 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
               {/* Middle Analytics Section (Charts) */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Stacked Bar Chart (7-Day Revenue) */}
+                {/* Stacked Bar Chart (7-Day Patients: New Patient vs Old Patient) */}
                 <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-100/90 shadow-sm flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <BarChart2 size={18} className="text-[#065f46]" />
-                      <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
-                        Revenue (Last 7 Days)
-                      </h3>
+                      <div>
+                        <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
+                          Patients (Last 7 Days)
+                        </h3>
+                        <p className="text-[11px] font-semibold text-slate-400">
+                          New vs. Old (Returning) Patients
+                        </p>
+                      </div>
                     </div>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700">
+                      {PATIENTS_7DAY_DATA.reduce((acc, d) => acc + d.total, 0)} Total
+                    </span>
                   </div>
                   <div className="h-56 w-full pt-2">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={REVENUE_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={PATIENTS_7DAY_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <XAxis
                           dataKey="day"
                           axisLine={false}
@@ -1929,11 +2042,14 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         <YAxis
                           axisLine={false}
                           tickLine={false}
+                          allowDecimals={false}
                           tick={{ fontSize: 10, fill: "#94a3b8" }}
-                          tickFormatter={(v) => `${v / 1000}K`}
                         />
                         <RechartsTooltip
-                          formatter={(value: any, name: any) => [`₹${value}`, name === "cash" ? "Cash" : "UPI"]}
+                          formatter={(value: any, name: any) => [
+                            `${value} patient${value === 1 ? "" : "s"}`,
+                            name === "newPatients" || name === "New Patient" ? "New Patient" : "Old Patient",
+                          ]}
                           contentStyle={{
                             borderRadius: "12px",
                             backgroundColor: "#0f172a",
@@ -1942,19 +2058,19 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             fontSize: "12px",
                           }}
                         />
-                        <Bar dataKey="cash" stackId="a" fill="#059669" radius={[0, 0, 4, 4]} barSize={26} />
-                        <Bar dataKey="upi" stackId="a" fill="#00d26a" radius={[6, 6, 0, 0]} barSize={26} />
+                        <Bar dataKey="newPatients" name="New Patient" stackId="a" fill="#059669" radius={[0, 0, 4, 4]} barSize={26} />
+                        <Bar dataKey="oldPatients" name="Old Patient" stackId="a" fill="#38bdf8" radius={[6, 6, 0, 0]} barSize={26} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="flex items-center justify-center gap-6 pt-3 text-xs font-bold text-slate-600 border-t border-slate-50">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-[#059669]" />
-                      <span>Cash</span>
+                      <span>New Patient</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#00d26a]" />
-                      <span>UPI</span>
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#38bdf8]" />
+                      <span>Old Patient</span>
                     </div>
                   </div>
                 </div>
