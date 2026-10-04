@@ -1571,23 +1571,28 @@ export function DoctorPortal({
             </span>
           </div>
 
-          {/* Equal balance spacer or LanguageSelector on Dashboard */}
-          {activeTab === "dashboard" ? (
-            <div className="shrink-0 flex items-center">
-              <LanguageSelector />
-            </div>
-          ) : (
-            <div className="w-10 shrink-0 pointer-events-none" aria-hidden="true" />
-          )}
+          {/* LanguageSelector on Mobile Header */}
+          <div className="shrink-0 flex items-center">
+            <LanguageSelector />
+          </div>
         </header>
 
-        {/* 2. DESKTOP TOP HEADER (Strictly >= 768px, rendered only on Dashboard per user requirement) */}
-        {activeTab === "dashboard" && (
-          <header className="hidden md:flex h-16 bg-white border-b border-slate-100 px-8 items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] gap-2 w-full shrink-0">
-            {/* Left: Dashboard heading */}
-            <div className="flex items-center">
-              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">{t("dashboard")}</h1>
-            </div>
+        {/* 2. DESKTOP TOP HEADER (Strictly >= 768px, rendered on all tabs with dynamic title) */}
+        <header className="hidden md:flex h-16 bg-white border-b border-slate-100 px-8 items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] gap-2 w-full shrink-0">
+          {/* Left: Dynamic Tab heading */}
+          <div className="flex items-center">
+            <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">
+              {activeTab === "dashboard"
+                ? t("dashboard")
+                : activeTab === "consultation"
+                ? t("consultation")
+                : activeTab === "medicine" || activeTab === "appointments"
+                ? t("medicine")
+                : activeTab === "profile"
+                ? t("profile")
+                : t("dashboard")}
+            </h1>
+          </div>
 
             {/* Right Header Status & Avatar Pill */}
             <div className="flex items-center gap-3 shrink-0">
@@ -1705,7 +1710,6 @@ export function DoctorPortal({
               </div>
             </div>
           </header>
-        )}
 
         {/* 3. TAB WORKSPACES */}
 
@@ -1716,18 +1720,20 @@ export function DoctorPortal({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display tracking-tight">
-                  Consultation
+                  {t("consultation")}
                 </h2>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsHistoryOpen(true)}
-                className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-700 shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0"
-              >
-                <Clock size={15} />
-                <span>View History</span>
-              </button>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsHistoryOpen(true)}
+                  className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-700 shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0"
+                >
+                  <Clock size={15} />
+                  <span>{t("viewHistory")}</span>
+                </button>
+              </div>
             </div>
 
             {/* 2-Column Split View Grid */}
@@ -1735,9 +1741,9 @@ export function DoctorPortal({
               {/* LEFT COLUMN: TODAY'S PATIENTS QUEUE LIST (Compact Fit, Avoids Scrolling) */}
               <div className="lg:col-span-4 bg-white rounded-2xl p-4 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-slate-900 font-display">Today's Patients</h3>
+                  <h3 className="text-sm font-black text-slate-900 font-display">{t("waitingPatients")}</h3>
                   <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[10.5px] px-2.5 py-0.5 rounded-full border border-emerald-100">
-                    {doctorQueue.length} in queue
+                    {doctorQueue.length} {t("inQueueToday")}
                   </span>
                 </div>
 
