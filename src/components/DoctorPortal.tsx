@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { MediTrackLogo } from "./MediTrackLogo";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { NetworkStatusBanner } from "./NetworkStatusBanner";
+import { LanguageSelector } from "./LanguageSelector";
+import { useLanguage } from "../i18n/LanguageContext";
 import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp, collection, onSnapshot, addDoc, deleteDoc } from "firebase/firestore";
 import {
@@ -517,6 +519,8 @@ export function DoctorPortal({
   clinicDoctors = [],
   onSelectDemoAccount,
 }: DoctorPortalProps) {
+  const { t, isRTL, language } = useLanguage();
+
   // Active Navigation Tab
   const [activeTab, setActiveTab] = useState<
     | "dashboard"
@@ -1350,7 +1354,7 @@ export function DoctorPortal({
               }`}
             >
               <LayoutDashboard size={18} />
-              <span>Dashboard</span>
+              <span>{t("dashboard")}</span>
             </button>
 
             <button
@@ -1362,7 +1366,7 @@ export function DoctorPortal({
               }`}
             >
               <Pill size={18} />
-              <span>Medicine</span>
+              <span>{t("medicine")}</span>
             </button>
 
             <button
@@ -1374,7 +1378,7 @@ export function DoctorPortal({
               }`}
             >
               <Stethoscope size={18} />
-              <span>Consultation</span>
+              <span>{t("consultation")}</span>
             </button>
 
             <button
@@ -1386,7 +1390,7 @@ export function DoctorPortal({
               }`}
             >
               <User size={18} />
-              <span>Profile</span>
+              <span>{t("profile")}</span>
             </button>
           </nav>
         </div>
@@ -1463,7 +1467,7 @@ export function DoctorPortal({
                     }`}
                   >
                     <LayoutDashboard size={18} />
-                    <span>Dashboard</span>
+                    <span>{t("dashboard")}</span>
                   </button>
 
                   <button
@@ -1478,7 +1482,7 @@ export function DoctorPortal({
                     }`}
                   >
                     <Pill size={18} />
-                    <span>Medicine</span>
+                    <span>{t("medicine")}</span>
                   </button>
 
                   <button
@@ -1493,7 +1497,7 @@ export function DoctorPortal({
                     }`}
                   >
                     <Stethoscope size={18} />
-                    <span>Consultation</span>
+                    <span>{t("consultation")}</span>
                   </button>
 
                   <button
@@ -1508,7 +1512,7 @@ export function DoctorPortal({
                     }`}
                   >
                     <User size={18} />
-                    <span>Profile</span>
+                    <span>{t("profile")}</span>
                   </button>
                 </nav>
               </div>
@@ -1534,10 +1538,10 @@ export function DoctorPortal({
                     setIsMobileDrawerOpen(false);
                     onLogout();
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-red-400 hover:bg-white/5 transition-all cursor-pointer"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-red-400 hover:bg-white/5 transition-all cursor-pointer"
                 >
                   <LogOut size={16} />
-                  <span>Logout</span>
+                  <span>{t("logout")}</span>
                 </button>
               </div>
             </motion.aside>
@@ -1567,8 +1571,14 @@ export function DoctorPortal({
             </span>
           </div>
 
-          {/* Equal balance spacer so center title stays mathematically centered */}
-          <div className="w-10 shrink-0 pointer-events-none" aria-hidden="true" />
+          {/* Equal balance spacer or LanguageSelector on Dashboard */}
+          {activeTab === "dashboard" ? (
+            <div className="shrink-0 flex items-center">
+              <LanguageSelector />
+            </div>
+          ) : (
+            <div className="w-10 shrink-0 pointer-events-none" aria-hidden="true" />
+          )}
         </header>
 
         {/* 2. DESKTOP TOP HEADER (Strictly >= 768px, rendered only on Dashboard per user requirement) */}
@@ -1576,16 +1586,19 @@ export function DoctorPortal({
           <header className="hidden md:flex h-16 bg-white border-b border-slate-100 px-8 items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] gap-2 w-full shrink-0">
             {/* Left: Dashboard heading */}
             <div className="flex items-center">
-              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">Dashboard</h1>
+              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">{t("dashboard")}</h1>
             </div>
 
             {/* Right Header Status & Avatar Pill */}
-            <div className="flex items-center gap-4 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
               <NetworkStatusBanner />
+
+              {/* Minimal Language Switcher Icon Button */}
+              <LanguageSelector />
 
               {/* Notification Bell */}
               <button
-                onClick={() => showToast("No new notifications")}
+                onClick={() => showToast(t("noUnreadAlerts"))}
                 className="relative w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <Bell size={16} />
@@ -2567,11 +2580,11 @@ export function DoctorPortal({
 
               {/* Text content */}
               <div className="space-y-1 z-10 relative">
-                <p className="text-sm font-semibold text-emerald-200 tracking-wide">Good Morning,</p>
+                <p className="text-sm font-semibold text-emerald-200 tracking-wide">{t("goodMorning")}</p>
                 <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-none drop-shadow-md">
                   {doctorDisplayName}
                 </h2>
-                <p className="text-sm font-bold text-emerald-300 pt-1 tracking-wide">Better care. Healthier tomorrows.</p>
+                <p className="text-sm font-bold text-emerald-300 pt-1 tracking-wide">{t("betterCareTagline")}</p>
               </div>
 
               {/* Quick Consultation Action */}
@@ -2581,7 +2594,7 @@ export function DoctorPortal({
                   onClick={() => setActiveTab("consultation")}
                   className="px-6 py-3 bg-[#064e3b] hover:bg-[#043d2e] active:bg-[#032b21] text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-950/40 hover:shadow-emerald-900/40 transition-all cursor-pointer flex items-center gap-2.5 border border-emerald-600/30"
                 >
-                  <span>Start Consultation</span>
+                  <span>{t("startConsultation")}</span>
                   <ArrowRight size={15} />
                 </button>
               </div>
@@ -2598,9 +2611,9 @@ export function DoctorPortal({
                   <Users size={22} />
                 </div>
                 <div>
-                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Waiting Patients</p>
+                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">{t("waitingPatients")}</p>
                   <h3 className="text-2xl font-black text-slate-900 mt-0.5">{doctorQueue.length}</h3>
-                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">Today's live queue</p>
+                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">{doctorQueue.length} {t("inQueueToday")}</p>
                 </div>
               </div>
 
@@ -2614,13 +2627,13 @@ export function DoctorPortal({
                 </div>
                 <div>
                   <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
-                    {selectedPeriod === "today" ? "Completed Today" : "Completed"}
+                    {selectedPeriod === "today" ? t("completedToday") : t("completed")}
                   </p>
                   <h3 className="text-2xl font-black text-slate-900 mt-0.5">
                     {analyticsData.active.completedCount}
                   </h3>
                   <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
-                    {selectedPeriod === "today" ? "Consultations today" : `In ${selectedPeriod === "month" ? "this month" : selectedPeriod === "year" ? "this year" : "all time"}`}
+                    {selectedPeriod === "today" ? `${analyticsData.active.completedCount} ${t("completed")}` : t("completed")}
                   </p>
                 </div>
               </div>
@@ -2635,11 +2648,11 @@ export function DoctorPortal({
                 </div>
                 <div>
                   <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
-                    {selectedPeriod === "today" ? "Today's Patients" : "Patients"}
+                    {selectedPeriod === "today" ? t("todayPatient") : t("totalPatient")}
                   </p>
                   <h3 className="text-2xl font-black text-slate-900 mt-0.5">{analyticsData.active.patientsCount}</h3>
                   <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
-                    {selectedPeriod === "today" ? "Registered today" : `Total in ${selectedPeriod === "month" ? "month" : selectedPeriod === "year" ? "year" : "all time"}`}
+                    {analyticsData.active.patientsCount} {t("registeredPatients")}
                   </p>
                 </div>
               </div>
@@ -2654,17 +2667,11 @@ export function DoctorPortal({
                 </div>
                 <div>
                   <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
-                    {selectedPeriod === "today"
-                      ? "Today's Revenue"
-                      : selectedPeriod === "month"
-                      ? "This Month Revenue"
-                      : selectedPeriod === "year"
-                      ? "This Year Revenue"
-                      : "All-Time Revenue"}
+                    {t("revenue")}
                   </p>
                   <h3 className="text-2xl font-black text-slate-900 mt-0.5">₹{analyticsData.active.revenue.toLocaleString()}</h3>
                   <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
-                    {analyticsData.active.billedCount} paid visits • ₹{consultationFee} fee
+                    {analyticsData.active.billedCount} {t("paidVisits")} • ₹{consultationFee} {t("feeLabel")}
                   </p>
                 </div>
               </div>
@@ -2677,8 +2684,8 @@ export function DoctorPortal({
               <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-base font-extrabold text-slate-900">Patient Statistics</h3>
-                    <p className="text-xs text-slate-400 font-medium mt-0.5">Number of patients (Last 7 Days)</p>
+                    <h3 className="text-base font-extrabold text-slate-900">{t("patientStatistics")}</h3>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">{t("numberOfPatientsLast7Days")}</p>
                   </div>
                   <span className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
                     <Activity size={18} />
@@ -2714,8 +2721,8 @@ export function DoctorPortal({
               <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xs space-y-4 flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-base font-extrabold text-slate-900">Revenue Overview</h3>
-                    <p className="text-xs text-slate-400 font-medium mt-0.5">Consultation revenue (Last 7 Days)</p>
+                    <h3 className="text-base font-extrabold text-slate-900">{t("revenueOverview")}</h3>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">{t("consultationRevenueLast7Days")}</p>
                   </div>
                   <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
                     <BarChart3 size={18} />
@@ -2742,7 +2749,7 @@ export function DoctorPortal({
                         </Pie>
                         {revenueData.total > 0 && (
                           <Tooltip
-                            formatter={(val: any) => [`₹${Number(val).toLocaleString("en-IN")}`, "Revenue"]}
+                            formatter={(val: any) => [`₹${Number(val).toLocaleString("en-IN")}`, t("revenue")]}
                             contentStyle={{ backgroundColor: "#0f172a", borderRadius: "12px", border: "none", color: "#fff", fontSize: "12px", fontWeight: "bold" }}
                           />
                         )}
@@ -2750,7 +2757,7 @@ export function DoctorPortal({
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
                       <span className="text-sm font-black text-slate-900">₹{revenueData.total.toLocaleString("en-IN")}</span>
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Revenue</span>
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{t("revenue")}</span>
                     </div>
                   </div>
 

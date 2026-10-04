@@ -6,6 +6,8 @@ import { detectGenderFromName } from "./DoctorPortal";
 import { AnalogClockPicker } from "./AnalogClockPicker";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { NetworkStatusBanner } from "./NetworkStatusBanner";
+import { LanguageSelector } from "./LanguageSelector";
+import { useLanguage } from "../i18n/LanguageContext";
 import {
   LayoutDashboard,
   Calendar,
@@ -279,6 +281,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   clinicDoctors = [],
   onSelectDemoAccount,
 }) => {
+  const { t, isRTL, language } = useLanguage();
+
   // Navigation tab state (Strictly: Dashboard, Appointments, Billing, Profile)
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "appointments" | "billing" | "profile" | "queue" | "patients"
@@ -1570,7 +1574,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               }`}
             >
               <LayoutDashboard size={18} />
-              <span>Dashboard</span>
+              <span>{t("dashboard")}</span>
             </button>
 
             <button
@@ -1582,7 +1586,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               }`}
             >
               <Calendar size={18} />
-              <span>Appointments</span>
+              <span>{t("appointments")}</span>
             </button>
 
             <button
@@ -1595,7 +1599,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             >
               <div className="flex items-center gap-3.5">
                 <CreditCard size={18} />
-                <span>Billing &amp; Payments</span>
+                <span>{t("billing")}</span>
               </div>
               {pendingBillingPatients.length > 0 && (
                 <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
@@ -1613,7 +1617,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               }`}
             >
               <UserIcon size={18} />
-              <span>Profile</span>
+              <span>{t("profile")}</span>
             </button>
           </nav>
         </div>
@@ -1696,7 +1700,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     }`}
                   >
                     <LayoutDashboard size={18} />
-                    <span>Dashboard</span>
+                    <span>{t("dashboard")}</span>
                   </button>
 
                   <button
@@ -1711,7 +1715,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     }`}
                   >
                     <Calendar size={18} />
-                    <span>Appointments</span>
+                    <span>{t("appointments")}</span>
                   </button>
 
                   <button
@@ -1727,7 +1731,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <CreditCard size={18} />
-                      <span>Billing &amp; Payments</span>
+                      <span>{t("billing")}</span>
                     </div>
                     {pendingBillingPatients.length > 0 && (
                       <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
@@ -1748,7 +1752,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     }`}
                   >
                     <UserIcon size={18} />
-                    <span>Profile</span>
+                    <span>{t("profile")}</span>
                   </button>
                 </nav>
               </div>
@@ -1761,9 +1765,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-white truncate">
-                      {currentUserProfile?.displayName || user?.displayName || "Receptionist"}
+                      {currentUserProfile?.displayName || user?.displayName || t("receptionist")}
                     </p>
-                    <p className="text-[10px] font-semibold text-slate-400 truncate">Front Desk Desk</p>
+                    <p className="text-[10px] font-semibold text-slate-400 truncate">{t("frontDesk")}</p>
                   </div>
                 </div>
 
@@ -1775,7 +1779,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-red-400 hover:bg-white/5 transition-all cursor-pointer"
                 >
                   <LogOut size={16} />
-                  <span>Logout</span>
+                  <span>{t("logout")}</span>
                 </button>
               </div>
             </motion.aside>
@@ -1805,8 +1809,14 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             </span>
           </div>
 
-          {/* Equal balance spacer so center title stays mathematically centered */}
-          <div className="w-10 shrink-0 pointer-events-none" aria-hidden="true" />
+          {/* Equal balance spacer or LanguageSelector on Dashboard */}
+          {activeTab === "dashboard" ? (
+            <div className="shrink-0 flex items-center">
+              <LanguageSelector />
+            </div>
+          ) : (
+            <div className="w-10 shrink-0 pointer-events-none" aria-hidden="true" />
+          )}
         </header>
 
         {/* 2. DESKTOP TOP HEADER (Strictly >= 768px, rendered only on Dashboard per user requirement) */}
@@ -1814,15 +1824,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           <header className="hidden md:flex h-16 bg-white border-b border-slate-100/90 px-8 items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] shrink-0 gap-2 w-full">
             {/* Left: Dashboard heading */}
             <div className="flex items-center">
-              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">Dashboard</h1>
+              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">{t("dashboard")}</h1>
             </div>
 
-            {/* Right: Bell + Profile */}
-            <div className="flex items-center gap-3">
+            {/* Right: Language + Bell + Profile */}
+            <div className="flex items-center gap-2.5">
+              {/* Minimal Language Switcher Icon Button */}
+              <LanguageSelector />
 
               {/* Notification Bell */}
               <button
-                onClick={() => showToast("No unread alerts")}
+                onClick={() => showToast(t("noUnreadAlerts"))}
                 className="relative w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <Bell size={16} />
@@ -1929,10 +1941,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 {/* 1. Old Patient (Returning) */}
                 <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div className="min-w-0 pr-2">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">Old Patient</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">{t("oldPatient")}</p>
                     <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{patientStats.oldPatients}</p>
                     <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">
-                      {receptionistPeriod === "today" ? "Returning today" : `Returning (${receptionistPeriod})`}
+                      {receptionistPeriod === "today" ? t("returningToday") : `${t("returningPeriod")} (${receptionistPeriod})`}
                     </p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -1943,10 +1955,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 {/* 2. New Patient (First-Time) */}
                 <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div className="min-w-0 pr-2">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">New Patient</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">{t("newPatient")}</p>
                     <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{patientStats.newPatients}</p>
                     <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">
-                      {receptionistPeriod === "today" ? "First-time today" : `First-time (${receptionistPeriod})`}
+                      {receptionistPeriod === "today" ? t("firstTimeToday") : `${t("firstTimePeriod")} (${receptionistPeriod})`}
                     </p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
@@ -1957,10 +1969,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 {/* 3. Total Patient (Clinic Database) */}
                 <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div className="min-w-0 pr-2">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">Total Patient</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">{t("totalPatient")}</p>
                     <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{patientStats.totalPatients}</p>
                     <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">
-                      {patientStats.uniquePatients} registered
+                      {patientStats.uniquePatients} {t("registeredPatients")}
                     </p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
@@ -1971,10 +1983,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 {/* 4. Today Patient (Active Queue + Visits) */}
                 <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div className="min-w-0 pr-2">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">Today Patient</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">{t("todayPatient")}</p>
                     <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{patientStats.todayPatients}</p>
                     <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">
-                      {waitingPatients.length} in queue today
+                      {waitingPatients.length} {t("inQueueToday")}
                     </p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
@@ -2018,15 +2030,15 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       <BarChart2 size={18} className="text-[#065f46]" />
                       <div>
                         <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
-                          Patients (Last 7 Days)
+                          {t("patientsLast7Days")}
                         </h3>
                         <p className="text-[11px] font-semibold text-slate-400">
-                          New vs. Old (Returning) Patients
+                          {t("newVsOldPatients")}
                         </p>
                       </div>
                     </div>
                     <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700">
-                      {PATIENTS_7DAY_DATA.reduce((acc, d) => acc + d.total, 0)} Total
+                      {PATIENTS_7DAY_DATA.reduce((acc, d) => acc + d.total, 0)} {t("total")}
                     </span>
                   </div>
                   <div className="h-56 w-full pt-2">
@@ -2047,8 +2059,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         <RechartsTooltip
                           cursor={{ fill: "rgba(241, 245, 249, 0.4)" }}
                           formatter={(value: any, name: any) => [
-                            `${value} patient${value === 1 ? "" : "s"}`,
-                            name === "newPatients" || name === "New Patient" ? "New Patient" : "Old Patient",
+                            `${value}`,
+                            name === "newPatients" || name === "New Patient" ? t("newPatientLegend") : t("oldPatientLegend"),
                           ]}
                           contentStyle={{
                             borderRadius: "12px",
@@ -2086,11 +2098,11 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <div className="flex items-center justify-center gap-6 pt-3 text-xs font-bold text-slate-600 border-t border-slate-50">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-[#059669]" />
-                      <span>New Patient</span>
+                      <span>{t("newPatientLegend")}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-[#38bdf8]" />
-                      <span>Old Patient</span>
+                      <span>{t("oldPatientLegend")}</span>
                     </div>
                   </div>
                 </div>
@@ -2100,7 +2112,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <div className="flex items-center gap-2 mb-2">
                     <Users size={16} className="text-[#065f46]" />
                     <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
-                      Patient Visits by Doctor
+                      {t("patientVisitsByDoctor")}
                     </h3>
                   </div>
                   <div className="flex items-center justify-between gap-4 py-2">
@@ -2127,7 +2139,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           {scopedPatients.length}
                         </span>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Total Visits
+                          {t("totalVisits")}
                         </span>
                       </div>
                     </div>
@@ -2144,7 +2156,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     </div>
                   </div>
                   <div className="text-[11px] text-slate-400 font-medium text-center pt-2 border-t border-slate-50">
-                    Highest visit count today: <strong className="text-[#065f46] font-bold">{scopedPatients.length > 0 ? assignedDoctorName : "0"}</strong>
+                    {t("highestVisitsToday")} <strong className="text-[#065f46] font-bold">{scopedPatients.length > 0 ? assignedDoctorName : "0"}</strong>
                   </div>
                 </div>
               </div>
