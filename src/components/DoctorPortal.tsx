@@ -1574,10 +1574,9 @@ export function DoctorPortal({
         {/* 2. DESKTOP TOP HEADER (Strictly >= 768px, rendered only on Dashboard per user requirement) */}
         {activeTab === "dashboard" && (
           <header className="hidden md:flex h-16 bg-white border-b border-slate-100 px-8 items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] gap-2 w-full shrink-0">
-            {/* Left: DASHBOARD heading + one-liner */}
-            <div className="flex flex-col">
-              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">DASHBOARD</h1>
-              <p className="text-[11px] font-medium text-slate-400 leading-tight">Consultations, prescriptions & patient overview</p>
+            {/* Left: Dashboard heading */}
+            <div className="flex items-center">
+              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">Dashboard</h1>
             </div>
 
             {/* Right Header Status & Avatar Pill */}
@@ -2698,10 +2697,20 @@ export function DoctorPortal({
                       <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} />
                       <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} />
                       <Tooltip
+                        cursor={{ fill: "rgba(241, 245, 249, 0.4)" }}
                         contentStyle={{ backgroundColor: "#0f172a", borderRadius: "12px", border: "none", color: "#fff", fontSize: "12px", fontWeight: "bold" }}
                         itemStyle={{ color: "#34d399" }}
                       />
-                      <Bar dataKey="patients" fill="#059669" radius={[8, 8, 0, 0]} barSize={28} label={{ position: "top", fill: "#64748b", fontSize: 11, fontWeight: "bold" }} />
+                      <Bar
+                        dataKey="patients"
+                        fill="#059669"
+                        radius={[8, 8, 0, 0]}
+                        barSize={28}
+                        label={{ position: "top", fill: "#64748b", fontSize: 11, fontWeight: "bold" }}
+                        stroke="none"
+                        strokeWidth={0}
+                        activeBar={false}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

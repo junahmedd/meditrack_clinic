@@ -1812,10 +1812,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         {/* 2. DESKTOP TOP HEADER (Strictly >= 768px, rendered only on Dashboard per user requirement) */}
         {activeTab === "dashboard" && (
           <header className="hidden md:flex h-16 bg-white border-b border-slate-100/90 px-8 items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)] shrink-0 gap-2 w-full">
-            {/* Left: DASHBOARD heading + one-liner */}
-            <div className="flex flex-col">
-              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">DASHBOARD</h1>
-              <p className="text-[11px] font-medium text-slate-400 leading-tight">Real-time clinic overview & patient queue</p>
+            {/* Left: Dashboard heading */}
+            <div className="flex items-center">
+              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">Dashboard</h1>
             </div>
 
             {/* Right: Bell + Profile */}
@@ -2046,6 +2045,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           tick={{ fontSize: 10, fill: "#94a3b8" }}
                         />
                         <RechartsTooltip
+                          cursor={{ fill: "rgba(241, 245, 249, 0.4)" }}
                           formatter={(value: any, name: any) => [
                             `${value} patient${value === 1 ? "" : "s"}`,
                             name === "newPatients" || name === "New Patient" ? "New Patient" : "Old Patient",
@@ -2058,8 +2058,28 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             fontSize: "12px",
                           }}
                         />
-                        <Bar dataKey="newPatients" name="New Patient" stackId="a" fill="#059669" radius={[0, 0, 4, 4]} barSize={26} />
-                        <Bar dataKey="oldPatients" name="Old Patient" stackId="a" fill="#38bdf8" radius={[6, 6, 0, 0]} barSize={26} />
+                        <Bar
+                          dataKey="newPatients"
+                          name="New Patient"
+                          stackId="a"
+                          fill="#059669"
+                          radius={[0, 0, 4, 4]}
+                          barSize={26}
+                          stroke="none"
+                          strokeWidth={0}
+                          activeBar={false}
+                        />
+                        <Bar
+                          dataKey="oldPatients"
+                          name="Old Patient"
+                          stackId="a"
+                          fill="#38bdf8"
+                          radius={[6, 6, 0, 0]}
+                          barSize={26}
+                          stroke="none"
+                          strokeWidth={0}
+                          activeBar={false}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -2142,9 +2162,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight font-display">
                     Billing
                   </h2>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Collect doctor consultation fees, issue GST Invoices, and dispatch receipts via WhatsApp.
-                  </p>
                 </div>
               </div>
 
@@ -2792,9 +2809,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight font-display">
                     Appointments
                   </h2>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Manage and schedule patient appointments across all doctors.
-                  </p>
                 </div>
                 <button
                   onClick={() => setIsNewAptModalOpen(true)}

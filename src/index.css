@@ -21,8 +21,101 @@ body {
   font-family: var(--font-sans);
   background-color: #f8fafc;
   color: #0f172a;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: transparent !important;
   touch-action: pan-y;
+}
+
+/* ========================================================================= */
+/* GLOBAL FOCUS & TAP HIGHLIGHT ELIMINATION (Zero black click borders)       */
+/* ========================================================================= */
+*,
+*::before,
+*::after {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+*:focus {
+  outline: none !important;
+}
+
+*:focus-visible {
+  outline: none !important;
+}
+
+/* Eliminate browser outlines on all interactive elements across mobile & laptop */
+button,
+a,
+input,
+select,
+textarea,
+div,
+span,
+svg,
+svg *,
+rect,
+path,
+circle,
+g {
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+}
+
+button:focus,
+button:focus-visible,
+button:active,
+a:focus,
+a:focus-visible,
+a:active,
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+div:focus,
+div:focus-visible,
+div:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Recharts & SVG focus border removal (strictly eliminates SVG click rectangles) */
+svg:focus,
+svg:focus-visible,
+svg *:focus,
+svg *:focus-visible,
+.recharts-wrapper,
+.recharts-wrapper *:focus,
+.recharts-wrapper *:focus-visible,
+.recharts-surface,
+.recharts-surface:focus,
+.recharts-surface *:focus,
+.recharts-surface *:focus-visible,
+.recharts-rectangle,
+.recharts-rectangle:focus,
+.recharts-rectangle:focus-visible,
+.recharts-bar-rectangle,
+.recharts-bar-rectangle:focus,
+.recharts-bar-rectangle:focus-visible,
+.recharts-bar-rectangles:focus,
+.recharts-pie-sector:focus,
+.recharts-pie-sector:focus-visible,
+.recharts-sector:focus,
+.recharts-sector:focus-visible,
+.recharts-layer:focus,
+.recharts-layer:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure no SVG stroke gets applied on focus/active in charts */
+.recharts-bar-rectangle:focus path,
+.recharts-bar-rectangle:focus rect,
+.recharts-bar-rectangle:active rect,
+.recharts-rectangle:focus,
+.recharts-rectangle:active {
+  outline: none !important;
+  stroke: none !important;
 }
 
 h1, h2, h3, h4, .font-display {
