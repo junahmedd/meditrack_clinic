@@ -2579,10 +2579,23 @@ export function DoctorPortal({
         {/* TAB B: DASHBOARD OVERVIEW */}
         {activeTab === "dashboard" && (
           <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-5">
-            {/* Top Welcome Banner Matching Requested High-Tech Design (992x178px ratio) */}
-            <div className="relative rounded-3xl overflow-hidden min-h-[178px] flex flex-col md:flex-row md:items-center justify-between p-6 md:p-8 border border-slate-200/80 shadow-md bg-[url('/doctor_welcome_banner.jpg')] bg-cover bg-right bg-no-repeat">
+            {/* Top Welcome Banner Matching Requested High-Tech Design with doctor upper face and head fully visible */}
+            <div className="relative rounded-3xl overflow-hidden min-h-[195px] sm:min-h-[210px] flex flex-col md:flex-row md:items-center justify-between p-6 md:p-8 border border-slate-200/80 shadow-md">
+              {/* Background image layer anchored on doctor face with RTL flipping support */}
+              <div
+                className={`absolute inset-0 bg-[url('/doctor_welcome_banner.jpg')] bg-cover bg-[position:82%_10%] sm:bg-[position:84%_12%] bg-no-repeat transition-transform duration-300 ${
+                  isRTL ? "-scale-x-100" : ""
+                }`}
+              />
+
               {/* Gradient dark backdrop overlay for crystal clear readable typography */}
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/75 to-slate-900/40 z-0 pointer-events-none" />
+              <div
+                className={`absolute inset-0 z-0 pointer-events-none ${
+                  isRTL
+                    ? "bg-gradient-to-l from-slate-950/95 via-slate-900/80 to-slate-900/25"
+                    : "bg-gradient-to-r from-slate-950/95 via-slate-900/80 to-slate-900/25"
+                }`}
+              />
 
               {/* Text content */}
               <div className="space-y-1 z-10 relative">
