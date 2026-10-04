@@ -1,134 +1,16 @@
 export type Language = "en" | "ar";
 
 export interface TranslationDictionary {
-  // Navigation & General
-  dashboard: string;
-  appointments: string;
-  billing: string;
-  consultation: string;
-  medicine: string;
-  profile: string;
-  queue: string;
-  patients: string;
-  logout: string;
-  search: string;
-  save: string;
-  cancel: string;
-  edit: string;
-  delete: string;
-  print: string;
-  status: string;
-  date: string;
-  time: string;
-  actions: string;
-  close: string;
-  refresh: string;
-  back: string;
-  total: string;
-  loading: string;
-  noData: string;
-
-  // Periods
-  today: string;
-  month: string;
-  year: string;
-  allTime: string;
-
-  // Language Menu
-  language: string;
-  english: string;
-  arabicKuwait: string;
-
-  // Header & Roles
-  frontDesk: string;
-  doctorConsultant: string;
-  clinicSystem: string;
-  receptionist: string;
-  doctor: string;
-  admin: string;
-  noUnreadAlerts: string;
-
-  // Dashboard Stat Cards (Receptionist)
-  oldPatient: string;
-  newPatient: string;
-  totalPatient: string;
-  todayPatient: string;
-  returningToday: string;
-  firstTimeToday: string;
-  registeredPatients: string;
-  inQueueToday: string;
-  returningPeriod: string;
-  firstTimePeriod: string;
-
-  // Dashboard Stat Cards (Doctor)
-  waitingPatients: string;
-  completedToday: string;
-  averageWaitTime: string;
-  revenue: string;
-  totalConsultations: string;
-  startConsultation: string;
-  viewHistory: string;
-  goodMorning: string;
-  betterCareTagline: string;
-  minutesAbbr: string;
-  paidVisits: string;
-  feeLabel: string;
-
-  // Charts
-  patientsLast7Days: string;
-  newVsOldPatients: string;
-  patientVisitsByDoctor: string;
-  patientStatistics: string;
-  revenueOverview: string;
-  consultationRevenueLast7Days: string;
-  numberOfPatientsLast7Days: string;
-  highestVisitsToday: string;
-  totalVisits: string;
-  noVisitsYet: string;
-  newPatientLegend: string;
-  oldPatientLegend: string;
-
-  // Buttons & Actions
-  newAppointment: string;
-  openBillingQueue: string;
-  collectPayment: string;
-  dispatchReceipt: string;
-  addMedicine: string;
-  markComplete: string;
-  callNextPatient: string;
-
-  // Patient / Queue Terms
-  patientName: string;
-  civilIdOrPhone: string;
-  phone: string;
-  age: string;
-  gender: string;
-  male: string;
-  female: string;
-  waiting: string;
-  inConsultation: string;
-  inBilling: string;
-  completed: string;
-  cancelled: string;
-  scheduled: string;
-
-  // Billing
-  pendingBilling: string;
-  pendingCollections: string;
-  paidInvoices: string;
-  invoice: string;
-  amount: string;
-  cash: string;
-  knetUpi: string;
-  currencySymbol: string;
+  [key: string]: string;
 }
 
 export const translations: Record<Language, TranslationDictionary> = {
   en: {
-    // Navigation & General
+    // Navigation & Common
     dashboard: "Dashboard",
     appointments: "Appointments",
     billing: "Billing",
+    billingAndPayments: "Billing & Payments",
     consultation: "Consultation",
     medicine: "Medicine",
     profile: "Profile",
@@ -151,19 +33,13 @@ export const translations: Record<Language, TranslationDictionary> = {
     total: "Total",
     loading: "Loading...",
     noData: "No data available",
-
-    // Periods
     today: "Today",
     month: "This Month",
     year: "This Year",
     allTime: "All-Time",
-
-    // Language Menu
     language: "Language",
     english: "English",
     arabicKuwait: "العربية (الكويت)",
-
-    // Header & Roles
     frontDesk: "Front Desk",
     doctorConsultant: "Consultant Doctor",
     clinicSystem: "CLINIC SYSTEM",
@@ -171,8 +47,14 @@ export const translations: Record<Language, TranslationDictionary> = {
     doctor: "Doctor",
     admin: "Administrator",
     noUnreadAlerts: "No unread alerts",
+    age: "Age",
+    gender: "Gender",
+    type: "Type",
+    yrs: "yrs",
+    male: "Male",
+    female: "Female",
 
-    // Dashboard Stat Cards (Receptionist)
+    // Dashboard
     oldPatient: "Old Patient",
     newPatient: "New Patient",
     totalPatient: "Total Patient",
@@ -183,75 +65,212 @@ export const translations: Record<Language, TranslationDictionary> = {
     inQueueToday: "in queue today",
     returningPeriod: "Returning",
     firstTimePeriod: "First-time",
-
-    // Dashboard Stat Cards (Doctor)
-    waitingPatients: "Waiting Patients",
-    completedToday: "Completed Today",
-    averageWaitTime: "Average Wait Time",
-    revenue: "Revenue",
-    totalConsultations: "Total Consultations",
-    startConsultation: "Start Consultation",
-    viewHistory: "View History",
-    goodMorning: "Good Morning,",
-    betterCareTagline: "Better care. Healthier tomorrows.",
-    minutesAbbr: "min",
-    paidVisits: "paid visits",
-    feeLabel: "fee",
-
-    // Charts
     patientsLast7Days: "Patients (Last 7 Days)",
     newVsOldPatients: "New vs. Old (Returning) Patients",
     patientVisitsByDoctor: "Patient Visits by Doctor",
-    patientStatistics: "Patient Statistics",
-    revenueOverview: "Revenue Overview",
-    consultationRevenueLast7Days: "Consultation revenue (Last 7 Days)",
-    numberOfPatientsLast7Days: "Number of patients (Last 7 Days)",
+    totalVisits: "Total Visits",
     highestVisitsToday: "Highest visit count today:",
-    totalVisits: "TOTAL VISITS",
-    noVisitsYet: "No visits yet",
     newPatientLegend: "New Patient",
     oldPatientLegend: "Old Patient",
-
-    // Buttons & Actions
-    newAppointment: "+ New Appointment",
-    openBillingQueue: "Open Billing Queue →",
-    collectPayment: "Collect Payment",
-    dispatchReceipt: "Dispatch Receipt",
-    addMedicine: "+ Add Medicine",
-    markComplete: "Mark Complete",
-    callNextPatient: "Call Next Patient",
-
-    // Patient / Queue Terms
-    patientName: "Patient Name",
-    civilIdOrPhone: "Civil ID / Phone",
-    phone: "Phone",
-    age: "Age",
-    gender: "Gender",
-    male: "Male",
-    female: "Female",
-    waiting: "Waiting",
-    inConsultation: "Consulting",
-    inBilling: "In Billing",
+    waitingPatients: "Waiting Patients",
+    completedToday: "Completed Today",
     completed: "Completed",
+    averageWaitTime: "Average Wait Time",
+    revenue: "Revenue",
+    goodMorning: "Good Morning,",
+    betterCareTagline: "Better care. Healthier tomorrows.",
+    startConsultation: "Start Consultation",
+    patientStatistics: "Patient Statistics",
+    numberOfPatientsLast7Days: "Number of patients (Last 7 Days)",
+    revenueOverview: "Revenue Overview",
+    consultationRevenueLast7Days: "Consultation revenue (Last 7 Days)",
+    paidVisits: "paid visits",
+    feeLabel: "fee",
+
+    // Appointments Page
+    todaysAppointments: "Today's Appointments",
+    waitingQueue: "Waiting Queue",
+    inConsultation: "In Consultation",
+    consulted: "Consulted",
+    inBilling: "In Billing",
     cancelled: "Cancelled",
     scheduled: "Scheduled",
+    waiting: "Waiting",
+    newAppointment: "+ New Appointment",
+    bookAppointment: "Book Appointment",
+    scheduleAppointment: "Schedule Appointment",
+    patientName: "Patient Name",
+    phone: "Phone",
+    contactNumber: "Contact Number",
+    selectDoctor: "Select Doctor",
+    appointmentDate: "Appointment Date",
+    appointmentTime: "Appointment Time",
+    appointmentType: "Appointment Type",
+    generalConsultation: "General Consultation",
+    checkUp: "Routine Check-Up",
+    followUp: "Follow-Up Visit",
+    emergency: "Emergency",
+    consultationFee: "Consultation Fee",
+    allDoctors: "All Doctors",
+    allStatuses: "All Statuses",
+    confirmBooking: "Confirm Booking",
+    filterByDoctor: "Filter by Doctor",
+    searchAppointments: "Search appointments by patient name or phone...",
+    noAppointmentsFound: "No appointments scheduled for this selection.",
+    appointmentList: "Appointment List",
+    checkIn: "Check In",
+    editAppointment: "Edit Appointment",
+    deleteAppointment: "Delete Appointment",
+    fromYesterday: "from yesterday",
+    inClinicQueue: "In clinic queue",
+    pendingPayment: "Pending payment",
+    noShowsCancelled: "No shows / cancelled",
+    noAppointmentsScheduled: "No appointments scheduled.",
 
-    // Billing
-    pendingBilling: "Completed Consultation(s) Awaiting Payment",
+    // Billing Page
     pendingCollections: "Pending Collections",
     paidInvoices: "Paid Invoices",
+    paidInvoicesToday: "Paid Invoices (Today)",
+    patientsToBill: "Patients to Bill",
+    awaitingCheckout: "Awaiting checkout",
+    totalRevenueToday: "Total Revenue (Today)",
+    liveCollection: "Live collection",
+    consultationDateTime: "Consultation Date & Time",
+    billNow: "Bill Now",
+    noPendingBills: "No pending bills awaiting payment. All patient consultations are billed!",
+    unpaid: "UNPAID",
     invoice: "Invoice",
+    invoiceNumber: "Invoice #",
     amount: "Amount",
+    paymentMethod: "Payment Method",
+    selectPaymentMethod: "Select Payment Method",
     cash: "Cash",
-    knetUpi: "K-NET / Digital",
+    cashPayment: "Cash Payment",
+    physicalCurrencyAtDesk: "Physical currency at desk",
+    upiQrCode: "UPI / QR Code",
+    digitalPaymentSub: "GPay, PhonePe, Paytm",
+    knetDigital: "K-NET / Digital",
+    collectPayment: "Collect Payment",
+    dispatchReceipt: "Send WhatsApp Receipt",
+    receiptSent: "Receipt Sent",
+    printInvoice: "Print Invoice",
+    paid: "Paid",
+    pending: "Pending",
+    settled: "Settled",
+    settledCount: "settled",
+    collectFeeNow: "Collect Fee Now",
+    openBillingQueue: "Open Billing Queue →",
+    pendingBillingBanner: "Completed Consultation(s) Awaiting Payment",
+    noBillsPending: "All consultation invoices are settled.",
+    sendPdfViaWhatsApp: "Send PDF Invoice via WhatsApp",
+    sendingPdfViaWhatsApp: "Sending PDF via WhatsApp...",
+    awaitingPayment: "Awaiting Payment",
+    selectPaymentModeAndBill: "Select payment mode & generate bill",
+    fee: "Fee",
+
+    // Medicine Page
+    medicineCatalog: "Medicine Catalog",
+    addMedicine: "+ Add Medicine",
+    medicineName: "Medicine Name",
+    category: "Category",
+    allCategories: "All Categories",
+    dosage: "Dosage",
+    stock: "Stock",
+    price: "Price",
+    instructions: "Instructions",
+    tablet: "Tablet",
+    syrup: "Syrup",
+    capsule: "Capsule",
+    injection: "Injection",
+    drops: "Drops",
+    ointment: "Ointment",
+    searchMedicines: "Search medicines...",
+    noMedicinesFound: "No medicines found",
+    tryAdjustingSearch: "Try adjusting your search or category filter, or click \"+ Add Medicine\" to add one.",
+    addNewMedicineToCatalog: "Add New Medicine to Catalog",
+    medicineAddedSuccess: "Medicine added to catalog successfully",
+
+    // Consultation Page
+    viewHistory: "View History",
+    medicalHistory: "Medical History",
+    callPatient: "Call Patient",
+    vitals: "Vitals",
+    patientVitalsAndDiagnosis: "Patient Vitals & Diagnosis",
+    bp: "BP (mmHg)",
+    pulseBpm: "Pulse (bpm)",
+    temperatureF: "Temperature (°F)",
+    spo2: "SpO2 (%)",
+    weightKg: "Weight (kg)",
+    heightCm: "Height (cm)",
+    bloodPressure: "Blood Pressure (BP)",
+    pulse: "Pulse Rate",
+    temperature: "Temperature (°C)",
+    weight: "Weight (kg)",
+    height: "Height (cm)",
+    bmi: "BMI",
+    diagnosis: "Diagnosis",
+    clinicalDiagnosis: "Clinical Diagnosis",
+    diagnosisPlaceholder: "e.g. Acute Viral Bronchitis / Fever / Dental Caries",
+    chiefComplaints: "Chief Complaints",
+    clinicalNotes: "Clinical Notes",
+    consultationNotes: "Consultation Notes",
+    notesPlaceholder: "Write clinical observations, advice, or patient history...",
+    prescription: "Prescription (Rx)",
+    addMedicineToRx: "+ Add Medicine to Rx",
+    addMedicineRow: "+ Add Medicine Row",
+    frequency: "Frequency",
+    duration: "Duration",
+    when: "When",
+    beforeFood: "Before Food",
+    afterFood: "After Food",
+    withFood: "With Food",
+    followUpDate: "Follow-up Date",
+    completeConsultation: "Complete Consultation",
+    completingConsultation: "Completing Consultation...",
+    saveDraft: "Save Draft",
+    saveAsDraft: "Save as Draft",
+    visitSavedToBillingNotice: "Patient visit will be saved and sent to Billing.",
+    noActivePatientConsultation: "No Active Patient Consultation",
+    clickCallPatientToStart: "Click \"Call Patient\" from the queue list on the left to start patient consultation and open medical details.",
+    noPatientsWaitingInQueue: "No patients waiting in queue.",
+    lastVisit: "Last Visit",
+    consulting: "Consulting",
+    pastMedicalHistory: "Past Medical History & Notes",
+    noHistoryFound: "No previous medical history recorded.",
+    consultationCompletedSuccess: "Consultation completed and billed successfully",
+
+    // Profile Page
+    doctorProfile: "Doctor Profile",
+    receptionistProfile: "Receptionist Profile",
+    clinicProfile: "Clinic Profile",
+    profileInformation: "Profile Information",
+    displayName: "Full Name",
+    fullName: "Full Name",
+    email: "Email Address",
+    emailId: "Email ID",
+    phoneNumber: "Phone Number",
+    systemRole: "System Role",
+    doctorCategory: "Doctor Category",
+    assignedDoctor: "Assigned Doctor",
+    specialty: "Medical Specialty",
+    clinicName: "Clinic Name",
+    clinicAddress: "Clinic Address",
+    clinicId: "Clinic ID",
+    editProfile: "Edit Profile",
+    saveProfile: "Save Profile",
+    signOutLogout: "Sign Out / Logout",
+    sessionActive: "Session Active • MediTrack Healthcare OS",
+    profileUpdated: "Profile updated successfully",
+    workingHours: "Working Hours",
     currencySymbol: "KD",
   },
 
   ar: {
-    // Navigation & General
+    // Navigation & Common
     dashboard: "لوحة التحكم",
     appointments: "المواعيد",
     billing: "الفواتير والتحصيل",
+    billingAndPayments: "الفواتير والمدفوعات",
     consultation: "الاستشارة الطبية",
     medicine: "دليل الأدوية",
     profile: "الملف الشخصي",
@@ -274,19 +293,13 @@ export const translations: Record<Language, TranslationDictionary> = {
     total: "الإجمالي",
     loading: "جاري التحميل...",
     noData: "لا توجد بيانات متاحة",
-
-    // Periods
     today: "اليوم",
     month: "هذا الشهر",
     year: "هذه السنة",
     allTime: "جميع الفترات",
-
-    // Language Menu
     language: "اللغة",
     english: "English",
     arabicKuwait: "العربية (الكويت)",
-
-    // Header & Roles
     frontDesk: "مكتب الاستقبال",
     doctorConsultant: "طبيب استشاري",
     clinicSystem: "نظام إدارة العيادة",
@@ -294,8 +307,14 @@ export const translations: Record<Language, TranslationDictionary> = {
     doctor: "طبيب",
     admin: "مسؤول النظام",
     noUnreadAlerts: "لا توجد تنبيهات جديدة",
+    age: "العمر",
+    gender: "الجنس",
+    type: "النوع",
+    yrs: "سنة",
+    male: "ذكر",
+    female: "أنثى",
 
-    // Dashboard Stat Cards (Receptionist)
+    // Dashboard
     oldPatient: "مريض سابق",
     newPatient: "مريض جديد",
     totalPatient: "إجمالي المرضى",
@@ -306,67 +325,203 @@ export const translations: Record<Language, TranslationDictionary> = {
     inQueueToday: "في الانتظار اليوم",
     returningPeriod: "مراجعين سابقين",
     firstTimePeriod: "زيارات جديدة",
-
-    // Dashboard Stat Cards (Doctor)
-    waitingPatients: "المرضى في الانتظار",
-    completedToday: "اكتملت اليوم",
-    averageWaitTime: "متوسط وقت الانتظار",
-    revenue: "الإيرادات",
-    totalConsultations: "إجمالي الاستشارات",
-    startConsultation: "بدء الاستشارة",
-    viewHistory: "عرض السجل الطبي",
-    goodMorning: "صباح الخير،",
-    betterCareTagline: "رعاية أفضل، لغدٍ أكثر صحة.",
-    minutesAbbr: "دقيقة",
-    paidVisits: "زيارات مدفوعة",
-    feeLabel: "الرسوم",
-
-    // Charts
     patientsLast7Days: "المرضى (آخر 7 أيام)",
     newVsOldPatients: "المرضى الجدد مقابل المراجعين السابقين",
     patientVisitsByDoctor: "زيارات المرضى حسب الطبيب",
-    patientStatistics: "إحصائيات المرضى",
-    revenueOverview: "نظرة عامة على الإيرادات",
-    consultationRevenueLast7Days: "إيرادات الاستشارات (آخر 7 أيام)",
-    numberOfPatientsLast7Days: "أعداد المراجعين (آخر 7 أيام)",
-    highestVisitsToday: "أعلى زيارات اليوم:",
     totalVisits: "إجمالي الزيارات",
-    noVisitsYet: "لا توجد زيارات بعد",
+    highestVisitsToday: "أعلى زيارات اليوم:",
     newPatientLegend: "مريض جديد",
     oldPatientLegend: "مريض سابق",
-
-    // Buttons & Actions
-    newAppointment: "+ حجز موعد جديد",
-    openBillingQueue: "فتح طابور الفواتير ←",
-    collectPayment: "تحصيل الرسوم",
-    dispatchReceipt: "إرسال الإيصال عبر الواتساب",
-    addMedicine: "+ إضافة دواء",
-    markComplete: "إتمام الاستشارة",
-    callNextPatient: "استدعاء المريض التالي",
-
-    // Patient / Queue Terms
-    patientName: "اسم المريض",
-    civilIdOrPhone: "الرقم المدني / الهاتف",
-    phone: "رقم الهاتف",
-    age: "العمر",
-    gender: "الجنس",
-    male: "ذكر",
-    female: "أنثى",
-    waiting: "في الانتظار",
-    inConsultation: "قيد الاستشارة",
-    inBilling: "في قسم المحاسبة",
+    waitingPatients: "المرضى في الانتظار",
+    completedToday: "اكتملت اليوم",
     completed: "مكتمل",
+    averageWaitTime: "متوسط وقت الانتظار",
+    revenue: "الإيرادات",
+    goodMorning: "صباح الخير،",
+    betterCareTagline: "رعاية أفضل، لغدٍ أكثر صحة.",
+    startConsultation: "بدء الاستشارة",
+    patientStatistics: "إحصائيات المرضى",
+    numberOfPatientsLast7Days: "أعداد المراجعين (آخر 7 أيام)",
+    revenueOverview: "نظرة عامة على الإيرادات",
+    consultationRevenueLast7Days: "إيرادات الاستشارات (آخر 7 أيام)",
+    paidVisits: "زيارات مدفوعة",
+    feeLabel: "الرسوم",
+
+    // Appointments Page
+    todaysAppointments: "مواعيد اليوم",
+    waitingQueue: "طابور الانتظار",
+    inConsultation: "قيد الاستشارة",
+    consulted: "تمت الاستشارة",
+    inBilling: "في قسم المحاسبة",
     cancelled: "ملغي",
     scheduled: "مجدول",
+    waiting: "في الانتظار",
+    newAppointment: "+ حجز موعد جديد",
+    bookAppointment: "حجز موعد",
+    scheduleAppointment: "جدولة موعد",
+    patientName: "اسم المريض",
+    phone: "رقم الهاتف",
+    contactNumber: "رقم التواصل",
+    selectDoctor: "اختر الطبيب",
+    appointmentDate: "تاريخ الموعد",
+    appointmentTime: "وقت الموعد",
+    appointmentType: "نوع الموعد",
+    generalConsultation: "استشارة عامة",
+    checkUp: "فحص دوري",
+    followUp: "متابعة علاجية",
+    emergency: "حالة طارئة",
+    consultationFee: "رسوم الكشف",
+    allDoctors: "جميع الأطباء",
+    allStatuses: "جميع الحالات",
+    confirmBooking: "تأكيد الحجز",
+    filterByDoctor: "تصفية حسب الطبيب",
+    searchAppointments: "البحث في المواعيد بالاسم أو رقم الهاتف...",
+    noAppointmentsFound: "لا توجد مواعيد مجدولة وفقاً للتحديد الحالي.",
+    appointmentList: "قائمة المواعيد",
+    checkIn: "تسجيل الحضور",
+    editAppointment: "تعديل الموعد",
+    deleteAppointment: "حذف الموعد",
+    fromYesterday: "مقارنة بالأمس",
+    inClinicQueue: "في قائمة انتظار العيادة",
+    pendingPayment: "بانتظار السداد",
+    noShowsCancelled: "غياب / ملغي",
+    noAppointmentsScheduled: "لا توجد مواعيد مجدولة.",
 
-    // Billing
-    pendingBilling: "استشارات مكتملة بانتظار التحصيل",
-    pendingCollections: "فواتير معلقة",
+    // Billing Page
+    pendingCollections: "تحصيلات معلقة",
     paidInvoices: "فواتير مسددة",
-    invoice: "فاتورة ضريبية",
+    paidInvoicesToday: "فواتير مسددة (اليوم)",
+    patientsToBill: "مرضى بانتظار الفاتورة",
+    awaitingCheckout: "بانتظار التحصيل",
+    totalRevenueToday: "إجمالي الإيرادات (اليوم)",
+    liveCollection: "تحصيل فوري",
+    consultationDateTime: "تاريخ ووقت الكشف",
+    billNow: "إصدار الفاتورة",
+    noPendingBills: "لا توجد فواتير معلقة بانتظار الدفع. تم تحصيل جميع الاستشارات!",
+    unpaid: "غير مسدد",
+    invoice: "فاتورة",
+    invoiceNumber: "رقم الفاتورة",
     amount: "المبلغ",
+    paymentMethod: "طريقة الدفع",
+    selectPaymentMethod: "اختر طريقة الدفع",
     cash: "نقدي (كاش)",
-    knetUpi: "كي نت / دفع إلكتروني",
+    cashPayment: "دفع نقدي (كاش)",
+    physicalCurrencyAtDesk: "سداد نقدي في الاستقبال",
+    upiQrCode: "كي نت / رمز QR",
+    digitalPaymentSub: "دفع إلكتروني سريع",
+    knetDigital: "كي نت / دفع إلكتروني",
+    collectPayment: "تحصيل الرسوم",
+    dispatchReceipt: "إرسال الإيصال بالواتساب",
+    receiptSent: "تم إرسال الإيصال",
+    printInvoice: "طباعة الفاتورة",
+    paid: "مدفوع",
+    pending: "معلق",
+    settled: "مسدد",
+    settledCount: "مسددة",
+    collectFeeNow: "تحصيل الرسوم الآن",
+    openBillingQueue: "فتح طابور الفواتير ←",
+    pendingBillingBanner: "استشارات مكتملة بانتظار التحصيل",
+    noBillsPending: "جميع فواتير الاستشارات مسددة بالكامل.",
+    sendPdfViaWhatsApp: "إرسال فاتورة PDF عبر الواتساب",
+    sendingPdfViaWhatsApp: "جاري إرسال الفاتورة عبر الواتساب...",
+    awaitingPayment: "بانتظار السداد",
+    selectPaymentModeAndBill: "اختر طريقة الدفع وأصدر الفاتورة",
+    fee: "الرسوم",
+
+    // Medicine Page
+    medicineCatalog: "كتالوج الأدوية",
+    addMedicine: "+ إضافة دواء",
+    medicineName: "اسم الدواء",
+    category: "التصنيف",
+    allCategories: "جميع الفئات",
+    dosage: "الجرعة",
+    stock: "المخزون",
+    price: "السعر",
+    instructions: "تعليمات الاستخدام",
+    tablet: "أقراص / حبوب",
+    syrup: "شراب",
+    capsule: "كبسولات",
+    injection: "حقن",
+    drops: "قطرات",
+    ointment: "مرهم",
+    searchMedicines: "البحث في دليل الأدوية...",
+    noMedicinesFound: "لم يتم العثور على أدوية",
+    tryAdjustingSearch: "جرّب تعديل البحث أو التصنيف، أو اضغط \"+ إضافة دواء\" لإضافة دواء جديد.",
+    addNewMedicineToCatalog: "إضافة دواء جديد للدليل",
+    medicineAddedSuccess: "تمت إضافة الدواء بنجاح",
+
+    // Consultation Page
+    viewHistory: "عرض السجل الطبي",
+    medicalHistory: "السجل الطبي السابق",
+    callPatient: "استدعاء المريض",
+    vitals: "العلامات الحيوية",
+    patientVitalsAndDiagnosis: "العلامات الحيوية والتشخيص الطبي",
+    bp: "ضغط الدم (mmHg)",
+    pulseBpm: "النبض (bpm)",
+    temperatureF: "درجة الحرارة (°F)",
+    spo2: "نسبة الأكسجين (%)",
+    weightKg: "الوزن (كجم)",
+    heightCm: "الطول (سم)",
+    bloodPressure: "ضغط الدم (BP)",
+    pulse: "النبض",
+    temperature: "درجة الحرارة (°م)",
+    weight: "الوزن (كجم)",
+    height: "الطول (سم)",
+    bmi: "كتلة الجسم (BMI)",
+    diagnosis: "التشخيص الطبي",
+    clinicalDiagnosis: "التشخيص الإكلينيكي",
+    diagnosisPlaceholder: "مثال: التهاب الشعب الهوائية / حمى / تسوس أسنان",
+    chiefComplaints: "الشكوى الرئيسية والأعراض",
+    clinicalNotes: "الملاحظات الإكلينيكية",
+    consultationNotes: "ملاحظات الاستشارة",
+    notesPlaceholder: "اكتب الملاحظات الطبية أو التوجيهات أو التاريخ المرضي...",
+    prescription: "الوصفة الطبية (Rx)",
+    addMedicineToRx: "+ إضافة دواء للوصفة",
+    addMedicineRow: "+ إضافة دواء للوصفة",
+    frequency: "التكرار",
+    duration: "المدة",
+    when: "الموعد",
+    beforeFood: "قبل الأكل",
+    afterFood: "بعد الأكل",
+    withFood: "مع الأكل",
+    followUpDate: "تاريخ المراجعة القادمة",
+    completeConsultation: "إنهاء واعتماد الاستشارة",
+    completingConsultation: "جاري إنهاء الاستشارة...",
+    saveDraft: "حفظ كمسودة",
+    saveAsDraft: "حفظ كمسودة",
+    visitSavedToBillingNotice: "سيتم حفظ زيارة المريض وتحويلها إلى قسم المحاسبة.",
+    noActivePatientConsultation: "لا توجد استشارة جارية لمريض حالياً",
+    clickCallPatientToStart: "اضغط على \"استدعاء المريض\" من قائمة الانتظار لبدء الاستشارة وعرض الملف الطبي.",
+    noPatientsWaitingInQueue: "لا يوجد مرضى في قائمة الانتظار حالياً.",
+    lastVisit: "آخر زيارة",
+    consulting: "قيد الاستشارة",
+    pastMedicalHistory: "السجل الطبي والملاحظات السابقة",
+    noHistoryFound: "لا يوجد سجل طبي سابق مسجل لهذا المريض.",
+    consultationCompletedSuccess: "تم إنهاء الاستشارة وتحويل الفاتورة للمحاسبة",
+
+    // Profile Page
+    doctorProfile: "بيانات الطبيب",
+    receptionistProfile: "بيانات موظف الاستقبال",
+    clinicProfile: "بيانات العيادة",
+    profileInformation: "معلومات الملف الشخصي",
+    displayName: "الاسم الكامل",
+    fullName: "الاسم الكامل",
+    email: "البريد الإلكتروني",
+    emailId: "البريد الإلكتروني",
+    phoneNumber: "رقم الهاتف",
+    systemRole: "الدور في النظام",
+    doctorCategory: "تصنيف الطبيب",
+    assignedDoctor: "الطبيب المعين",
+    specialty: "التخصص الطبي",
+    clinicName: "اسم العيادة",
+    clinicAddress: "عنوان العيادة",
+    clinicId: "معرف العيادة",
+    editProfile: "تعديل الملف الشخصي",
+    saveProfile: "حفظ التعديلات",
+    signOutLogout: "تسجيل الخروج",
+    sessionActive: "الجلسة نشطة • نظام MediTrack الطبي",
+    profileUpdated: "تم تحديث الملف الشخصي بنجاح",
+    workingHours: "ساعات العمل",
     currencySymbol: "د.ك",
   },
 };

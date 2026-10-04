@@ -1819,7 +1819,7 @@ export function DoctorPortal({
                                 }`}
                               >
                                 <Phone size={12} />
-                                <span>Call Patient</span>
+                                <span>{t("callPatient")}</span>
                               </button>
                             ) : (
                               <span
@@ -1829,7 +1829,7 @@ export function DoctorPortal({
                                     : "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
                                 }`}
                               >
-                                {statusStr === "Consulting" ? "Consulting" : statusStr}
+                                {statusStr === "Consulting" ? t("consulting") : statusStr === "Waiting" ? t("waiting") : t("scheduled")}
                               </span>
                             )}
                           </div>
@@ -1838,7 +1838,7 @@ export function DoctorPortal({
                     })
                   ) : (
                     <div className="py-12 text-center text-slate-400 font-bold text-xs bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                      No patients waiting in queue.
+                      {t("noPatientsWaitingInQueue")}
                     </div>
                   )}
                 </div>
@@ -1868,7 +1868,7 @@ export function DoctorPortal({
                               PT-{activePatient.id.slice(-6).toUpperCase()}
                             </span>
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                              Consulting
+                              {t("consulting")}
                             </span>
                           </div>
                         </div>
@@ -1878,7 +1878,7 @@ export function DoctorPortal({
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-slate-100 text-xs">
                         <div>
                           <label className="text-slate-400 font-medium block mb-0.5 text-[11px]">
-                            Age
+                            {t("age")}
                           </label>
                           <input
                             type="text"
@@ -1890,7 +1890,7 @@ export function DoctorPortal({
                         </div>
                         <div>
                           <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">
-                            Gender
+                            {t("gender")}
                           </span>
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-lg font-extrabold text-xs select-none shadow-2xs ${
@@ -1899,12 +1899,12 @@ export function DoctorPortal({
                                 : "bg-pink-50 text-pink-800 border border-pink-300"
                             }`}
                           >
-                            {detectedGender}
+                            {detectedGender === "Male" ? t("male") : detectedGender === "Female" ? t("female") : detectedGender}
                           </span>
                         </div>
                         <div>
                           <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">
-                            Phone
+                            {t("phone")}
                           </span>
                           <span className="font-extrabold text-slate-900">
                             {activePatient.phone || "NA"}
@@ -1912,12 +1912,12 @@ export function DoctorPortal({
                         </div>
                         <div>
                           <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">
-                            Last Visit
+                            {t("lastVisit")}
                           </span>
                           <span className="font-extrabold text-slate-900">
                             {activePatient.timestamp?.toDate
-                              ? new Date(activePatient.timestamp.toDate()).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-                              : "Today"}
+                              ? new Date(activePatient.timestamp.toDate()).toLocaleDateString(language === "ar" ? "ar-KW" : "en-US", { month: "short", day: "numeric", year: "numeric" })
+                              : t("today")}
                           </span>
                         </div>
                       </div>
@@ -1929,7 +1929,7 @@ export function DoctorPortal({
                         <div className="flex items-center gap-2">
                           <Activity size={16} className="text-[#065f46]" />
                           <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-                            Patient Vitals &amp; Diagnosis
+                            {t("patientVitalsAndDiagnosis")}
                           </h3>
                         </div>
                       </div>
@@ -1938,7 +1938,7 @@ export function DoctorPortal({
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                         <div>
                           <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                            BP (mmHg)
+                            {t("bp")}
                           </label>
                           <input
                             type="text"
@@ -1950,7 +1950,7 @@ export function DoctorPortal({
                         </div>
                         <div>
                           <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                            Pulse (bpm)
+                            {t("pulseBpm")}
                           </label>
                           <input
                             type="text"
@@ -1962,7 +1962,7 @@ export function DoctorPortal({
                         </div>
                         <div>
                           <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                            Temperature (°F)
+                            {t("temperatureF")}
                           </label>
                           <input
                             type="text"
@@ -1974,7 +1974,7 @@ export function DoctorPortal({
                         </div>
                         <div>
                           <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                            SpO (%)
+                            {t("spo2")}
                           </label>
                           <input
                             type="text"
@@ -1986,7 +1986,7 @@ export function DoctorPortal({
                         </div>
                         <div>
                           <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                            Weight (kg)
+                            {t("weightKg")}
                           </label>
                           <input
                             type="text"
@@ -1998,7 +1998,7 @@ export function DoctorPortal({
                         </div>
                         <div>
                           <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                            Height (cm)
+                            {t("heightCm")}
                           </label>
                           <input
                             type="text"
@@ -2013,13 +2013,13 @@ export function DoctorPortal({
                       {/* Clinical Diagnosis Input */}
                       <div>
                         <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                          Clinical Diagnosis
+                          {t("clinicalDiagnosis")}
                         </label>
                         <input
                           type="text"
                           value={diagnosis}
                           onChange={(e) => setDiagnosis(e.target.value)}
-                          placeholder="e.g. Acute Viral Bronchitis / Fever / Dental Caries"
+                          placeholder={t("diagnosisPlaceholder")}
                           className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                         />
                       </div>
@@ -2289,14 +2289,14 @@ export function DoctorPortal({
                       <div className="flex items-center gap-2">
                         <FileText size={16} className="text-[#065f46]" />
                         <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-                          Consultation Notes
+                          {t("consultationNotes")}
                         </h3>
                       </div>
                       <textarea
                         value={consultationNotes}
                         onChange={(e) => setConsultationNotes(e.target.value)}
                         rows={3}
-                        placeholder="Write clinical observations, advice, or patient history..."
+                        placeholder={t("notesPlaceholder")}
                         className="w-full p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all resize-none leading-relaxed"
                       />
                     </div>
@@ -2307,7 +2307,7 @@ export function DoctorPortal({
                         <div className="flex items-center gap-2">
                           <Pill size={16} className="text-[#065f46]" />
                           <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-                            Prescription
+                            {t("prescription")}
                           </h3>
                         </div>
                         <button
@@ -2316,18 +2316,18 @@ export function DoctorPortal({
                           className="text-xs font-extrabold text-[#065f46] hover:text-[#065f46] bg-emerald-50 px-3 py-1 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
                         >
                           <Plus size={13} />
-                          <span>+ Add Medicine Row</span>
+                          <span>{t("addMedicineRow")}</span>
                         </button>
                       </div>
 
                       {/* Prescription Container: Desktop Table Grid (>= 640px) */}
                       <div className="hidden sm:block border border-slate-200/80 rounded-xl text-xs relative">
                         <div className="bg-slate-50 px-4 py-2.5 grid grid-cols-12 gap-3 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                          <div className="col-span-4">Medicine</div>
-                          <div className="col-span-2">Dosage</div>
-                          <div className="col-span-2">Duration</div>
-                          <div className="col-span-3">Instructions</div>
-                          <div className="col-span-1 text-right">Action</div>
+                          <div className="col-span-4">{t("medicine")}</div>
+                          <div className="col-span-2">{t("dosage")}</div>
+                          <div className="col-span-2">{t("duration")}</div>
+                          <div className="col-span-3">{t("instructions")}</div>
+                          <div className="col-span-1 text-right">{t("actions")}</div>
                         </div>
 
                         <div className="divide-y divide-slate-100 bg-white p-1.5">
@@ -2536,11 +2536,11 @@ export function DoctorPortal({
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                         <button
                           type="button"
-                          onClick={() => showToast("Draft saved successfully")}
+                          onClick={() => showToast(t("saveDraft"))}
                           className="w-full sm:w-auto px-5 py-2.5 bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-700 font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
                           <FileText size={14} />
-                          <span>Save as Draft</span>
+                          <span>{t("saveAsDraft")}</span>
                         </button>
 
                         <button
@@ -2549,12 +2549,12 @@ export function DoctorPortal({
                           disabled={isSubmitting}
                           className="w-full sm:w-auto px-7 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                         >
-                          <span>{isSubmitting ? "Completing Consultation..." : "Complete Consultation"}</span>
+                          <span>{isSubmitting ? t("completingConsultation") : t("completeConsultation")}</span>
                           <ArrowRight size={15} />
                         </button>
                       </div>
                       <p className="text-[11px] text-center text-slate-400 font-medium">
-                        Patient visit will be saved and sent to Billing.
+                        {t("visitSavedToBillingNotice")}
                       </p>
                     </div>
                   </>
@@ -2564,10 +2564,10 @@ export function DoctorPortal({
                       <Phone size={26} />
                     </div>
                     <h3 className="text-base font-black text-slate-900 font-display">
-                      No Active Patient Consultation
+                      {t("noActivePatientConsultation")}
                     </h3>
                     <p className="text-xs text-slate-500 font-medium max-w-sm mx-auto">
-                      Click <strong>"Call Patient"</strong> from the queue list on the left to start patient consultation and open medical details.
+                      {t("clickCallPatientToStart")}
                     </p>
                   </div>
                 )}
@@ -2794,14 +2794,14 @@ export function DoctorPortal({
             {/* Header & Title */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Medicine</h2>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">{t("medicine")}</h2>
               </div>
               <button
                 onClick={handleOpenAddModal}
                 className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
               >
                 <Plus size={16} />
-                <span>Add Medicine</span>
+                <span>{t("addMedicine")}</span>
               </button>
             </div>
 
@@ -2813,7 +2813,7 @@ export function DoctorPortal({
                   type="text"
                   value={medicineSearchQuery}
                   onChange={(e) => setMedicineSearchQuery(e.target.value)}
-                  placeholder="Search medicines..."
+                  placeholder={t("searchMedicines")}
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:border-[#064e3b] shadow-2xs transition-all"
                 />
               </div>
@@ -2824,7 +2824,7 @@ export function DoctorPortal({
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="w-full sm:w-48 px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-[#064e3b] shadow-2xs cursor-pointer"
                 >
-                  <option value="All Categories">All Categories</option>
+                  <option value="All Categories">{t("allCategories")}</option>
                   <option value="Analgesic">Analgesic</option>
                   <option value="Antibiotic">Antibiotic</option>
                   <option value="Antihistamine">Antihistamine</option>
@@ -2868,14 +2868,14 @@ export function DoctorPortal({
                             className="w-full px-3 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
                           >
                             <Pencil size={13} />
-                            <span>Edit</span>
+                            <span>{t("edit")}</span>
                           </button>
                           <button
                             onClick={() => handleDeleteMedicine(med.id)}
                             className="w-full px-3 py-1.5 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
                           >
                             <Trash2 size={13} />
-                            <span>Delete</span>
+                            <span>{t("delete")}</span>
                           </button>
                         </div>
                       )}
@@ -2905,8 +2905,8 @@ export function DoctorPortal({
                     <Pill size={24} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-800">No medicines found</p>
-                    <p className="text-xs text-slate-400 mt-1">Try adjusting your search or category filter, or click "+ Add Medicine" to add one.</p>
+                    <p className="text-sm font-bold text-slate-800">{t("noMedicinesFound")}</p>
+                    <p className="text-xs text-slate-400 mt-1">{t("tryAdjustingSearch")}</p>
                   </div>
                 </div>
               )}
@@ -2935,7 +2935,7 @@ export function DoctorPortal({
                 {/* Modal Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <h3 className="text-lg font-bold text-slate-900">
-                    {editingMedicine ? "Edit Medicine" : "Add Medicine"}
+                    {editingMedicine ? t("edit") : t("addMedicine")}
                   </h3>
                   <button
                     onClick={() => setIsAddMedicineModalOpen(false)}
@@ -2949,7 +2949,7 @@ export function DoctorPortal({
                 <form onSubmit={handleSaveMedicine} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Medicine Name <span className="text-rose-500">*</span>
+                      {t("medicineName")} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -2966,7 +2966,7 @@ export function DoctorPortal({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Category <span className="text-rose-500">*</span>
+                        {t("category")} <span className="text-rose-500">*</span>
                       </label>
                       <select
                         required
@@ -3045,13 +3045,13 @@ export function DoctorPortal({
                       onClick={() => setIsAddMedicineModalOpen(false)}
                       className="px-5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl transition-all cursor-pointer"
                     >
-                      Cancel
+                      {t("cancel")}
                     </button>
                     <button
                       type="submit"
                       className="px-6 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white font-semibold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
                     >
-                      Save
+                      {t("save")}
                     </button>
                   </div>
                 </form>
@@ -3164,45 +3164,45 @@ export function DoctorPortal({
                   className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <Pencil size={14} />
-                  <span>Edit Profile</span>
+                  <span>{t("editProfile")}</span>
                 </button>
               </div>
 
               {/* Profile Details Grid */}
               <div className="space-y-4">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                  Profile Information
+                  {t("profileInformation")}
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Full Name</label>
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("fullName")}</label>
                     <p className="text-sm font-black text-slate-900">{currentUserProfile?.displayName || user?.displayName || doctorDisplayName}</p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Email ID</label>
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("emailId")}</label>
                     <p className="text-sm font-black text-slate-900">{user?.email || "N/A"}</p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Phone Number</label>
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("phoneNumber")}</label>
                     <p className="text-sm font-black text-slate-900">{currentUserProfile?.contactNumber || currentUserProfile?.phone || "+91 98765 43210"}</p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">System Role</label>
-                    <p className="text-sm font-black text-slate-900">Doctor ({categoryLabel})</p>
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("systemRole")}</label>
+                    <p className="text-sm font-black text-slate-900">{t("doctor")} ({categoryLabel})</p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Doctor Category</label>
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("doctorCategory")}</label>
                     <p className="text-sm font-black text-slate-900">{categoryLabel}</p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 relative">
                     <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Consultation Fee</label>
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("consultationFee")}</label>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
@@ -3215,7 +3215,7 @@ export function DoctorPortal({
                           className="text-xs text-[#065f46] font-bold hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <Pencil size={12} />
-                          <span>Edit</span>
+                          <span>{t("edit")}</span>
                         </button>
                         <button
                           type="button"
@@ -3223,7 +3223,7 @@ export function DoctorPortal({
                           className="text-xs text-rose-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <Trash2 size={12} />
-                          <span>Delete</span>
+                          <span>{t("delete")}</span>
                         </button>
                       </div>
                     </div>
@@ -3233,26 +3233,26 @@ export function DoctorPortal({
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Clinic Name</label>
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("clinicName")}</label>
                     <p className="text-sm font-black text-slate-900">{clinicInfo?.name || currentUserProfile?.clinicName || "Clinic"}</p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 sm:col-span-2">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Clinic ID</label>
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("clinicId")}</label>
                     <p className="text-sm font-mono font-black text-[#065f46]">{clinicInfo?.id || currentUserProfile?.clinicId || "—"}</p>
                   </div>
                 </div>
 
                 {/* Explicit Sign Out / Logout Button */}
                 <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-xs text-slate-400 font-medium">Session Active • MediTrack Healthcare OS</p>
+                  <p className="text-xs text-slate-400 font-medium">{t("sessionActive")}</p>
                   <button
                     type="button"
                     onClick={onLogout}
                     className="w-full sm:w-auto px-6 py-3 bg-red-50 hover:bg-red-100 text-red-600 font-extrabold text-xs rounded-2xl border border-red-200/60 shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   >
                     <LogOut size={16} />
-                    <span>Sign Out / Logout</span>
+                    <span>{t("signOutLogout")}</span>
                   </button>
                 </div>
               </div>
@@ -3284,7 +3284,7 @@ export function DoctorPortal({
                   <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
                     <User size={15} />
                   </div>
-                  <h3 className="text-sm font-black text-slate-900">Edit Profile</h3>
+                  <h3 className="text-sm font-black text-slate-900">{t("editProfile")}</h3>
                 </div>
                 <button
                   type="button"
@@ -3298,7 +3298,7 @@ export function DoctorPortal({
               <form onSubmit={handleSaveProfile} className="space-y-3">
                 {/* Editable Fields */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-600 block">Full Name</label>
+                  <label className="text-[11px] font-bold text-slate-600 block">{t("fullName")}</label>
                   <input
                     type="text"
                     required
@@ -3309,7 +3309,7 @@ export function DoctorPortal({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-600 block">Phone Number</label>
+                  <label className="text-[11px] font-bold text-slate-600 block">{t("phoneNumber")}</label>
                   <input
                     type="tel"
                     required
@@ -3320,7 +3320,7 @@ export function DoctorPortal({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-600 block">Consultation Fee (Rs)</label>
+                  <label className="text-[11px] font-bold text-slate-600 block">{t("consultationFee")}</label>
                   <input
                     type="number"
                     required
@@ -3340,7 +3340,7 @@ export function DoctorPortal({
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Clinic ID</label>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">{t("clinicId")}</label>
                       <input
                         type="text"
                         disabled
@@ -3350,7 +3350,7 @@ export function DoctorPortal({
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Role</label>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">{t("systemRole")}</label>
                       <input
                         type="text"
                         disabled
@@ -3371,7 +3371,7 @@ export function DoctorPortal({
                     className="px-3 py-1.5 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1"
                   >
                     <Trash2 size={12} />
-                    <span>Delete Fee</span>
+                    <span>{t("delete")}</span>
                   </button>
 
                   <div className="flex items-center gap-2">
@@ -3380,14 +3380,14 @@ export function DoctorPortal({
                       onClick={() => setIsEditProfileOpen(false)}
                       className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
                     >
-                      Cancel
+                      {t("cancel")}
                     </button>
                     <button
                       type="submit"
                       disabled={isSavingProfile}
                       className="px-4 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs rounded-xl shadow-sm shadow-emerald-950/20 cursor-pointer disabled:opacity-50 transition-colors"
                     >
-                      {isSavingProfile ? "Saving..." : "Save Changes"}
+                      {isSavingProfile ? t("loading") : t("save")}
                     </button>
                   </div>
                 </div>

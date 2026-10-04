@@ -2172,7 +2172,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight font-display">
-                    Billing
+                    {t("billing")}
                   </h2>
                 </div>
               </div>
@@ -2187,7 +2187,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     </div>
                     <div>
                       <span className="text-2xl font-black text-slate-900 block leading-tight">{pendingBills.length}</span>
-                      <p className="text-xs font-semibold text-slate-600">Pending Collections</p>
+                      <p className="text-xs font-semibold text-slate-600">{t("pendingCollections")}</p>
                       <p className="text-xs font-extrabold text-amber-600 mt-0.5">₹{pendingBills.reduce((acc, b) => acc + (Number(b.fee) || 0), 0).toLocaleString()}</p>
                     </div>
                   </div>
@@ -2201,7 +2201,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     </div>
                     <div>
                       <span className="text-2xl font-black text-slate-900 block leading-tight">{paidInvoicesList.length}</span>
-                      <p className="text-xs font-semibold text-slate-600">Paid Invoices (Today)</p>
+                      <p className="text-xs font-semibold text-slate-600">{t("paidInvoicesToday")}</p>
                       <p className="text-xs font-extrabold text-emerald-600 mt-0.5">₹{paidInvoicesList.reduce((acc, b) => acc + (Number(b.amount) || 0), 0).toLocaleString()}</p>
                     </div>
                   </div>
@@ -2215,8 +2215,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     </div>
                     <div>
                       <span className="text-2xl font-black text-slate-900 block leading-tight">{pendingBills.length}</span>
-                      <p className="text-xs font-semibold text-slate-600">Patients to Bill</p>
-                      <p className="text-[11px] font-bold text-slate-400 mt-0.5">Awaiting checkout</p>
+                      <p className="text-xs font-semibold text-slate-600">{t("patientsToBill")}</p>
+                      <p className="text-[11px] font-bold text-slate-400 mt-0.5">{t("awaitingCheckout")}</p>
                     </div>
                   </div>
                 </div>
@@ -2231,8 +2231,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         <span className="text-2xl font-black text-slate-900 block leading-tight">
                           ₹{revenueStats.total.toLocaleString()}
                         </span>
-                        <p className="text-xs font-semibold text-slate-600">Total Revenue (Today)</p>
-                        <p className="text-[11px] font-bold text-emerald-600 mt-0.5">Live collection</p>
+                        <p className="text-xs font-semibold text-slate-600">{t("totalRevenueToday")}</p>
+                        <p className="text-[11px] font-bold text-emerald-600 mt-0.5">{t("liveCollection")}</p>
                       </div>
                     </div>
                   </div>
@@ -2246,13 +2246,13 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/60 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                         <th className="py-2.5 px-4 font-bold">#</th>
-                        <th className="py-2.5 px-4 font-bold">Patient Name</th>
-                        <th className="py-2.5 px-4 font-bold">Phone</th>
-                        <th className="py-2.5 px-4 font-bold">Doctor</th>
-                        <th className="py-2.5 px-4 font-bold">Consultation Date &amp; Time</th>
-                        <th className="py-2.5 px-4 font-bold">Consultation Fee</th>
-                        <th className="py-2.5 px-4 font-bold">Status</th>
-                        <th className="py-2.5 px-4 font-bold text-right">Action</th>
+                        <th className="py-2.5 px-4 font-bold">{t("patientName")}</th>
+                        <th className="py-2.5 px-4 font-bold">{t("phone")}</th>
+                        <th className="py-2.5 px-4 font-bold">{t("doctor")}</th>
+                        <th className="py-2.5 px-4 font-bold">{t("consultationDateTime")}</th>
+                        <th className="py-2.5 px-4 font-bold">{t("consultationFee")}</th>
+                        <th className="py-2.5 px-4 font-bold">{t("status")}</th>
+                        <th className="py-2.5 px-4 font-bold text-right">{t("actions")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
@@ -2272,7 +2272,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           <td className="py-2.5 px-4 font-bold text-slate-900">₹{bill.fee}</td>
                           <td className="py-2.5 px-4">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80">
-                              UNPAID
+                              {t("unpaid")}
                             </span>
                           </td>
                           <td className="py-2.5 px-4 text-right">
@@ -2285,7 +2285,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                               className="px-3.5 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs rounded-lg shadow-sm shadow-emerald-950/20 transition-all cursor-pointer inline-flex items-center gap-1.5"
                             >
                               <CreditCard size={12} />
-                              <span>Bill Now</span>
+                              <span>{t("billNow")}</span>
                             </button>
                           </td>
                         </tr>
@@ -2293,7 +2293,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       {pendingBills.length === 0 && (
                         <tr>
                           <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
-                            No pending bills awaiting payment. All patient consultations are billed!
+                            {t("noPendingBills")}
                           </td>
                         </tr>
                       )}
@@ -2316,14 +2316,14 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </p>
                         </div>
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 shrink-0">
-                          UNPAID
+                          {t("unpaid")}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-50 text-slate-500">
                         <span className="font-mono text-[11px]">{bill.phone}</span>
                         <div className="text-right">
-                          <span className="text-[10px] text-slate-400 font-medium block">Fee</span>
+                          <span className="text-[10px] text-slate-400 font-medium block">{t("fee")}</span>
                           <span className="font-black text-slate-900 text-sm text-[#065f46]">₹{bill.fee}</span>
                         </div>
                       </div>
@@ -2337,13 +2337,13 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         className="w-full py-2.5 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.98] text-white font-extrabold text-xs rounded-xl shadow-sm shadow-emerald-950/20 transition-all cursor-pointer flex items-center justify-center gap-2"
                       >
                         <CreditCard size={14} />
-                        <span>Bill Now (₹{bill.fee})</span>
+                        <span>{t("billNow")} (₹{bill.fee})</span>
                       </button>
                     </div>
                   ))}
                   {pendingBills.length === 0 && (
                     <div className="py-8 text-center text-slate-400 text-xs font-medium">
-                      No pending bills awaiting payment. All patient consultations are billed!
+                      {t("noPendingBills")}
                     </div>
                   )}
                 </div>
@@ -2819,7 +2819,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight font-display">
-                    Appointments
+                    {t("appointments")}
                   </h2>
                 </div>
                 <button
@@ -2827,7 +2827,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   className="px-3.5 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-950/20 flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto shrink-0"
                 >
                   <Plus size={15} />
-                  <span>+ New Appointment</span>
+                  <span>{t("newAppointment")}</span>
                 </button>
               </div>
 
@@ -2841,10 +2841,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       <Calendar size={15} />
                     </div>
                   </div>
-                  <p className="text-xs font-semibold text-slate-600 mt-1.5">Today's Appointments</p>
+                  <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("todaysAppointments")}</p>
                   <p className="text-[11px] font-bold text-[#065f46] mt-0.5 flex items-center gap-0.5">
                     <span>↑ 20%</span>
-                    <span className="text-slate-400 font-normal">from yesterday</span>
+                    <span className="text-slate-400 font-normal">{t("fromYesterday")}</span>
                   </p>
                 </div>
 
@@ -2856,8 +2856,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       <Clock size={15} />
                     </div>
                   </div>
-                  <p className="text-xs font-semibold text-slate-600 mt-1.5">Waiting</p>
-                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">In clinic queue</p>
+                  <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("waiting")}</p>
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">{t("inClinicQueue")}</p>
                 </div>
 
                 {/* 3. Consulted */}
@@ -2868,8 +2868,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       <CheckCircle2 size={15} />
                     </div>
                   </div>
-                  <p className="text-xs font-semibold text-slate-600 mt-1.5">Consulted</p>
-                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">Completed today</p>
+                  <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("consulted")}</p>
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">{t("completedToday")}</p>
                 </div>
 
                 {/* 4. In Billing */}
@@ -2880,8 +2880,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       <CreditCard size={15} />
                     </div>
                   </div>
-                  <p className="text-xs font-semibold text-slate-600 mt-1.5">In Billing</p>
-                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">Pending payment</p>
+                  <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("inBilling")}</p>
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">{t("pendingPayment")}</p>
                 </div>
 
                 {/* 5. Cancelled */}
@@ -2892,8 +2892,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       <XCircle size={15} />
                     </div>
                   </div>
-                  <p className="text-xs font-semibold text-slate-600 mt-1.5">Cancelled</p>
-                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">No shows / cancelled</p>
+                  <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("cancelled")}</p>
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">{t("noShowsCancelled")}</p>
                 </div>
               </div>
 
@@ -2903,7 +2903,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-black text-slate-900 font-display">
-                      Appointment List
+                      {t("appointmentList")}
                     </h3>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700">
                       {filteredAppointments.length}
@@ -2917,13 +2917,13 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/60 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                         <th className="py-2.5 px-3.5 font-bold">#</th>
-                        <th className="py-2.5 px-3.5 font-bold">Time</th>
-                        <th className="py-2.5 px-3.5 font-bold">Patient Name</th>
-                        <th className="py-2.5 px-3.5 font-bold">Phone</th>
-                        <th className="py-2.5 px-3.5 font-bold">Doctor</th>
-                        <th className="py-2.5 px-3.5 font-bold">Type</th>
-                        <th className="py-2.5 px-3.5 font-bold">Status</th>
-                        <th className="py-2.5 px-3.5 font-bold text-right">Action</th>
+                        <th className="py-2.5 px-3.5 font-bold">{t("time")}</th>
+                        <th className="py-2.5 px-3.5 font-bold">{t("patientName")}</th>
+                        <th className="py-2.5 px-3.5 font-bold">{t("phone")}</th>
+                        <th className="py-2.5 px-3.5 font-bold">{t("doctor")}</th>
+                        <th className="py-2.5 px-3.5 font-bold">{t("type")}</th>
+                        <th className="py-2.5 px-3.5 font-bold">{t("status")}</th>
+                        <th className="py-2.5 px-3.5 font-bold text-right">{t("actions")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
@@ -2937,7 +2937,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </td>
                           <td className="py-2.5 px-3.5">
                             <span className="font-extrabold text-slate-900 block leading-tight">{apt.patientName}</span>
-                            <span className="text-[10px] text-slate-400 font-medium block">Age: {apt.age ? `${apt.age} yrs` : "NA"} • Gender: {apt.gender || "NA"}</span>
+                            <span className="text-[10px] text-slate-400 font-medium block">{t("age")}: {apt.age ? `${apt.age} ${t("yrs")}` : "NA"} • {t("gender")}: {apt.gender === "Male" ? t("male") : apt.gender === "Female" ? t("female") : apt.gender || "NA"}</span>
                           </td>
                           <td className="py-2.5 px-3.5 text-slate-500 font-mono text-[11px]">
                             {apt.phone}
@@ -2951,32 +2951,32 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           <td className="py-2.5 px-3.5">
                             {apt.status === "Completed" && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                                Completed
+                                {t("completed")}
                               </span>
                             )}
                             {apt.status === "Consulting" && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                                Consulting
+                                {t("consulting")}
                               </span>
                             )}
                             {apt.status === "Waiting" && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
-                                Waiting
+                                {t("waiting")}
                               </span>
                             )}
                             {apt.status === "Scheduled" && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200/80">
-                                Scheduled
+                                {t("scheduled")}
                               </span>
                             )}
                             {(apt.status === "In Billing" || apt.status === "Billing") && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
-                                Billing
+                                {t("inBilling")}
                               </span>
                             )}
                             {apt.status === "Cancelled" && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80">
-                                Cancelled
+                                {t("cancelled")}
                               </span>
                             )}
                           </td>
@@ -3002,7 +3002,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                                   title="Check In Patient to Live Queue"
                                 >
                                   <UserPlus size={12} />
-                                  <span>Check In</span>
+                                  <span>{t("checkIn")}</span>
                                 </button>
                               )}
                               <button
@@ -3026,7 +3026,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       {filteredAppointments.length === 0 && (
                         <tr>
                           <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
-                            No appointments scheduled.
+                            {t("noAppointmentsScheduled")}
                           </td>
                         </tr>
                       )}
@@ -3159,62 +3159,62 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <Pencil size={14} />
-                    <span>Edit Profile</span>
+                    <span>{t("editProfile")}</span>
                   </button>
                 </div>
 
                 {/* Profile Details Grid */}
                 <div className="space-y-4">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                    Profile Information
+                    {t("profileInformation")}
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Full Name</label>
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("fullName")}</label>
                       <p className="text-sm font-black text-slate-900">{currentUserProfile?.displayName || user?.displayName || "Receptionist"}</p>
                     </div>
 
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Email ID</label>
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("emailId")}</label>
                       <p className="text-sm font-black text-slate-900">{user?.email || "N/A"}</p>
                     </div>
 
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Phone Number</label>
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("phoneNumber")}</label>
                       <p className="text-sm font-black text-slate-900">{currentUserProfile?.contactNumber || currentUserProfile?.phone || "—"}</p>
                     </div>
 
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">System Role</label>
-                      <p className="text-sm font-black text-slate-900">Front Desk Receptionist</p>
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("systemRole")}</label>
+                      <p className="text-sm font-black text-slate-900">{t("receptionist")}</p>
                     </div>
 
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Assigned Doctor</label>
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("assignedDoctor")}</label>
                       <p className="text-sm font-black text-slate-900">{assignedDoctorName} ({categoryLabel})</p>
                     </div>
 
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Clinic Name</label>
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("clinicName")}</label>
                       <p className="text-sm font-black text-slate-900">{clinicInfo?.name || currentUserProfile?.clinicName || "Clinic"}</p>
                     </div>
 
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 sm:col-span-2">
-                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Clinic ID</label>
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">{t("clinicId")}</label>
                       <p className="text-sm font-mono font-black text-[#065f46]">{clinicInfo?.id || currentUserProfile?.clinicId || "—"}</p>
                     </div>
 
                     {/* Explicit Sign Out / Logout Button */}
                     <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 sm:col-span-2">
-                      <p className="text-xs text-slate-400 font-medium">Session Active • MediTrack Healthcare OS</p>
+                      <p className="text-xs text-slate-400 font-medium">{t("sessionActive")}</p>
                       <button
                         type="button"
                         onClick={onLogout}
                         className="w-full sm:w-auto px-6 py-3 bg-red-50 hover:bg-red-100 text-red-600 font-extrabold text-xs rounded-2xl border border-red-200/60 shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                       >
                         <LogOut size={16} />
-                        <span>Sign Out / Logout</span>
+                        <span>{t("signOutLogout")}</span>
                       </button>
                     </div>
                   </div>
@@ -3248,7 +3248,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
                     <UserIcon size={15} />
                   </div>
-                  <h3 className="text-sm font-black text-slate-900">Edit Profile</h3>
+                  <h3 className="text-sm font-black text-slate-900">{t("editProfile")}</h3>
                 </div>
                 <button
                   type="button"
@@ -3262,7 +3262,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               <form onSubmit={handleSaveProfile} className="space-y-3">
                 {/* Editable Fields */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-600 block">Full Name</label>
+                  <label className="text-[11px] font-bold text-slate-600 block">{t("fullName")}</label>
                   <input
                     type="text"
                     required
@@ -3273,7 +3273,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-600 block">Phone Number</label>
+                  <label className="text-[11px] font-bold text-slate-600 block">{t("phoneNumber")}</label>
                   <input
                     type="tel"
                     required
@@ -3291,7 +3291,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Clinic ID</label>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">{t("clinicId")}</label>
                       <input
                         type="text"
                         disabled
@@ -3301,7 +3301,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Role</label>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">{t("systemRole")}</label>
                       <input
                         type="text"
                         disabled
@@ -3318,14 +3318,14 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     onClick={() => setIsEditProfileOpen(false)}
                     className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
                   >
-                    Cancel
+                    {t("cancel")}
                   </button>
                   <button
                     type="submit"
                     disabled={isSavingProfile}
                     className="px-4 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs rounded-xl shadow-sm shadow-emerald-950/20 cursor-pointer disabled:opacity-50 transition-colors"
                   >
-                    {isSavingProfile ? "Saving..." : "Save Changes"}
+                    {isSavingProfile ? t("loading") : t("save")}
                   </button>
                 </div>
               </form>
@@ -3823,8 +3823,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <Receipt size={16} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-900 font-display leading-tight">Collect Payment</h3>
-                    <p className="text-[11px] text-slate-400 font-medium">Select payment mode &amp; generate bill</p>
+                    <h3 className="text-sm font-black text-slate-900 font-display leading-tight">{t("collectPayment")}</h3>
+                    <p className="text-[11px] text-slate-400 font-medium">{t("selectPaymentModeAndBill")}</p>
                   </div>
                 </div>
                 <button
@@ -3843,16 +3843,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <span className="text-[10px] text-slate-400 font-mono font-bold">{selectedBillForPayment.mrn}</span>
                   </div>
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800">
-                    Awaiting Payment
+                    {t("awaitingPayment")}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[10px] pt-1 border-t border-slate-200/60 text-slate-600">
                   <div>
-                    <span className="text-slate-400 font-medium block">Doctor:</span>
+                    <span className="text-slate-400 font-medium block">{t("doctor")}:</span>
                     <strong className="text-slate-800 font-bold">{selectedBillForPayment.doctor}</strong> ({selectedBillForPayment.specialty})
                   </div>
                   <div>
-                    <span className="text-slate-400 font-medium block">Consultation Fee:</span>
+                    <span className="text-slate-400 font-medium block">{t("consultationFee")}:</span>
                     <strong className="text-[#065f46] font-black text-xs">₹{selectedBillForPayment.fee}</strong>
                   </div>
                 </div>
@@ -3861,7 +3861,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               {/* Mode Selection */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                  Select Payment Method
+                  {t("selectPaymentMethod")}
                 </label>
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
@@ -3884,8 +3884,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       )}
                     </div>
                     <div>
-                      <p className="font-extrabold text-xs text-slate-900">UPI / QR Code</p>
-                      <p className="text-[9px] text-slate-500 font-medium">GPay, PhonePe, Paytm</p>
+                      <p className="font-extrabold text-xs text-slate-900">{t("upiQrCode")}</p>
+                      <p className="text-[9px] text-slate-500 font-medium">{t("digitalPaymentSub")}</p>
                     </div>
                   </button>
 
@@ -3909,8 +3909,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       )}
                     </div>
                     <div>
-                      <p className="font-extrabold text-xs text-slate-900">Cash Payment</p>
-                      <p className="text-[9px] text-slate-500 font-medium">Physical currency at desk</p>
+                      <p className="font-extrabold text-xs text-slate-900">{t("cashPayment")}</p>
+                      <p className="text-[9px] text-slate-500 font-medium">{t("physicalCurrencyAtDesk")}</p>
                     </div>
                   </button>
                 </div>
@@ -3929,7 +3929,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   }}
                   className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer disabled:opacity-50"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
 
                 <button
@@ -4120,12 +4120,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   {isProcessingWhatsAppPdf ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Sending PDF via WhatsApp...</span>
+                      <span>{t("sendingPdfViaWhatsApp")}</span>
                     </>
                   ) : (
                     <>
                       <Send size={14} />
-                      <span>Send PDF Invoice via WhatsApp</span>
+                      <span>{t("sendPdfViaWhatsApp")}</span>
                     </>
                   )}
                 </button>
