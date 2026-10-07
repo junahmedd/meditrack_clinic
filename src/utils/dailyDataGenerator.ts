@@ -27,25 +27,42 @@ export interface SeedReceptionistInfo {
   email: string;
 }
 
-// Curated list of realistic patient profiles
-const MOCK_PATIENT_TEMPLATES = [
-  // Recurring/Old Patients (used in both past days and today to produce returning patient analytics)
-  { name: "Rohan Mehra", phone: "+91 98201 44521", age: "34", gender: "Male", notes: "Acute viral fever and persistent dry cough", diagnosis: "Viral Upper Respiratory Infection", rx: "Paracetamol 650mg TDS, Cetirizine 10mg OD, Azithromycin 500mg OD" },
-  { name: "Priya Sharma", phone: "+91 98192 33412", age: "28", gender: "Female", notes: "Severe throbbing headache with nausea and light sensitivity", diagnosis: "Migraine with Aura", rx: "Naproxen 500mg SOS, Domperidone 10mg TDS, Adequate hydration" },
-  { name: "Amit Patel", phone: "+91 98765 12345", age: "48", gender: "Male", notes: "Routine follow-up for high blood pressure and fasting blood sugar", diagnosis: "Essential Hypertension & Pre-diabetes", rx: "Telmisartan 40mg OD, Metformin 500mg BD after meals" },
-  { name: "Fatima Al-Sabah", phone: "+965 9912 3456", age: "36", gender: "Female", notes: "Seasonal rhinitis, nasal congestion, and throat irritation", diagnosis: "Allergic Rhinosinusitis", rx: "Fluticasone Nasal Spray, Levocetirizine 5mg OD at bedtime" },
-  { name: "Sunita Verma", phone: "+91 97654 98765", age: "53", gender: "Female", notes: "Bilateral knee joint pain aggravated by stair climbing", diagnosis: "Bilateral Knee Osteoarthritis Grade II", rx: "Paracetamol 1000mg PRN, Calcium + Vit D3 daily, Physiotherapy" },
-  { name: "Vikram Malhotra", phone: "+91 99887 66554", age: "39", gender: "Male", notes: "Post-prandial retrosternal burning and acid regurgitation", diagnosis: "Gastroesophageal Reflux Disease (GERD)", rx: "Pantoprazole 40mg OD before breakfast, Sucralfate syrup" },
-  // Additional new patients
+// ─────────────────────────────────────────────────────────────
+// 1. RECURRING PATIENTS POOL (Seen on past days AND returning today)
+// These patients have past visits, so when they visit today, they are
+// counted as "OLD PATIENT (Returning today)"!
+// ─────────────────────────────────────────────────────────────
+const RECURRING_PATIENT_TEMPLATES = [
+  { name: "Rohan Mehra", phone: "+91 98201 44521", age: "34", gender: "Male", notes: "Acute viral fever follow-up and chest checkup", diagnosis: "Viral Upper Respiratory Infection", rx: "Paracetamol 650mg TDS, Cetirizine 10mg OD" },
+  { name: "Amit Patel", phone: "+91 98765 12345", age: "48", gender: "Male", notes: "Hypertension review and blood sugar refill", diagnosis: "Essential Hypertension", rx: "Telmisartan 40mg OD, Metformin 500mg BD" },
+  { name: "Fatima Al-Sabah", phone: "+965 9912 3456", age: "36", gender: "Female", notes: "Allergic rhinitis seasonal follow-up", diagnosis: "Allergic Rhinosinusitis", rx: "Fluticasone Nasal Spray, Levocetirizine 5mg OD" },
+  { name: "Sunita Verma", phone: "+91 97654 98765", age: "53", gender: "Female", notes: "Knee osteoarthritis review and physiotherapy advice", diagnosis: "Bilateral Knee Osteoarthritis", rx: "Paracetamol 1000mg PRN, Calcium + Vit D3 daily" },
+  { name: "Vikram Malhotra", phone: "+91 99887 66554", age: "39", gender: "Male", notes: "GERD follow-up and dietary compliance check", diagnosis: "Gastroesophageal Reflux Disease", rx: "Pantoprazole 40mg OD before breakfast" },
+  { name: "Rajesh Kothari", phone: "+91 98334 55667", age: "61", gender: "Male", notes: "Chronic low back pain physiotherapy review", diagnosis: "Lumbar Spondylosis", rx: "Aceclofenac + Paracetamol BD" },
+];
+
+// ─────────────────────────────────────────────────────────────
+// 2. PAST-ONLY PATIENT POOL (Seen on past days only)
+// Provides historical baseline for past days so past days also have New Patients.
+// ─────────────────────────────────────────────────────────────
+const PAST_ONLY_PATIENT_TEMPLATES = [
+  { name: "Priya Sharma", phone: "+91 98192 33412", age: "28", gender: "Female", notes: "Throbbing headache with light sensitivity", diagnosis: "Migraine with Aura", rx: "Naproxen 500mg SOS" },
+  { name: "Mohammed Al-Kandari", phone: "+965 9876 5432", age: "43", gender: "Male", notes: "Annual liver enzyme and lipid panel review", diagnosis: "Non-Alcoholic Fatty Liver (Grade 1)", rx: "Atorvastatin 10mg at night" },
+  { name: "Neha Gupta", phone: "+91 97112 33445", age: "29", gender: "Female", notes: "Skin eruption with erythema and itching", diagnosis: "Contact Dermatitis", rx: "Hydrocortisone cream 1% topical" },
+  { name: "Kavita Rao", phone: "+91 99001 12233", age: "41", gender: "Female", notes: "Thyroid profile evaluation", diagnosis: "Subclinical Hypothyroidism", rx: "Levothyroxine 50mcg" },
+];
+
+// ─────────────────────────────────────────────────────────────
+// 3. TODAY'S BRAND NEW PATIENTS (NEVER appear in past days!)
+// Their first visit timestamp is TODAY, guaranteeing they are
+// counted as "NEW PATIENT (First-time today)"!
+// ─────────────────────────────────────────────────────────────
+const TODAY_NEW_PATIENT_TEMPLATES = [
   { name: "Ananya Deshmukh", phone: "+91 91234 56789", age: "22", gender: "Female", notes: "Mild intermittent dizziness and general fatigue", diagnosis: "Nutritional Microcytic Anemia", rx: "Ferrous Ascorbate + Folic Acid OD, Dietary counseling" },
-  { name: "Mohammed Al-Kandari", phone: "+965 9876 5432", age: "43", gender: "Male", notes: "Review of elevated liver enzymes and annual lipid profile", diagnosis: "Non-Alcoholic Fatty Liver (Grade 1)", rx: "Atorvastatin 10mg at night, Lifestyle and exercise regimen" },
-  { name: "Rajesh Kothari", phone: "+91 98334 55667", age: "61", gender: "Male", notes: "Chronic low back pain radiating to left buttock", diagnosis: "Lumbar Spondylosis with mild Sciatica", rx: "Aceclofenac + Paracetamol BD for 5 days, Pregabalin 75mg at night" },
-  { name: "Neha Gupta", phone: "+91 97112 33445", age: "29", gender: "Female", notes: "Skin eruption with erythema and itching on forearm", diagnosis: "Contact Dermatitis", rx: "Hydrocortisone cream 1% topical, Ebastine 10mg OD" },
   { name: "Tariq Al-Enezi", phone: "+965 9445 1122", age: "35", gender: "Male", notes: "Productive morning cough with whitish sputum", diagnosis: "Acute Bronchitis", rx: "Amoxicillin-Clavulanate 625mg BD, Bromhexine syrup TDS" },
-  { name: "Kavita Rao", phone: "+91 99001 12233", age: "41", gender: "Female", notes: "Thyroid profile evaluation; sluggishness and weight gain", diagnosis: "Subclinical Hypothyroidism", rx: "Levothyroxine 50mcg empty stomach morning" },
-  { name: "Zaid Ahmed", phone: "+91 98451 99887", age: "31", gender: "Male", notes: "Annual wellness checkup and preventive health screening", diagnosis: "General Health Checkup — Normal", rx: "Multivitamin + Zinc daily, Routine exercise advised" },
-  { name: "Mariam Al-Mutawa", phone: "+965 9667 8899", age: "46", gender: "Female", notes: "Recurrent burning micturition and lower abdominal pain", diagnosis: "Acute Uncomplicated UTI", rx: "Nitrofurantoin 100mg BD for 5 days, Alkalinizing agent" },
   { name: "Deepak Soni", phone: "+91 98991 22334", age: "37", gender: "Male", notes: "Right eye redness, grittiness, and watery discharge", diagnosis: "Acute Bacterial Conjunctivitis", rx: "Moxifloxacin Eye Drops 0.5% 1 drop 4 times daily" },
+  { name: "Mariam Al-Mutawa", phone: "+965 9667 8899", age: "46", gender: "Female", notes: "Recurrent burning micturition and lower abdominal pain", diagnosis: "Acute Uncomplicated UTI", rx: "Nitrofurantoin 100mg BD for 5 days, Alkalinizing agent" },
+  { name: "Zaid Ahmed", phone: "+91 98451 99887", age: "31", gender: "Male", notes: "Annual wellness checkup and preventive health screening", diagnosis: "General Health Checkup — Normal", rx: "Multivitamin + Zinc daily, Routine exercise advised" },
 ];
 
 /**
@@ -75,16 +92,15 @@ export async function clearAllClinicPatients(clinicId: string): Promise<number> 
 }
 
 /**
- * Automatically seeds fresh clinic data every day:
- * 1. Historical data (Past 6 days: Day -6 to Day -1) so 7-day charts and patient trends work.
- * 2. TODAY'S LIVE DATA:
- *    - Completed visits earlier today (with a mix of Old/Returning and New/First-Time patients, plus Cash & UPI invoices).
- *    - Active patient in consultation / called.
- *    - Waiting patients in the live queue.
- *    - Scheduled appointments for this afternoon/evening.
+ * Automatically seeds fresh daily clinic data with a balanced mix of:
+ * - OLD / RETURNING patients (phone numbers existed in past days)
+ * - NEW / FIRST-TIME patients (phone numbers NEVER existed before today)
  *
- * This ensures every KPI card (Old Patient, New Patient, Total Patient, Today Patient)
- * and charts immediately display vibrant, realistic live clinic operations.
+ * Guarantees that:
+ * 1. "OLD PATIENT" card shows active returning patients for today (> 0).
+ * 2. "NEW PATIENT" card shows active first-time patients for today (> 0).
+ * 3. 7-Day Bar Chart renders BOTH Green (New Patients) and Blue (Old Patients) on EVERY day including Today.
+ * 4. Today's live queue (Waiting & Consulting) and afternoon appointments are fully populated.
  */
 export async function seedClinicDailyLiveData(
   clinicId: string,
@@ -94,7 +110,7 @@ export async function seedClinicDailyLiveData(
 ): Promise<{ count: number }> {
   if (!clinicId) throw new Error("Clinic ID is required to seed live data.");
 
-  console.log(`[DailyDataGenerator] Auto-seeding fresh daily live data for clinic: ${clinicId}`);
+  console.log(`[DailyDataGenerator] Seeding balanced daily live data for clinic: ${clinicId}`);
 
   // 1. Purge existing patients for this clinic
   if (clearExisting) {
@@ -122,17 +138,24 @@ export async function seedClinicDailyLiveData(
   // ─────────────────────────────────────────────────────────────
   // A. HISTORICAL PATIENTS (Past 6 Days: Day -6 down to Day -1)
   // ─────────────────────────────────────────────────────────────
+  // We use RECURRING_PATIENT_TEMPLATES and PAST_ONLY_PATIENT_TEMPLATES.
+  // Note: We deliberately DO NOT use TODAY_NEW_PATIENT_TEMPLATES here,
+  // guaranteeing that today's new patients are 100% genuine first-time visitors!
   for (let dayOffset = 6; dayOffset >= 1; dayOffset--) {
     const targetDate = new Date(todayStart);
     targetDate.setDate(targetDate.getDate() - dayOffset);
 
-    const visitsCount = 4 + (dayOffset % 3); // 4 to 6 visits per past day
+    // 5 visits per past day (2 from recurring pool, 3 from past-only pool)
+    const dayTemplates = [
+      RECURRING_PATIENT_TEMPLATES[(dayOffset * 2) % RECURRING_PATIENT_TEMPLATES.length],
+      RECURRING_PATIENT_TEMPLATES[(dayOffset * 2 + 1) % RECURRING_PATIENT_TEMPLATES.length],
+      PAST_ONLY_PATIENT_TEMPLATES[dayOffset % PAST_ONLY_PATIENT_TEMPLATES.length],
+      PAST_ONLY_PATIENT_TEMPLATES[(dayOffset + 1) % PAST_ONLY_PATIENT_TEMPLATES.length],
+      PAST_ONLY_PATIENT_TEMPLATES[(dayOffset + 2) % PAST_ONLY_PATIENT_TEMPLATES.length],
+    ];
 
-    for (let v = 0; v < visitsCount; v++) {
-      const tmplIndex = (v * 2 + dayOffset) % MOCK_PATIENT_TEMPLATES.length;
-      const tmpl = MOCK_PATIENT_TEMPLATES[tmplIndex];
-
-      const visitHour = 9 + Math.floor((v / visitsCount) * 8); // 9 AM to 5 PM
+    dayTemplates.forEach((tmpl, v) => {
+      const visitHour = 9 + Math.floor((v / dayTemplates.length) * 8); // 9 AM to 5 PM
       const visitMinute = (v * 19) % 60;
       const visitTime = new Date(targetDate);
       visitTime.setHours(visitHour, visitMinute, 0, 0);
@@ -141,7 +164,7 @@ export async function seedClinicDailyLiveData(
       const paymentMethod = isUPI ? "UPI" : "Cash";
       const invoiceNum = `INV-${targetDate.getFullYear()}${(targetDate.getMonth() + 1).toString().padStart(2, "0")}-${(dayOffset * 10 + v + 1).toString().padStart(3, "0")}`;
 
-      const historicalPatient = {
+      patientsToInsert.push({
         name: tmpl.name,
         phone: tmpl.phone,
         age: tmpl.age,
@@ -167,7 +190,7 @@ export async function seedClinicDailyLiveData(
         notes: tmpl.notes,
         diagnosis: tmpl.diagnosis,
         prescription: tmpl.rx,
-        appointmentType: v % 3 === 0 ? "Follow-up" : "General Consultation",
+        appointmentType: v % 2 === 0 ? "General Consultation" : "Follow-up",
         appointmentDate: targetDate.toISOString().split("T")[0],
         appointmentTime: visitTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
         timestamp: Timestamp.fromDate(visitTime),
@@ -181,26 +204,23 @@ export async function seedClinicDailyLiveData(
           temp: `${98.4 + (v % 3) * 0.2}°F`,
           spo2: "99%",
         },
-      };
-
-      patientsToInsert.push(historicalPatient);
-    }
+      });
+    });
   }
 
   // ─────────────────────────────────────────────────────────────
-  // B. TODAY'S COMPLETED VISITS (Treated earlier today)
+  // B. TODAY'S COMPLETED VISITS (4 treated earlier today)
   // ─────────────────────────────────────────────────────────────
-  // We craft 4 completed visits for today:
-  // - 2 Old/Returning patients (templates 0 and 2 appeared in past days, matching phone numbers)
-  // - 2 New/First-Time patients (templates 6 and 7 with fresh phone numbers)
-  const todayCompletedTemplates = [
-    { tmpl: MOCK_PATIENT_TEMPLATES[0], hour: 9, min: 15, isUPI: false }, // Returning (Rohan)
-    { tmpl: MOCK_PATIENT_TEMPLATES[6], hour: 9, min: 50, isUPI: true },  // New (Ananya)
-    { tmpl: MOCK_PATIENT_TEMPLATES[2], hour: 10, min: 25, isUPI: true }, // Returning (Amit)
-    { tmpl: MOCK_PATIENT_TEMPLATES[7], hour: 11, min: 10, isUPI: false },// New (Mohammed)
+  // - 2 Old / Returning Patients (Rohan & Amit from recurring pool)
+  // - 2 New / First-Time Patients (Ananya & Tariq from today's new pool)
+  const todayCompleted = [
+    { tmpl: RECURRING_PATIENT_TEMPLATES[0], hour: 9, min: 15, isUPI: false, type: "Follow-up" },            // OLD (Rohan)
+    { tmpl: TODAY_NEW_PATIENT_TEMPLATES[0], hour: 9, min: 50, isUPI: true, type: "General Consultation" }, // NEW (Ananya)
+    { tmpl: RECURRING_PATIENT_TEMPLATES[1], hour: 10, min: 25, isUPI: true, type: "Routine Checkup" },      // OLD (Amit)
+    { tmpl: TODAY_NEW_PATIENT_TEMPLATES[1], hour: 11, min: 10, isUPI: false, type: "General Consultation" },// NEW (Tariq)
   ];
 
-  todayCompletedTemplates.forEach(({ tmpl, hour, min, isUPI }, idx) => {
+  todayCompleted.forEach(({ tmpl, hour, min, isUPI, type }) => {
     const visitTime = new Date(todayStart);
     visitTime.setHours(hour, min, 0, 0);
     const invoiceNum = `INV-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}-${tokenCounter.toString().padStart(3, "0")}`;
@@ -231,7 +251,7 @@ export async function seedClinicDailyLiveData(
       notes: tmpl.notes,
       diagnosis: tmpl.diagnosis,
       prescription: tmpl.rx,
-      appointmentType: idx % 2 === 0 ? "Follow-up" : "General Consultation",
+      appointmentType: type,
       appointmentDate: todayStart.toISOString().split("T")[0],
       appointmentTime: visitTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
       timestamp: Timestamp.fromDate(visitTime),
@@ -249,9 +269,10 @@ export async function seedClinicDailyLiveData(
   });
 
   // ─────────────────────────────────────────────────────────────
-  // C. TODAY'S ACTIVE PATIENT IN CONSULTATION (Called right now)
+  // C. TODAY'S ACTIVE IN-CONSULTATION PATIENT (Called right now)
   // ─────────────────────────────────────────────────────────────
-  const inConsultTmpl = MOCK_PATIENT_TEMPLATES[1]; // Priya
+  // Fatima (OLD / Returning patient)
+  const inConsultTmpl = RECURRING_PATIENT_TEMPLATES[2];
   const inConsultTime = new Date(todayStart);
   inConsultTime.setHours(11, 45, 0, 0);
 
@@ -291,14 +312,16 @@ export async function seedClinicDailyLiveData(
   });
 
   // ─────────────────────────────────────────────────────────────
-  // D. TODAY'S LIVE WAITING QUEUE PATIENTS (Waiting to be called)
+  // D. TODAY'S LIVE WAITING QUEUE PATIENTS (Waiting in queue)
   // ─────────────────────────────────────────────────────────────
-  const waitingTemplates = [
-    MOCK_PATIENT_TEMPLATES[3], // Fatima
-    MOCK_PATIENT_TEMPLATES[8], // Rajesh
+  // - Sunita (OLD / Returning)
+  // - Deepak (NEW / First-time)
+  const waitingList = [
+    { tmpl: RECURRING_PATIENT_TEMPLATES[3], type: "Routine Checkup" },     // OLD (Sunita)
+    { tmpl: TODAY_NEW_PATIENT_TEMPLATES[2], type: "General Consultation" },// NEW (Deepak)
   ];
 
-  waitingTemplates.forEach((tmpl, idx) => {
+  waitingList.forEach(({ tmpl, type }, idx) => {
     const queueTime = new Date(todayStart);
     queueTime.setHours(12, 10 + idx * 15, 0, 0);
 
@@ -323,7 +346,7 @@ export async function seedClinicDailyLiveData(
       receptionistName: recName,
       addedBy: recUid || docUid || "system",
       notes: tmpl.notes,
-      appointmentType: "General Consultation",
+      appointmentType: type,
       appointmentDate: todayStart.toISOString().split("T")[0],
       appointmentTime: queueTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
       timestamp: Timestamp.fromDate(queueTime),
@@ -334,12 +357,14 @@ export async function seedClinicDailyLiveData(
   // ─────────────────────────────────────────────────────────────
   // E. TODAY'S SCHEDULED APPOINTMENTS (Afternoon / Evening)
   // ─────────────────────────────────────────────────────────────
-  const scheduledTemplates = [
-    { tmpl: MOCK_PATIENT_TEMPLATES[4], time: "02:30 PM", hour: 14, min: 30, type: "Routine Checkup" },
-    { tmpl: MOCK_PATIENT_TEMPLATES[9], time: "04:15 PM", hour: 16, min: 15, type: "General Consultation" },
+  // - Mariam (NEW / First-Time)
+  // - Zaid (NEW / First-Time)
+  const scheduledList = [
+    { tmpl: TODAY_NEW_PATIENT_TEMPLATES[3], time: "02:30 PM", hour: 14, min: 30, type: "Routine Checkup" },     // NEW (Mariam)
+    { tmpl: TODAY_NEW_PATIENT_TEMPLATES[4], time: "04:15 PM", hour: 16, min: 15, type: "General Consultation" },// NEW (Zaid)
   ];
 
-  scheduledTemplates.forEach(({ tmpl, time, hour, min, type }) => {
+  scheduledList.forEach(({ tmpl, time, hour, min, type }) => {
     const aptTime = new Date(todayStart);
     aptTime.setHours(hour, min, 0, 0);
 

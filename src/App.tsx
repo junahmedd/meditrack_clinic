@@ -1905,10 +1905,6 @@ export default function App() {
     if (!user || !currentUserProfile?.clinicId) return;
     if (loading || !profileLoaded) return;
 
-    const todayStr = new Date().toISOString().split("T")[0];
-    const rollKey = `meditrack_daily_synced_${currentUserProfile.clinicId}_${todayStr}`;
-    if (sessionStorage.getItem(rollKey) && patients.length > 0) return;
-
     const runDailyCheck = async () => {
       const isDoc = (currentUserProfile.role || "").toLowerCase().includes("doctor");
       const docInfo: SeedDoctorInfo = {
@@ -1932,7 +1928,6 @@ export default function App() {
         patients
       );
       if (didRollOver) {
-        sessionStorage.setItem(rollKey, "true");
         showToast("New daily live clinic data loaded for today!");
       }
     };
