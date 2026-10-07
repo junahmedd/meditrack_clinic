@@ -1930,7 +1930,7 @@ export default function App() {
         patients
       );
       if (didRollOver) {
-        showToast("New day live clinic data initialized successfully!");
+        showToast("New day started! Today's queue is clean and starts from ZERO.");
       }
     };
 
@@ -2001,9 +2001,25 @@ export default function App() {
 
     setIsProcessing(true);
     try {
+      const now = new Date();
+      const todayPatients = patients.filter((p: any) => {
+        const ts = p.paidAt || p.consultationCompletedAt || p.calledAt || p.timestamp || p.createdAt;
+        if (!ts) return false;
+        let d: Date | null = null;
+        if (ts.toDate && typeof ts.toDate === "function") d = ts.toDate();
+        else if (ts.seconds) d = new Date(ts.seconds * 1000);
+        else if (typeof ts === "string" || typeof ts === "number") d = new Date(ts);
+        if (!d || isNaN(d.getTime())) return false;
+        return (
+          d.getDate() === now.getDate() &&
+          d.getMonth() === now.getMonth() &&
+          d.getFullYear() === now.getFullYear()
+        );
+      });
+
       const nextQueueNumber =
-        patients.length > 0
-          ? Math.max(...patients.map((p) => p.queueNumber)) + 1
+        todayPatients.length > 0
+          ? Math.max(...todayPatients.map((p) => p.queueNumber || 0)) + 1
           : 1;
 
       const isDoc = (currentUserProfile.role || "").toLowerCase() === "doctor";
@@ -2916,9 +2932,9 @@ export default function App() {
         email: !isDoc ? user?.email || "" : "",
       };
 
-      const result = await seedClinicDailyLiveData(currentUserProfile.clinicId, docInfo, recInfo, true);
+      const result = await seedClinicDailyLiveData(currentUserProfile.clinicId, docInfo, recInfo, true, false);
       if (showNotification) {
-        showToast(`Reset successful! ${result.count} fresh live patients generated for today & past 7 days.`);
+        showToast("Clinic reset successful! Today's live queue starts fresh from ZERO.");
       }
     } catch (err: any) {
       console.error("[App] Reset live data error:", err);

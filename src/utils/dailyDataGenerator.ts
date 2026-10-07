@@ -6,7 +6,6 @@ import {
   where,
   writeBatch,
   Timestamp,
-  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { Patient } from "../App";
@@ -28,7 +27,7 @@ export interface SeedReceptionistInfo {
   email: string;
 }
 
-// Generate realistic Indian and Kuwaiti patient names, phones, symptoms
+// Realistic patient templates for clinical simulation
 const MOCK_PATIENT_TEMPLATES = [
   { name: "Rohan Mehra", phone: "+91 98201 44521", age: "34", gender: "Male", notes: "Acute viral fever and persistent dry cough", diagnosis: "Viral Upper Respiratory Infection", rx: "Paracetamol 650mg TDS, Cetirizine 10mg OD, Azithromycin 500mg OD" },
   { name: "Priya Sharma", phone: "+91 98192 33412", age: "28", gender: "Female", notes: "Severe throbbing headache with nausea and light sensitivity", diagnosis: "Migraine with Aura", rx: "Naproxen 500mg SOS, Domperidone 10mg TDS, Adequate hydration" },
@@ -48,45 +47,52 @@ const MOCK_PATIENT_TEMPLATES = [
 ];
 
 /**
- * Generates fresh, dynamic live clinic data for the specified clinic.
- * Automatically crafts:
- * 1. Today's live waiting queue (Waiting, Called/In Consultation)
- * 2. Today's completed consultations with bills and invoices
- * 3. Today's scheduled appointments for later in the afternoon
- * 4. Past 6 days of historical patients (giving full 7-day analytics for New/Old patients and Cash/UPI revenue)
+ * Purges all patient documents for a clinic completely from Firestore.
+ */
+export async function clearAllClinicPatients(clinicId: string): Promise<number> {
+  if (!clinicId) return 0;
+  try {
+    const qExisting = query(
+      collection(db, "patients"),
+      where("clinicId", "==", clinicId)
+    );
+    const snap = await getDocs(qExisting);
+    const docsToDelete = snap.docs;
+    for (let i = 0; i < docsToDelete.length; i += 400) {
+      const batch = writeBatch(db);
+      const chunk = docsToDelete.slice(i, i + 400);
+      chunk.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+    console.log(`[DailyDataGenerator] Purged ${docsToDelete.length} patients for clinic ${clinicId}`);
+    return docsToDelete.length;
+  } catch (err) {
+    console.error("[DailyDataGenerator] Error purging clinic patients:", err);
+    return 0;
+  }
+}
+
+/**
+ * Seeds clinic data where:
+ * 1. Historical data (Past 6 days: Day -6 to Day -1) is seeded so 7-day charts and patient history work.
+ * 2. TODAY STARTS STRICTLY FROM ZERO (0 waiting, 0 in consultation, 0 completed today, 0 revenue today).
+ *    Live queue starts at Token #1 as soon as receptionist registers a new patient today!
+ * 3. Optional parameter `includeTodayDemoPatients: true` can populate demo patients for today if requested.
  */
 export async function seedClinicDailyLiveData(
   clinicId: string,
   doctorInfo: SeedDoctorInfo,
   receptionistInfo?: SeedReceptionistInfo,
-  clearExisting: boolean = true
+  clearExisting: boolean = true,
+  includeTodayDemoPatients: boolean = false
 ): Promise<{ count: number }> {
   if (!clinicId) throw new Error("Clinic ID is required to seed live data.");
 
-  console.log(`[DailyDataGenerator] Seeding live data for clinic: ${clinicId}, Doctor: ${doctorInfo.name}, ClearExisting: ${clearExisting}`);
+  console.log(`[DailyDataGenerator] Initializing fresh live data from ZERO for clinic: ${clinicId}`);
 
-  // 1. If clearExisting is requested, delete old patient documents for this clinic
+  // 1. Purge existing patients for this clinic
   if (clearExisting) {
-    try {
-      const qExisting = query(
-        collection(db, "patients"),
-        where("clinicId", "==", clinicId)
-      );
-      const snap = await getDocs(qExisting);
-      console.log(`[DailyDataGenerator] Found ${snap.docs.length} existing patients to purge.`);
-
-      // Batch delete in chunks of 400 (Firestore batch limit is 500)
-      const docsToDelete = snap.docs;
-      for (let i = 0; i < docsToDelete.length; i += 400) {
-        const batch = writeBatch(db);
-        const chunk = docsToDelete.slice(i, i + 400);
-        chunk.forEach((d) => batch.delete(d.ref));
-        await batch.commit();
-      }
-      console.log("[DailyDataGenerator] Purged existing patients successfully.");
-    } catch (err) {
-      console.error("[DailyDataGenerator] Error purging old patients:", err);
-    }
+    await clearAllClinicPatients(clinicId);
   }
 
   const now = new Date();
@@ -105,27 +111,24 @@ export async function seedClinicDailyLiveData(
   const recName = receptionistInfo?.name || "Front Desk";
 
   const patientsToInsert: any[] = [];
-  let tokenCounter = 1;
 
   // ─────────────────────────────────────────────────────────────
   // A. HISTORICAL PATIENTS (Past 6 Days: Day -6 down to Day -1)
   // ─────────────────────────────────────────────────────────────
-  // We create 5-8 visits per past day with realistic Cash/UPI distributions
-  // and recurring phone numbers to generate genuine New vs Old patient data!
+  // Populates past days so 7-Day Performance Charts (New vs Old Patients, Cash vs UPI)
+  // have authentic historical trendlines, while TODAY remains strictly at ZERO!
   for (let dayOffset = 6; dayOffset >= 1; dayOffset--) {
     const targetDate = new Date(todayStart);
     targetDate.setDate(targetDate.getDate() - dayOffset);
 
-    // Number of visits on this past day
-    const visitsCount = 5 + (dayOffset % 3); // 5 to 7 visits per day
+    const visitsCount = 4 + (dayOffset % 3); // 4 to 6 visits per past day
 
     for (let v = 0; v < visitsCount; v++) {
-      // Pick patient template (cycling through to create returning patients)
       const tmplIndex = (v * 2 + dayOffset) % MOCK_PATIENT_TEMPLATES.length;
       const tmpl = MOCK_PATIENT_TEMPLATES[tmplIndex];
 
       const visitHour = 9 + Math.floor((v / visitsCount) * 8); // 9 AM to 5 PM
-      const visitMinute = (v * 17) % 60;
+      const visitMinute = (v * 19) % 60;
       const visitTime = new Date(targetDate);
       visitTime.setHours(visitHour, visitMinute, 0, 0);
 
@@ -180,194 +183,55 @@ export async function seedClinicDailyLiveData(
   }
 
   // ─────────────────────────────────────────────────────────────
-  // B. TODAY'S COMPLETED PATIENTS (Treated Earlier Today)
+  // B. TODAY'S QUEUE: STRICTLY ZERO BY DEFAULT!
   // ─────────────────────────────────────────────────────────────
-  const completedTodayCount = 4;
-  for (let c = 0; c < completedTodayCount; c++) {
-    const tmpl = MOCK_PATIENT_TEMPLATES[c];
-    const visitHour = 9 + Math.floor(c * 0.75); // 9:00, 9:45, 10:30, 11:15
-    const visitMinute = (c * 25) % 60;
-    const visitTime = new Date(todayStart);
-    visitTime.setHours(visitHour, visitMinute, 0, 0);
-
-    const isUPI = c % 2 === 0;
-    const invoiceNum = `INV-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}-${tokenCounter.toString().padStart(3, "0")}`;
-
-    patientsToInsert.push({
-      name: tmpl.name,
-      phone: tmpl.phone,
-      age: tmpl.age,
-      gender: tmpl.gender,
-      queueNumber: tokenCounter++,
-      status: "Completed",
-      billingStatus: "Paid",
-      paymentMethod: isUPI ? "UPI" : "Cash",
-      consultationFee: fee,
-      billingAmount: fee,
-      invoiceNumber: invoiceNum,
-      clinicId,
-      doctorUid: docUid,
-      doctorId: docId,
-      doctorEmail: docEmail,
-      doctorName: docName,
-      doctorCategory: docCat,
-      receptionistUid: recUid,
-      receptionistId: recId,
-      receptionistEmail: recEmail,
-      receptionistName: recName,
-      addedBy: recUid || docUid || "system",
-      notes: tmpl.notes,
-      diagnosis: tmpl.diagnosis,
-      prescription: tmpl.rx,
-      appointmentType: c === 0 ? "Follow-up" : "General Consultation",
-      appointmentDate: todayStart.toISOString().split("T")[0],
-      appointmentTime: visitTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
-      timestamp: Timestamp.fromDate(visitTime),
-      createdAt: Timestamp.fromDate(visitTime),
-      calledAt: Timestamp.fromDate(new Date(visitTime.getTime() + 10 * 60000)),
-      consultationCompletedAt: Timestamp.fromDate(new Date(visitTime.getTime() + 25 * 60000)),
-      paidAt: Timestamp.fromDate(new Date(visitTime.getTime() + 30 * 60000)),
-      vitals: {
-        bp: "120/80",
-        pulse: "74",
-        temp: "98.6°F",
-        spo2: "99%",
-      },
+  // On a new day, today's queue starts completely clean (from ZERO):
+  // - 0 Waiting
+  // - 0 Called / In Consultation
+  // - 0 Completed today
+  // - Today visits = 0
+  // - Today revenue = 0
+  // The first patient registered today will receive Token #1.
+  if (includeTodayDemoPatients) {
+    let tokenCounter = 1;
+    const waitingPatients = [MOCK_PATIENT_TEMPLATES[0], MOCK_PATIENT_TEMPLATES[1]];
+    waitingPatients.forEach((tmpl, idx) => {
+      const qTime = new Date(todayStart);
+      qTime.setHours(9, 30 + idx * 15, 0, 0);
+      patientsToInsert.push({
+        name: tmpl.name,
+        phone: tmpl.phone,
+        age: tmpl.age,
+        gender: tmpl.gender,
+        queueNumber: tokenCounter++,
+        status: "Waiting",
+        billingStatus: "Pending",
+        consultationFee: fee,
+        clinicId,
+        doctorUid: docUid,
+        doctorId: docId,
+        doctorEmail: docEmail,
+        doctorName: docName,
+        doctorCategory: docCat,
+        receptionistUid: recUid,
+        receptionistId: recId,
+        receptionistEmail: recEmail,
+        receptionistName: recName,
+        addedBy: recUid || docUid || "system",
+        notes: tmpl.notes,
+        appointmentType: "General Consultation",
+        appointmentDate: todayStart.toISOString().split("T")[0],
+        appointmentTime: qTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+        timestamp: Timestamp.fromDate(qTime),
+        createdAt: Timestamp.fromDate(qTime),
+      });
     });
   }
 
   // ─────────────────────────────────────────────────────────────
-  // C. TODAY'S ACTIVE PATIENT IN CONSULTATION / CALLED
-  // ─────────────────────────────────────────────────────────────
-  const inConsultTmpl = MOCK_PATIENT_TEMPLATES[4];
-  const inConsultTime = new Date(todayStart);
-  inConsultTime.setHours(11, 45, 0, 0);
-
-  patientsToInsert.push({
-    name: inConsultTmpl.name,
-    phone: inConsultTmpl.phone,
-    age: inConsultTmpl.age,
-    gender: inConsultTmpl.gender,
-    queueNumber: tokenCounter++,
-    status: "Called",
-    billingStatus: "Pending",
-    consultationFee: fee,
-    clinicId,
-    doctorUid: docUid,
-    doctorId: docId,
-    doctorEmail: docEmail,
-    doctorName: docName,
-    doctorCategory: docCat,
-    receptionistUid: recUid,
-    receptionistId: recId,
-    receptionistEmail: recEmail,
-    receptionistName: recName,
-    addedBy: recUid || docUid || "system",
-    notes: inConsultTmpl.notes,
-    appointmentType: "General Consultation",
-    appointmentDate: todayStart.toISOString().split("T")[0],
-    appointmentTime: inConsultTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
-    timestamp: Timestamp.fromDate(inConsultTime),
-    createdAt: Timestamp.fromDate(inConsultTime),
-    calledAt: Timestamp.fromDate(inConsultTime),
-    vitals: {
-      bp: "126/82",
-      pulse: "76",
-      temp: "98.5°F",
-      spo2: "99%",
-    },
-  });
-
-  // ─────────────────────────────────────────────────────────────
-  // D. TODAY'S WAITING QUEUE PATIENTS (Waiting to be called right now)
-  // ─────────────────────────────────────────────────────────────
-  const waitingPatients = [
-    MOCK_PATIENT_TEMPLATES[5],
-    MOCK_PATIENT_TEMPLATES[6],
-    MOCK_PATIENT_TEMPLATES[7],
-    MOCK_PATIENT_TEMPLATES[8],
-  ];
-
-  waitingPatients.forEach((tmpl, idx) => {
-    const queueTime = new Date(todayStart);
-    queueTime.setHours(12, 10 + idx * 15, 0, 0);
-
-    patientsToInsert.push({
-      name: tmpl.name,
-      phone: tmpl.phone,
-      age: tmpl.age,
-      gender: tmpl.gender,
-      queueNumber: tokenCounter++,
-      status: "Waiting",
-      billingStatus: "Pending",
-      consultationFee: fee,
-      clinicId,
-      doctorUid: docUid,
-      doctorId: docId,
-      doctorEmail: docEmail,
-      doctorName: docName,
-      doctorCategory: docCat,
-      receptionistUid: recUid,
-      receptionistId: recId,
-      receptionistEmail: recEmail,
-      receptionistName: recName,
-      addedBy: recUid || docUid || "system",
-      notes: tmpl.notes,
-      appointmentType: idx % 2 === 0 ? "General Consultation" : "Routine Checkup",
-      appointmentDate: todayStart.toISOString().split("T")[0],
-      appointmentTime: queueTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
-      timestamp: Timestamp.fromDate(queueTime),
-      createdAt: Timestamp.fromDate(queueTime),
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────
-  // E. TODAY'S SCHEDULED APPOINTMENTS (For Afternoon/Evening Today)
-  // ─────────────────────────────────────────────────────────────
-  const scheduledPatients = [
-    { tmpl: MOCK_PATIENT_TEMPLATES[9], time: "02:30 PM", hour: 14, min: 30, type: "Follow-up" },
-    { tmpl: MOCK_PATIENT_TEMPLATES[10], time: "03:15 PM", hour: 15, min: 15, type: "General Consultation" },
-    { tmpl: MOCK_PATIENT_TEMPLATES[11], time: "04:00 PM", hour: 16, min: 0, type: "Report Review" },
-    { tmpl: MOCK_PATIENT_TEMPLATES[12], time: "04:45 PM", hour: 16, min: 45, type: "General Consultation" },
-  ];
-
-  scheduledPatients.forEach(({ tmpl, time, hour, min, type }) => {
-    const aptTime = new Date(todayStart);
-    aptTime.setHours(hour, min, 0, 0);
-
-    patientsToInsert.push({
-      name: tmpl.name,
-      phone: tmpl.phone,
-      age: tmpl.age,
-      gender: tmpl.gender,
-      queueNumber: tokenCounter++,
-      status: "SCHEDULED",
-      billingStatus: "Pending",
-      consultationFee: fee,
-      clinicId,
-      doctorUid: docUid,
-      doctorId: docId,
-      doctorEmail: docEmail,
-      doctorName: docName,
-      doctorCategory: docCat,
-      receptionistUid: recUid,
-      receptionistId: recId,
-      receptionistEmail: recEmail,
-      receptionistName: recName,
-      addedBy: recUid || docUid || "system",
-      notes: tmpl.notes,
-      appointmentType: type,
-      appointmentDate: todayStart.toISOString().split("T")[0],
-      appointmentTime: time,
-      timestamp: Timestamp.fromDate(aptTime),
-      createdAt: Timestamp.fromDate(aptTime),
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────
   // Commit all prepared patient documents to Firestore in batches
   // ─────────────────────────────────────────────────────────────
-  console.log(`[DailyDataGenerator] Writing ${patientsToInsert.length} patient records to Firestore...`);
+  console.log(`[DailyDataGenerator] Writing ${patientsToInsert.length} historical records (Today starts at ZERO)...`);
 
   for (let i = 0; i < patientsToInsert.length; i += 400) {
     const batch = writeBatch(db);
@@ -379,14 +243,16 @@ export async function seedClinicDailyLiveData(
     await batch.commit();
   }
 
-  console.log(`[DailyDataGenerator] Successfully committed ${patientsToInsert.length} documents!`);
+  console.log(`[DailyDataGenerator] Successfully committed! Today queue initialized to ZERO.`);
   return { count: patientsToInsert.length };
 }
 
 /**
  * Checks whether the clinic needs a new daily rollover.
- * If the latest patient in Firestore is from before today (or if patient list is empty),
- * it seamlessly generates fresh live data for TODAY so that the app always has live data every day!
+ * If the date has changed or no patients exist:
+ * 1. Archives/completes any stale active patients from yesterday.
+ * 2. Ensures today's live queue starts strictly from ZERO.
+ * 3. Pre-seeds rolling 6-day history so charts and performance KPIs remain functional.
  */
 export async function checkAndAutoRollOverDaily(
   clinicId: string,
@@ -398,7 +264,7 @@ export async function checkAndAutoRollOverDaily(
 
   const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
 
-  // Check if any patient in the current list was created or visited today
+  // Check if today already has patients
   const hasTodayPatient = currentPatients.some((p) => {
     const ts = p.paidAt || p.consultationCompletedAt || p.calledAt || p.timestamp || p.createdAt;
     if (!ts) return false;
@@ -411,14 +277,47 @@ export async function checkAndAutoRollOverDaily(
     return d.toISOString().split("T")[0] === todayStr;
   });
 
-  if (!hasTodayPatient) {
-    console.log(`[DailyDataGenerator] No patients found for today (${todayStr}). Auto-rolling over daily live data...`);
+  // If patient list is completely empty, initialize fresh live data with today at ZERO
+  if (currentPatients.length === 0) {
+    console.log(`[DailyDataGenerator] Empty clinic database. Seeding fresh historical baseline with today starting from ZERO...`);
     try {
-      await seedClinicDailyLiveData(clinicId, doctorInfo, receptionistInfo, true);
+      await seedClinicDailyLiveData(clinicId, doctorInfo, receptionistInfo, true, false);
       return true;
     } catch (err) {
-      console.error("[DailyDataGenerator] Auto-rollover failed:", err);
+      console.error("[DailyDataGenerator] Auto-seed failed:", err);
       return false;
+    }
+  }
+
+  // If there are patients, check if ANY patient is from yesterday or older while today is clean
+  // Stale active patients (Waiting or Called from yesterday) must be closed so they don't leak into today's queue
+  const staleActivePatients = currentPatients.filter((p) => {
+    if (p.status !== "Waiting" && p.status !== "Called" && p.status !== "Consulting") return false;
+    const ts = p.timestamp || p.createdAt;
+    if (!ts) return false;
+    let d: Date | null = null;
+    if (ts.toDate && typeof ts.toDate === "function") d = ts.toDate();
+    else if (ts.seconds) d = new Date(ts.seconds * 1000);
+    else if (typeof ts === "string" || typeof ts === "number") d = new Date(ts);
+    if (!d || isNaN(d.getTime())) return false;
+    return d.toISOString().split("T")[0] < todayStr;
+  });
+
+  if (staleActivePatients.length > 0) {
+    console.log(`[DailyDataGenerator] Archiving ${staleActivePatients.length} stale active patients from previous day...`);
+    try {
+      const batch = writeBatch(db);
+      staleActivePatients.forEach((p) => {
+        batch.update(doc(db, "patients", p.id), {
+          status: "Completed",
+          billingStatus: "Paid",
+          notes: (p.notes || "") + " [Closed on daily rollover]",
+        });
+      });
+      await batch.commit();
+      return true;
+    } catch (err) {
+      console.error("[DailyDataGenerator] Error archiving stale patients:", err);
     }
   }
 
