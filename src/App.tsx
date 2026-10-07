@@ -1900,14 +1900,16 @@ export default function App() {
     return () => unsubscribe();
   }, [user, currentUserProfile, isDoctor, isReceptionist, isAdmin]);
 
-  // Auto-Sync: Ensure that every day there is fresh new live data for TODAY!
-  const hasCheckedDailyRollover = useRef(false);
+  // Auto-Sync: Ensure that every day there is fresh new live data for TODAY automatically!
   useEffect(() => {
-    if (!user || !currentUserProfile?.clinicId || hasCheckedDailyRollover.current) return;
+    if (!user || !currentUserProfile?.clinicId) return;
     if (loading || !profileLoaded) return;
 
+    const todayStr = new Date().toISOString().split("T")[0];
+    const rollKey = `meditrack_daily_synced_${currentUserProfile.clinicId}_${todayStr}`;
+    if (sessionStorage.getItem(rollKey) && patients.length > 0) return;
+
     const runDailyCheck = async () => {
-      hasCheckedDailyRollover.current = true;
       const isDoc = (currentUserProfile.role || "").toLowerCase().includes("doctor");
       const docInfo: SeedDoctorInfo = {
         uid: isDoc ? user.uid : (currentUserProfile.assignedDoctorUid || clinicDoctors[0]?.uid || ""),
@@ -1930,13 +1932,14 @@ export default function App() {
         patients
       );
       if (didRollOver) {
-        showToast("New day started! Today's queue is clean and starts from ZERO.");
+        sessionStorage.setItem(rollKey, "true");
+        showToast("New daily live clinic data loaded for today!");
       }
     };
 
     const timer = setTimeout(() => {
       runDailyCheck();
-    }, 1200);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, [user, currentUserProfile?.clinicId, profileLoaded, loading, patients.length]);
@@ -3565,7 +3568,6 @@ export default function App() {
         onSendReceiptWhatsApp={handleSendReceiptWhatsApp}
         isProcessing={isProcessing}
         clinicDoctors={clinicDoctors}
-        onResetLiveData={() => handleResetAndSeedDailyLiveData(true)}
       />
     );
   }
@@ -3588,7 +3590,6 @@ export default function App() {
         isHistoryOpen={isHistoryOpen}
         setIsHistoryOpen={setIsHistoryOpen}
         clinicDoctors={clinicDoctors}
-        onResetLiveData={() => handleResetAndSeedDailyLiveData(true)}
       />
     );
   }

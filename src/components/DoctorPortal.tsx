@@ -21,7 +21,6 @@ import {
   Trash2,
   Search,
   Plus,
-  RotateCcw,
   ShieldCheck,
   ChevronDown,
   X,
@@ -387,7 +386,6 @@ interface DoctorPortalProps {
   setIsHistoryOpen: (open: boolean) => void;
   onFetchHistory?: (phone: string) => Promise<void>;
   onSelectDemoAccount?: (accountType: "gp_doctor" | "gp_receptionist" | "ped_doctor" | "ped_receptionist" | "dent_doctor" | "dent_receptionist" | "admin") => void;
-  onResetLiveData?: () => Promise<void> | void;
 }
 
 const COMMON_DIAGNOSES = [
@@ -520,7 +518,6 @@ export function DoctorPortal({
   onFetchHistory,
   clinicDoctors = [],
   onSelectDemoAccount,
-  onResetLiveData,
 }: DoctorPortalProps) {
   const { t, isRTL, language } = useLanguage();
 
@@ -1574,22 +1571,8 @@ export function DoctorPortal({
             </span>
           </div>
 
-          {/* LanguageSelector and Reset Live Data on Mobile Header */}
+          {/* LanguageSelector on Mobile Header */}
           <div className="shrink-0 flex items-center gap-2">
-            {onResetLiveData && (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (window.confirm(t("resetLiveDataConfirm"))) {
-                    await onResetLiveData();
-                  }
-                }}
-                title={t("resetLiveData")}
-                className="w-8 h-8 rounded-xl bg-emerald-50/90 text-[#064e3b] border border-emerald-200/90 flex items-center justify-center cursor-pointer active:scale-95"
-              >
-                <RotateCcw size={13} className="text-[#064e3b]" />
-              </button>
-            )}
             <LanguageSelector />
           </div>
         </header>
@@ -1614,23 +1597,6 @@ export function DoctorPortal({
             {/* Right Header Status & Avatar Pill */}
             <div className="flex items-center gap-3 shrink-0">
               <NetworkStatusBanner />
-
-              {/* Reset & Refresh Live Data Button */}
-              {onResetLiveData && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (window.confirm(t("resetLiveDataConfirm"))) {
-                      await onResetLiveData();
-                    }
-                  }}
-                  title={t("resetLiveData")}
-                  className="h-9 px-3 rounded-xl bg-emerald-50/90 hover:bg-emerald-100 text-[#064e3b] border border-emerald-200/90 flex items-center gap-1.5 font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95"
-                >
-                  <RotateCcw size={13} className="text-[#064e3b]" />
-                  <span className="hidden lg:inline text-[11px] font-extrabold">{t("resetLiveData")}</span>
-                </button>
-              )}
 
               {/* Minimal Language Switcher Icon Button */}
               <LanguageSelector />
