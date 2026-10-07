@@ -417,44 +417,52 @@ export async function seedClinicDailyLiveData(
 }
 
 /**
+/**
  * Checks whether the clinic needs a new daily rollover.
- * If today's date has no active records or if patient list is empty,
- * it automatically generates the fresh live dataset for TODAY in the background!
+ * Archives any stale active patients (Waiting / Called) from previous days
+ * so today's live queue starts strictly and cleanly from ZERO (0) every single day.
+ * NEVER inserts fake/mock patients — all data is 100% live clinic data!
  */
 export async function checkAndAutoRollOverDaily(
   clinicId: string,
-  doctorInfo: SeedDoctorInfo,
-  receptionistInfo?: SeedReceptionistInfo,
+  _doctorInfo?: SeedDoctorInfo,
+  _receptionistInfo?: SeedReceptionistInfo,
   currentPatients: Patient[] = []
 ): Promise<boolean> {
   if (!clinicId) return false;
 
   const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
 
-  // Check if today already has patients
-  const hasTodayPatients = currentPatients.some((p) => {
-    const ts = p.paidAt || p.consultationCompletedAt || p.calledAt || p.timestamp || p.createdAt;
+  // Check for any stale active patients (Waiting, Called, or Consulting) from yesterday or older
+  const staleActivePatients = currentPatients.filter((p) => {
+    if (p.status !== "Waiting" && p.status !== "Called" && p.status !== "Consulting") return false;
+    const ts = p.timestamp || p.createdAt;
     if (!ts) return false;
     let d: Date | null = null;
     if (ts.toDate && typeof ts.toDate === "function") d = ts.toDate();
     else if (ts.seconds) d = new Date(ts.seconds * 1000);
     else if (typeof ts === "string" || typeof ts === "number") d = new Date(ts);
     if (!d || isNaN(d.getTime())) return false;
-
-    return d.toISOString().split("T")[0] === todayStr;
+    return d.toISOString().split("T")[0] < todayStr;
   });
 
-  // If today has no patient records, auto-roll over immediately
-  if (!hasTodayPatients || currentPatients.length === 0) {
-    console.log(`[DailyDataGenerator] Auto-rolling over fresh live data for today (${todayStr})...`);
+  if (staleActivePatients.length > 0) {
+    console.log(`[DailyDataGenerator] Closing ${staleActivePatients.length} stale active patients from previous day for clean live start at 0...`);
     try {
-      await seedClinicDailyLiveData(clinicId, doctorInfo, receptionistInfo, true);
+      const batch = writeBatch(db);
+      staleActivePatients.forEach((p) => {
+        batch.update(doc(db, "patients", p.id), {
+          status: "Completed",
+          notes: (p.notes || "") + " [Closed on daily rollover]",
+        });
+      });
+      await batch.commit();
       return true;
     } catch (err) {
-      console.error("[DailyDataGenerator] Auto-rollover failed:", err);
-      return false;
+      console.error("[DailyDataGenerator] Error archiving stale patients:", err);
     }
   }
 
   return false;
 }
+

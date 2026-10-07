@@ -1928,16 +1928,16 @@ export default function App() {
         patients
       );
       if (didRollOver) {
-        showToast("New daily live clinic data loaded for today!");
+        showToast("Daily queue updated for today's live roster!");
       }
     };
 
     const timer = setTimeout(() => {
       runDailyCheck();
-    }, 800);
+    }, 1000);
 
     return () => clearTimeout(timer);
-  }, [user, currentUserProfile?.clinicId, profileLoaded, loading, patients.length]);
+  }, [user?.uid, currentUserProfile?.clinicId, profileLoaded, loading]);
 
   // Real-time medical history listener
   useEffect(() => {
