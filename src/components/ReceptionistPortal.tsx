@@ -912,15 +912,25 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     }
   };
 
-  const handleCallApt = (apt: AppointmentItem) => {
+  const handleCallApt = async (apt: AppointmentItem) => {
     setCustomAppointments((prev) =>
       prev.map((item) =>
         item.id === apt.id ? { ...item, status: "Consulting" } : item
       )
     );
+    const patId = apt.id.startsWith("pat-") ? apt.id.replace("pat-", "") : apt.id;
+    try {
+      await updateDoc(doc(db, "patients", patId), {
+        status: "Consulting",
+        calledAt: serverTimestamp(),
+        consultationStartedAt: serverTimestamp(),
+      });
+    } catch (e) {
+      console.warn("Direct Firestore update in handleCallApt:", e);
+    }
     // Find if corresponding live patient exists and call them
     const livePat = patients.find(
-      (p) => p.name.toLowerCase() === apt.patientName.toLowerCase() || p.id === apt.id.replace("pat-", "")
+      (p) => p.name.toLowerCase() === apt.patientName.toLowerCase() || p.id === patId
     );
     if (livePat && onCallPatient) {
       onCallPatient(livePat);

@@ -1423,6 +1423,24 @@ export default function App() {
   }, [currentUserProfile]);
 
   const [dbConnected, setDbConnected] = useState<boolean | null>(null);
+  const [isOnline, setIsOnline] = useState<boolean>(() => typeof navigator !== "undefined" ? navigator.onLine : true);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      showToast("Network connection restored. Back online.");
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      showToast("Network connection lost. Offline mode active.");
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
   
   // Profile Reset flow state
   const [resetFlowStep, setResetFlowStep] = useState<"options" | "create" | "delete_confirm" | "delete_password" | "success">("options");
@@ -5279,6 +5297,13 @@ export default function App() {
               <span>Download Official PDF Invoice</span>
             </button>
           </div>
+        </div>
+      )}
+      {/* Subtle Offline Indicator Badge */}
+      {!isOnline && (
+        <div className="fixed bottom-4 left-4 z-[9999] bg-slate-900/95 text-amber-300 border border-amber-500/30 px-3.5 py-2 rounded-xl text-xs font-bold shadow-2xl flex items-center gap-2 backdrop-blur-md">
+          <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+          <span>Offline • Reconnecting to Firestore...</span>
         </div>
       )}
     </div>
