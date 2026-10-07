@@ -105,6 +105,12 @@ import { LoginPage } from "./components/LoginPage";
 import { ReceptionistPortal } from "./components/ReceptionistPortal";
 import { DoctorPortal, detectGenderFromName } from "./components/DoctorPortal";
 import { MediTrackLogo } from "./components/MediTrackLogo";
+import {
+  seedClinicDailyLiveData,
+  checkAndAutoRollOverDaily,
+  SeedDoctorInfo,
+  SeedReceptionistInfo,
+} from "./utils/dailyDataGenerator";
 
 enum OperationType {
   CREATE = "create",
@@ -1894,6 +1900,47 @@ export default function App() {
     return () => unsubscribe();
   }, [user, currentUserProfile, isDoctor, isReceptionist, isAdmin]);
 
+  // Auto-Sync: Ensure that every day there is fresh new live data for TODAY!
+  const hasCheckedDailyRollover = useRef(false);
+  useEffect(() => {
+    if (!user || !currentUserProfile?.clinicId || hasCheckedDailyRollover.current) return;
+    if (loading || !profileLoaded) return;
+
+    const runDailyCheck = async () => {
+      hasCheckedDailyRollover.current = true;
+      const isDoc = (currentUserProfile.role || "").toLowerCase().includes("doctor");
+      const docInfo: SeedDoctorInfo = {
+        uid: isDoc ? user.uid : (currentUserProfile.assignedDoctorUid || clinicDoctors[0]?.uid || ""),
+        doctorId: isDoc ? currentUserProfile.doctorId : (currentUserProfile.assignedDoctorId || clinicDoctors[0]?.doctorId),
+        name: isDoc ? currentUserProfile.displayName || "Dr. John Smith" : (currentUserProfile.assignedDoctorName || clinicDoctors[0]?.displayName || "Dr. John Smith"),
+        email: isDoc ? user.email || "" : (currentUserProfile.assignedDoctorEmail || clinicDoctors[0]?.email || ""),
+        category: (isDoc ? currentUserProfile.category : currentUserProfile.assignedDoctorCategory) || "GP",
+      };
+      const recInfo: SeedReceptionistInfo = {
+        uid: !isDoc ? user.uid : (currentUserProfile.assignedReceptionistUid || ""),
+        receptionistId: !isDoc ? currentUserProfile.receptionistId : (currentUserProfile.assignedReceptionistId || ""),
+        name: !isDoc ? currentUserProfile.displayName || "Front Desk" : "Front Desk",
+        email: !isDoc ? user.email || "" : "",
+      };
+
+      const didRollOver = await checkAndAutoRollOverDaily(
+        currentUserProfile.clinicId,
+        docInfo,
+        recInfo,
+        patients
+      );
+      if (didRollOver) {
+        showToast("New day live clinic data initialized successfully!");
+      }
+    };
+
+    const timer = setTimeout(() => {
+      runDailyCheck();
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [user, currentUserProfile?.clinicId, profileLoaded, loading, patients.length]);
+
   // Real-time medical history listener
   useEffect(() => {
     if (!activeDoctorPatient || !currentUserProfile?.clinicId) {
@@ -2846,6 +2893,41 @@ export default function App() {
     }
   };
 
+  const handleResetAndSeedDailyLiveData = async (showNotification = true) => {
+    if (!currentUserProfile?.clinicId) {
+      showToast("Clinic ID is missing. Please re-login.");
+      return;
+    }
+    try {
+      setIsProcessing(true);
+      const isDoc = (currentUserProfile.role || "").toLowerCase().includes("doctor");
+      const docInfo: SeedDoctorInfo = {
+        uid: isDoc ? user?.uid || "" : (currentUserProfile.assignedDoctorUid || clinicDoctors[0]?.uid || ""),
+        doctorId: isDoc ? currentUserProfile.doctorId : (currentUserProfile.assignedDoctorId || clinicDoctors[0]?.doctorId),
+        name: isDoc ? currentUserProfile.displayName || "Dr. John Smith" : (currentUserProfile.assignedDoctorName || clinicDoctors[0]?.displayName || "Dr. John Smith"),
+        email: isDoc ? user?.email || "" : (currentUserProfile.assignedDoctorEmail || clinicDoctors[0]?.email || ""),
+        category: (isDoc ? currentUserProfile.category : currentUserProfile.assignedDoctorCategory) || "GP",
+      };
+
+      const recInfo: SeedReceptionistInfo = {
+        uid: !isDoc ? user?.uid || "" : (currentUserProfile.assignedReceptionistUid || ""),
+        receptionistId: !isDoc ? currentUserProfile.receptionistId : (currentUserProfile.assignedReceptionistId || ""),
+        name: !isDoc ? currentUserProfile.displayName || "Front Desk" : "Front Desk",
+        email: !isDoc ? user?.email || "" : "",
+      };
+
+      const result = await seedClinicDailyLiveData(currentUserProfile.clinicId, docInfo, recInfo, true);
+      if (showNotification) {
+        showToast(`Reset successful! ${result.count} fresh live patients generated for today & past 7 days.`);
+      }
+    } catch (err: any) {
+      console.error("[App] Reset live data error:", err);
+      showToast(err.message || "Failed to reset live data.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleDeletePatient = async (patient: Patient) => {
     setCustomModal({
       title: "Remove Patient",
@@ -3467,6 +3549,7 @@ export default function App() {
         onSendReceiptWhatsApp={handleSendReceiptWhatsApp}
         isProcessing={isProcessing}
         clinicDoctors={clinicDoctors}
+        onResetLiveData={() => handleResetAndSeedDailyLiveData(true)}
       />
     );
   }
@@ -3489,6 +3572,7 @@ export default function App() {
         isHistoryOpen={isHistoryOpen}
         setIsHistoryOpen={setIsHistoryOpen}
         clinicDoctors={clinicDoctors}
+        onResetLiveData={() => handleResetAndSeedDailyLiveData(true)}
       />
     );
   }

@@ -183,6 +183,7 @@ interface ReceptionistPortalProps {
   ) => Promise<void>;
   isProcessing?: boolean;
   onSelectDemoAccount?: (accountType: "gp_doctor" | "gp_receptionist" | "ped_doctor" | "ped_receptionist" | "dent_doctor" | "dent_receptionist" | "admin") => void;
+  onResetLiveData?: () => Promise<void> | void;
 }
 
 export interface AppointmentItem {
@@ -280,6 +281,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   isProcessing = false,
   clinicDoctors = [],
   onSelectDemoAccount,
+  onResetLiveData,
 }) => {
   const { t, isRTL, language } = useLanguage();
 
@@ -1809,14 +1811,24 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             </span>
           </div>
 
-          {/* Equal balance spacer or LanguageSelector on Dashboard */}
-          {activeTab === "dashboard" ? (
-            <div className="shrink-0 flex items-center">
-              <LanguageSelector />
-            </div>
-          ) : (
-            <div className="w-10 shrink-0 pointer-events-none" aria-hidden="true" />
-          )}
+          {/* Reset Live Data + LanguageSelector on Mobile Header */}
+          <div className="shrink-0 flex items-center gap-2">
+            {onResetLiveData && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (window.confirm(t("resetLiveDataConfirm"))) {
+                    await onResetLiveData();
+                  }
+                }}
+                title={t("resetLiveData")}
+                className="w-8 h-8 rounded-xl bg-emerald-50/90 text-[#064e3b] border border-emerald-200/90 flex items-center justify-center cursor-pointer active:scale-95"
+              >
+                <RotateCcw size={13} className="text-[#064e3b]" />
+              </button>
+            )}
+            <LanguageSelector />
+          </div>
         </header>
 
         {/* 2. DESKTOP TOP HEADER (Strictly >= 768px, rendered only on Dashboard per user requirement) */}
@@ -1827,8 +1839,25 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">{t("dashboard")}</h1>
             </div>
 
-            {/* Right: Language + Bell + Profile */}
+            {/* Right: Reset + Language + Bell + Profile */}
             <div className="flex items-center gap-2.5">
+              {/* Reset & Refresh Live Data Button */}
+              {onResetLiveData && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (window.confirm(t("resetLiveDataConfirm"))) {
+                      await onResetLiveData();
+                    }
+                  }}
+                  title={t("resetLiveData")}
+                  className="h-9 px-3 rounded-xl bg-emerald-50/90 hover:bg-emerald-100 text-[#064e3b] border border-emerald-200/90 flex items-center gap-1.5 font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95"
+                >
+                  <RotateCcw size={13} className="text-[#064e3b]" />
+                  <span className="hidden lg:inline text-[11px] font-extrabold">{t("resetLiveData")}</span>
+                </button>
+              )}
+
               {/* Minimal Language Switcher Icon Button */}
               <LanguageSelector />
 
