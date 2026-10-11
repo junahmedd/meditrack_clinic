@@ -1504,6 +1504,8 @@ export default function App() {
     fullName: "",
     email: "",
     password: "",
+    phone: "+91",
+    role: "doctor",
   });
 
   // Auth States
@@ -1630,6 +1632,26 @@ export default function App() {
               // Bind permanently to userAccess and users collection
               await setDoc(userAccessRef, accessData, { merge: true }).catch(console.error);
               await setDoc(doc(db, "users", currentUser.uid), accessData, { merge: true }).catch(console.error);
+            }
+          }
+
+          // 2b. Check users collection for registered clinic accounts
+          if (!accessData) {
+            const userDocSnap = await getDoc(doc(db, "users", currentUser.uid));
+            if (userDocSnap.exists()) {
+              const uData = userDocSnap.data();
+              accessData = {
+                ...uData,
+                uid: currentUser.uid,
+                authorizedRole: uData.role || "doctor",
+                status: uData.status || "active",
+                accountStatus: uData.status || "active",
+                clinicId: uData.clinicId || "MT0001",
+                initialVerificationCompleted: true,
+                phoneVerified: true,
+                updatedAt: serverTimestamp(),
+              };
+              await setDoc(userAccessRef, accessData, { merge: true }).catch(console.error);
             }
           }
 
@@ -3383,41 +3405,64 @@ export default function App() {
           transaction.set(counterRef, { count: nextCount }, { merge: true });
         });
 
+        const selectedRole = signupData.role || "doctor";
+        const cleanPhone = signupData.phone?.trim() || "+919876543210";
+        const newDoctorId = selectedRole === "doctor" ? `DOC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}` : `DOC-${finalClinicId}-001`;
+        const newRecId = selectedRole === "receptionist" ? `REC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}` : `REC-${finalClinicId}-001`;
+
         // Step 3 — Create clinic document
         await setDoc(doc(db, "clinics", finalClinicId), {
           clinicId: finalClinicId,
           name: clinicName,
           adminId: userUid,
           adminEmail: emailVal,
+          primaryDoctorId: newDoctorId,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
 
-        // Step 4 — Create user profile as admin
-        const userDocRef = doc(db, "users", userUid);
-        await setDoc(userDocRef, {
+        // Step 4 — Create user profile & userAccess
+        const profilePayload: any = {
           uid: userUid,
           email: emailVal.toLowerCase().trim(),
           displayName: fullName,
           photoURL: `/assets/admin_doctor_avatar.png`,
-          role: "admin",
+          role: selectedRole,
+          authorizedRole: selectedRole,
           status: "active",
+          accountStatus: "active",
           clinicId: finalClinicId,
           clinicName: clinicName,
+          doctorId: newDoctorId,
+          receptionistId: newRecId,
+          contactNumber: cleanPhone,
+          registeredPhoneNumber: cleanPhone,
+          phoneVerified: true,
+          initialVerificationCompleted: true,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        });
+        };
+
+        const userDocRef = doc(db, "users", userUid);
+        await setDoc(userDocRef, profilePayload);
+
+        const userAccessRef = doc(db, "userAccess", userUid);
+        await setDoc(userAccessRef, profilePayload);
+
+        // Pre-authorize in authorizedAccounts
+        const emailKey = emailVal.toLowerCase().trim().replace(/[^a-z0-9]/g, "_");
+        await setDoc(doc(db, "authorizedAccounts", emailKey), profilePayload);
 
         // Step 5 — Update Firebase Auth display name
         if (authUser) {
           await updateProfile(authUser, { displayName: fullName }).catch(() => {});
         }
 
-        // Step 6 — Sign out and redirect to login with success message
-        await signOut(auth);
+        // Step 6 — Set credentials and show success
         setEmail(emailVal);
-        setPassword("");
+        setPassword(passwordVal);
         setSignupSuccess(true);
+        showToast("Clinic registered successfully! Sign in to enter your portal.");
       } catch (e: any) {
         if (e.code === "auth/network-request-failed") {
           setError("Network connection to Firebase failed. Please check your connection and try again.");
