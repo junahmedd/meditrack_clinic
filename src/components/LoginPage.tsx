@@ -70,20 +70,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
-  // Quick fill helper for one-click credentials
-  const handleQuickFill = (fillEmail: string, fillPass: string) => {
-    setError(null);
-    setEmail(fillEmail);
-    setPassword(fillPass);
-  };
-
   const formatErrorMessage = (err: string | null) => {
     if (!err) return "";
     if (err.includes("auth/email-already-in-use") || err.includes("email-already-in-use")) {
       return "This email is already registered. Please sign in instead.";
     }
     if (err.includes("auth/invalid-credential") || err.includes("wrong-password") || err.includes("user-not-found")) {
-      return "Invalid email or password. Please verify your credentials or use the 1-click fill pills below.";
+      return "Invalid email or password. Please verify your credentials and try again.";
     }
     if (err.startsWith("{") && err.includes('"error"')) {
       try {
@@ -407,41 +400,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     )}
                   </button>
                 </form>
-
-                {/* ── 1-CLICK DEMO LOGIN PILLS ── */}
-                <div className="pt-3 border-t border-slate-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                      Quick 1-Click Access
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      Verified
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickFill("drzaid@meditrack.io", "Password123!")}
-                      className="p-2 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 rounded-lg text-left transition-all cursor-pointer font-medium text-slate-800"
-                    >
-                      <div className="font-bold flex items-center gap-1 text-emerald-800">
-                        <Stethoscope size={12} /> Dr. Zaid
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate">Doctor Portal</div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuickFill("junaidreceptionist@meditrack.io", "Password123!")}
-                      className="p-2 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 rounded-lg text-left transition-all cursor-pointer font-medium text-slate-800"
-                    >
-                      <div className="font-bold flex items-center gap-1 text-emerald-800">
-                        <Users size={12} /> Junaid
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate">Reception Desk</div>
-                    </button>
-                  </div>
-                </div>
 
                 {/* Footer Switcher */}
                 <div className="text-center pt-2">
