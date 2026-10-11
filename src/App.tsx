@@ -102,6 +102,7 @@ import { motion, AnimatePresence } from "motion/react";
 import html2canvas from "html2canvas";
 import { PrescriptionTemplate } from "./components/PrescriptionTemplate";
 import { LoginPage } from "./components/LoginPage";
+import { PhoneOtpVerificationModal } from "./components/PhoneOtpVerificationModal";
 import { ReceptionistPortal } from "./components/ReceptionistPortal";
 import { DoctorPortal, detectGenderFromName } from "./components/DoctorPortal";
 import { MediTrackLogo } from "./components/MediTrackLogo";
@@ -1254,6 +1255,8 @@ export default function App() {
   const [hasRedirected, setHasRedirected] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [publicInvoice, setPublicInvoice] = useState<any | null>(null);
+  const [showPhoneOtpModal, setShowPhoneOtpModal] = useState(false);
+  const [pendingUserAccess, setPendingUserAccess] = useState<any | null>(null);
 
   // Check URL query parameters for ?invoice=INV-xxxx public link viewer
   useEffect(() => {
@@ -1599,116 +1602,100 @@ export default function App() {
       setUser(currentUser);
       if (currentUser) {
         setProfileLoaded(false);
-        // Use onSnapshot for real-time profile updates
-        const userDocRef = doc(db, "users", currentUser.uid);
-        profileUnsubscribe = onSnapshot(
-          userDocRef,
-          async (docSnap) => {
-            if (docSnap.exists()) {
-              const data = docSnap.data() as UserProfile;
-              setCurrentUserProfile({ ...data, uid: docSnap.id });
+        const cleanEmail = (currentUser.email || "").toLowerCase().trim();
 
-              // Auto-fix missing display name / email if somehow absent
-              if (!data.displayName || !data.email) {
-                await updateDoc(userDocRef, {
-                  displayName: data.displayName || currentUser.displayName || "User",
-                  email: data.email || currentUser.email || "",
-                  updatedAt: serverTimestamp(),
-                }).catch(console.error);
-              }
-            } else {
-              // No profile found directly — check if user was added via clinicInvitations
-              const cleanEmail = (currentUser.email || "").toLowerCase().trim();
-              if (cleanEmail) {
-                const inviteQ = query(collection(db, "clinicInvitations"), where("email", "==", cleanEmail));
-                const inviteSnap = await getDocs(inviteQ).catch(() => null);
-                if (inviteSnap && !inviteSnap.empty) {
-                  const inv = inviteSnap.docs[0].data();
-                  const staffRole = inv.role === "doctor" ? "doctor" : inv.role === "admin" ? "admin" : "receptionist";
-                  const newProfile: any = {
-                    uid: currentUser.uid,
-                    email: currentUser.email,
-                    displayName: inv.name || currentUser.displayName || "Staff Member",
-                    photoURL: currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(inv.name || "Staff")}&background=064e3b&color=fff`,
-                    role: staffRole,
-                    status: "active",
-                    category: inv.category || "GP",
-                    specialty: inv.specialty || "",
-                    clinicId: inv.clinicId,
-                    clinicName: inv.clinicName,
-                    createdAt: serverTimestamp(),
-                    updatedAt: serverTimestamp(),
-                  };
-                  if (staffRole === "doctor") {
-                    newProfile.doctorId = `DOC-${inv.clinicId}-${currentUser.uid.slice(0, 4).toUpperCase()}`;
-                  } else if (staffRole === "receptionist") {
-                    newProfile.receptionistId = `REC-${inv.clinicId}-${currentUser.uid.slice(0, 4).toUpperCase()}`;
-                    newProfile.assignedDoctorCategory = "GP";
-                    if (inv.assignedDoctorEmail) {
-                      newProfile.assignedDoctorEmail = inv.assignedDoctorEmail;
-                      newProfile.assignedDoctorName = inv.assignedDoctorName || "";
-                    }
-                  }
-                  await setDoc(userDocRef, newProfile).catch(console.error);
-                  setCurrentUserProfile({ ...newProfile, uid: currentUser.uid });
-                  setProfileLoaded(true);
-                  setLoading(false);
-                  return;
-                } else {
-                  // Fallback: auto-create profile for authenticated user so they are never stranded
-                  const isDoctorEmail = cleanEmail.includes("dr") || cleanEmail.includes("doc");
-                  const isRecEmail = cleanEmail.includes("rec") || cleanEmail.includes("front") || cleanEmail.includes("reception");
-                  const staffRole = isDoctorEmail ? "doctor" : isRecEmail ? "receptionist" : "admin";
-                  const defaultName = cleanEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
-                  const autoProfile: any = {
-                    uid: currentUser.uid,
-                    email: cleanEmail,
-                    displayName: currentUser.displayName || defaultName,
-                    photoURL: currentUser.photoURL || `/assets/admin_doctor_avatar.png`,
-                    role: staffRole,
-                    status: "active",
-                    category: "GP",
-                    specialty: staffRole === "doctor" ? "General Practitioner" : "",
-                    clinicId: "MT0001",
-                    clinicName: "MedPlus HealthCare",
-                    createdAt: serverTimestamp(),
-                    updatedAt: serverTimestamp(),
-                  };
-                  if (staffRole === "doctor") {
-                    autoProfile.doctorId = `DOC-MT0001-${currentUser.uid.slice(0, 4).toUpperCase()}`;
-                  } else if (staffRole === "receptionist") {
-                    autoProfile.receptionistId = `REC-MT0001-${currentUser.uid.slice(0, 4).toUpperCase()}`;
-                  }
-                  await setDoc(userDocRef, autoProfile).catch(console.error);
-                  setCurrentUserProfile({ ...autoProfile, uid: currentUser.uid });
-                  setProfileLoaded(true);
-                  setLoading(false);
-                  return;
-                }
-              }
+        try {
+          // 1. Fetch userAccess record by verified Firebase UID
+          const userAccessRef = doc(db, "userAccess", currentUser.uid);
+          const accessSnap = await getDoc(userAccessRef);
 
-              console.warn("[Profile] No Firestore profile found for", currentUser.uid);
-              setCurrentUserProfile(null);
+          let accessData: any = null;
+
+          if (accessSnap.exists()) {
+            accessData = { ...accessSnap.data(), uid: currentUser.uid };
+          } else if (cleanEmail) {
+            // 2. Check authorizedAccounts registry by normalized email
+            const emailKey = cleanEmail.replace(/[^a-z0-9]/g, "_");
+            const authAccRef = doc(db, "authorizedAccounts", emailKey);
+            const authAccSnap = await getDoc(authAccRef);
+
+            if (authAccSnap.exists()) {
+              const preAuth = authAccSnap.data();
+              accessData = {
+                ...preAuth,
+                uid: currentUser.uid,
+                email: cleanEmail,
+                updatedAt: serverTimestamp(),
+              };
+              // Bind permanently to userAccess and users collection
+              await setDoc(userAccessRef, accessData, { merge: true }).catch(console.error);
+              await setDoc(doc(db, "users", currentUser.uid), accessData, { merge: true }).catch(console.error);
             }
-            setProfileLoaded(true);
+          }
+
+          // 3. Reject unauthorized users immediately
+          if (!accessData) {
+            console.warn("[Auth Guard] Unauthorized user attempted sign-in:", currentUser.email, currentUser.uid);
+            await signOut(auth);
+            setUser(null);
+            setCurrentUserProfile(null);
+            setShowPhoneOtpModal(false);
+            setPendingUserAccess(null);
+            setError("Your MediTrack account is not authorized. Please contact your clinic administrator.");
             setLoading(false);
-          },
-          (err) => {
-            try {
-              handleFirestoreError(
-                err,
-                OperationType.GET,
-                `users/${currentUser.uid}`,
-              );
-            } catch (e: any) {
-              setError(e.message);
+            setProfileLoaded(false);
+            return;
+          }
+
+          // 4. Verify accountStatus
+          if (accessData.accountStatus === "disabled" || accessData.status === "inactive" || accessData.isDeactivated === true) {
+            await signOut(auth);
+            setUser(null);
+            setCurrentUserProfile(null);
+            setShowPhoneOtpModal(false);
+            setPendingUserAccess(null);
+            setError("Your MediTrack account is disabled or inactive. Please contact your administrator.");
+            setLoading(false);
+            setProfileLoaded(false);
+            return;
+          }
+
+          // 5. Verify initial Indian Mobile SMS OTP status
+          if (accessData.initialVerificationCompleted !== true) {
+            // User must complete Mobile OTP verification before accessing any clinic data
+            setPendingUserAccess(accessData);
+            setShowPhoneOtpModal(true);
+            setCurrentUserProfile(null);
+            setLoading(false);
+            setProfileLoaded(false);
+            return;
+          }
+
+          // 6. Returning verified user: Granted access without repeated OTP prompts!
+          setShowPhoneOtpModal(false);
+          setPendingUserAccess(null);
+          setCurrentUserProfile(accessData as UserProfile);
+
+          // Real-time listener for profile/access updates
+          profileUnsubscribe = onSnapshot(userAccessRef, (snap) => {
+            if (snap.exists()) {
+              const updated = { ...snap.data(), uid: snap.id } as UserProfile;
+              setCurrentUserProfile(updated);
             }
-            setProfileLoaded(true);
-            setLoading(false);
-          },
-        );
+          });
+
+          setProfileLoaded(true);
+          setLoading(false);
+        } catch (err: any) {
+          console.error("[Auth Guard Error]:", err);
+          setError("Failed to verify clinic account authorization: " + (err.message || String(err)));
+          setLoading(false);
+          setProfileLoaded(true);
+        }
       } else {
         setCurrentUserProfile(null);
+        setShowPhoneOtpModal(false);
+        setPendingUserAccess(null);
         setPatients([]);
         setLoading(false);
         setProfileLoaded(false);
@@ -3456,12 +3443,42 @@ export default function App() {
         error={error}
         setError={setError}
         onLoginSubmit={handleLoginSubmit}
+        onGoogleSignIn={handleGoogleSignIn}
         onForgotPasswordClick={() => setResetFlowStep("options")}
         signupData={signupData}
         setSignupData={setSignupData}
         onSignupSubmit={handleSignupSubmit}
         signupSuccess={signupSuccess}
         onDismissSignupSuccess={() => setSignupSuccess(false)}
+      />
+    );
+  }
+
+  // Mandatory 2-Factor Indian Mobile SMS OTP Verification Guard
+  if (user && showPhoneOtpModal && pendingUserAccess) {
+    return (
+      <PhoneOtpVerificationModal
+        user={user}
+        userAccess={pendingUserAccess}
+        onVerificationSuccess={async () => {
+          setShowPhoneOtpModal(false);
+          setPendingUserAccess(null);
+          const userAccessRef = doc(db, "userAccess", user.uid);
+          const snap = await getDoc(userAccessRef);
+          if (snap.exists()) {
+            setCurrentUserProfile({ ...snap.data(), uid: snap.id } as UserProfile);
+          } else {
+            setCurrentUserProfile({ ...pendingUserAccess, phoneVerified: true, initialVerificationCompleted: true } as UserProfile);
+          }
+          setProfileLoaded(true);
+        }}
+        onLogout={async () => {
+          await signOut(auth);
+          setUser(null);
+          setCurrentUserProfile(null);
+          setShowPhoneOtpModal(false);
+          setPendingUserAccess(null);
+        }}
       />
     );
   }

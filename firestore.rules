@@ -1,80 +1,179 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ===============================================================
+    // Authentication & Access Control Helper Functions
+    // ===============================================================
     function isSignedIn() {
       return request.auth != null;
     }
 
-    match /clinics/{clinicId} {
-      allow read: if true;
-      allow create, update: if isSignedIn();
-      allow delete: if isSignedIn();
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.get('email', '').lower() in ["junaidudupi@gmail.com", "mohammedzaidd13@gmail.com"] ||
+        (exists(/databases/$(database)/documents/userAccess/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/userAccess/$(request.auth.uid)).data.get('authorizedRole', '') in ["admin", "Administrator"])
+      );
+    }
+
+    function hasUserAccess() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/userAccess/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/userAccess/$(request.auth.uid)).data.get('accountStatus', 'active') == 'active';
+    }
+
+    function getUserAccess() {
+      return get(/databases/$(database)/documents/userAccess/$(request.auth.uid)).data;
+    }
+
+    function getUserClinic() {
+      return getUserAccess().get('clinicId', '');
+    }
+
+    function isDoctor() {
+      return hasUserAccess() && getUserAccess().get('authorizedRole', '') == 'doctor';
+    }
+
+    function isReceptionist() {
+      return hasUserAccess() && getUserAccess().get('authorizedRole', '') == 'receptionist';
+    }
+
+    // ===============================================================
+    // Collection: userAccess
+    // ===============================================================
+    match /userAccess/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (
+        isUser(userId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'phoneVerified',
+          'initialVerificationCompleted',
+          'verificationCompletedAt',
+          'updatedAt'
+        ])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Collection: authorizedAccounts
+    // ===============================================================
+    match /authorizedAccounts/{emailKey} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ===============================================================
+    // Collection: users
+    // ===============================================================
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow update: if isSignedIn() && (
-        // Non-admins cannot elevate their own role to admin
-        request.auth.uid != userId ||
-        request.resource.data.get('role', '') == resource.data.get('role', '') ||
-        resource.data.get('role', '') in ["admin", "Administrator", "owner"] ||
-        request.resource.data.get('role', '') != "admin"
+        isAdmin() || (
+          request.auth.uid == userId &&
+          request.resource.data.get('role', resource.data.get('role', '')) == resource.data.get('role', '') &&
+          request.resource.data.get('clinicId', resource.data.get('clinicId', '')) == resource.data.get('clinicId', '')
+        )
       );
-      allow delete: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
+    // ===============================================================
+    // Collection: clinics
+    // ===============================================================
+    match /clinics/{clinicId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && (
+        isAdmin() || (hasUserAccess() && getUserClinic() == clinicId)
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Collection: patients
+    // ===============================================================
     match /patients/{patientId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (hasUserAccess() || isAdmin());
+      allow update: if isSignedIn() && (hasUserAccess() || isAdmin());
+      allow delete: if isAdmin();
     }
 
+    // ===============================================================
+    // Collection: consultations
+    // ===============================================================
     match /consultations/{consultationId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && (isDoctor() || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Collection: invoices
+    // ===============================================================
+    match /invoices/{invoiceId} {
+      // Public read access for direct patient receipt links (?invoice=INV-...)
+      allow read: if true;
+      allow write: if isSignedIn() && (hasUserAccess() || isAdmin());
+    }
+
+    // ===============================================================
+    // Collections: payments, inventory, audit_logs, messages, activity
+    // ===============================================================
+    match /payments/{paymentId} {
+      allow read, write: if isSignedIn() && (hasUserAccess() || isAdmin());
     }
 
     match /inventory/{itemId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /invoices/{invoiceId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /payments/{paymentId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isSignedIn() && (hasUserAccess() || isAdmin());
     }
 
     match /audit_logs/{logId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isSignedIn() && (hasUserAccess() || isAdmin());
     }
 
     match /messages/{messageId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isSignedIn() && (hasUserAccess() || isAdmin());
     }
 
     match /activity/{activityId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isSignedIn() && (hasUserAccess() || isAdmin());
     }
 
+    // ===============================================================
+    // Collections: medicines, system
+    // ===============================================================
     match /medicines/{medicineId} {
       allow read, write: if true;
-    }
-
-    match /clinicInvitations/{invitationId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /doctorReceptionistMappings/{mappingId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /clinic_assignments/{assignmentId} {
-      allow read, write: if isSignedIn();
     }
 
     match /system/{document} {
       allow read, write: if true;
     }
+
+    // ===============================================================
+    // Collections: doctorReceptionistMappings, clinic_assignments, clinicInvitations
+    // ===============================================================
+    match /doctorReceptionistMappings/{mappingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || hasUserAccess();
+    }
+
+    match /clinic_assignments/{assignmentId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || hasUserAccess();
+    }
+
+    match /clinicInvitations/{invitationId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || hasUserAccess();
+    }
   }
 }
-
