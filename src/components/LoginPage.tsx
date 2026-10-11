@@ -208,37 +208,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         {/* ── RIGHT AUTHENTICATION PANEL ── */}
         <div className="lg:w-5/12 p-4 sm:p-8 lg:p-12 flex items-center justify-center">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl shadow-black/40 border border-slate-100/80 p-6 sm:p-8 transition-all">
-            {/* Segmented Tab Switcher */}
-            <div className="flex p-1 bg-slate-100 rounded-xl mb-6 select-none">
-              <button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  setAuthMode("login");
-                }}
-                className={`flex-1 py-2 text-xs font-black rounded-lg transition-all cursor-pointer ${
-                  authMode === "login"
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  setAuthMode("signup");
-                }}
-                className={`flex-1 py-2 text-xs font-black rounded-lg transition-all cursor-pointer ${
-                  authMode === "signup"
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                Create an account
-              </button>
-            </div>
 
             {/* Error Message */}
             {error && (
