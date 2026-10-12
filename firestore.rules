@@ -106,6 +106,10 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /appointments/{appointmentId} {
+      allow read, write: if isSignedIn() && (hasUserAccess() || isAdmin());
+    }
+
     // ===============================================================
     // Collection: consultations
     // ===============================================================
