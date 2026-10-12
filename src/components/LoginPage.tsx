@@ -45,8 +45,6 @@ interface LoginPageProps {
   onSignupSubmit: (e: React.FormEvent) => Promise<void>;
   signupSuccess?: boolean;
   onDismissSignupSuccess?: () => void;
-  selectedRole?: "doctor" | "receptionist" | "admin";
-  setSelectedRole?: (role: "doctor" | "receptionist" | "admin") => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({
@@ -67,8 +65,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onSignupSubmit,
   signupSuccess = false,
   onDismissSignupSuccess,
-  selectedRole = "doctor",
-  setSelectedRole,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -257,62 +253,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </div>
 
                 <form onSubmit={onLoginSubmit} className="space-y-3.5">
-                  {/* Portal Access Role Selector */}
-                  {setSelectedRole && (
-                    <div className="space-y-1.5">
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                        Portal Role
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedRole("doctor");
-                            setError(null);
-                          }}
-                          className={`py-2 px-2 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                            selectedRole === "doctor"
-                              ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-sm ring-1 ring-emerald-600/20"
-                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          <Stethoscope size={16} className={selectedRole === "doctor" ? "text-emerald-700" : "text-slate-400"} />
-                          <span>Doctor</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedRole("receptionist");
-                            setError(null);
-                          }}
-                          className={`py-2 px-2 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                            selectedRole === "receptionist"
-                              ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-sm ring-1 ring-emerald-600/20"
-                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          <UserIcon size={16} className={selectedRole === "receptionist" ? "text-emerald-700" : "text-slate-400"} />
-                          <span>Receptionist</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedRole("admin");
-                            setError(null);
-                          }}
-                          className={`py-2 px-2 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                            selectedRole === "admin"
-                              ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-sm ring-1 ring-emerald-600/20"
-                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          <ShieldCheck size={16} className={selectedRole === "admin" ? "text-emerald-700" : "text-slate-400"} />
-                          <span>Admin</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Email */}
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">

@@ -1504,7 +1504,6 @@ export default function App() {
   // Auth Form states
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loginRole, setLoginRole] = useState<"doctor" | "receptionist" | "admin">("doctor");
   const [signupData, setSignupData] = useState({
     clinicName: "",
     fullName: "",
@@ -3268,12 +3267,12 @@ export default function App() {
 
         if (!profile) {
           await signOut(auth);
-          setError("ACCESS DENIED: No account found for this email. Please contact your clinic administrator to get registered.");
+          setError("Your account is not authorized for MediTrack. Please contact your administrator.");
           return;
         }
 
         // Section 28: Inactive account check
-        if (profile.status === "inactive" || (profile as any).isDeactivated === true) {
+        if (profile.status === "inactive" || (profile as any).isDeactivated === true || (profile as any).accountStatus === "disabled") {
           await signOut(auth);
           setError("Your account is currently inactive. Please contact your administrator.");
           return;
@@ -3295,23 +3294,8 @@ export default function App() {
             role.includes("dentist"));
 
         const isRec = !isAdm && !isDoc;
-        const authorizedPortalRole: "doctor" | "receptionist" | "admin" = isAdm
-          ? "admin"
-          : isDoc
-          ? "doctor"
-          : "receptionist";
 
-        // Validate selected role against backend-authorized role
-        if (loginRole && loginRole !== authorizedPortalRole) {
-          await signOut(auth);
-          setError(
-            `ACCESS DENIED: Role mismatch. Your account is authorized as ${authorizedPortalRole.toUpperCase()}, not ${loginRole.toUpperCase()}. Please select your authorized portal role.`
-          );
-          setAuthLoading(false);
-          return;
-        }
-
-        // Auto-route to correct portal based on Firestore role
+        // Auto-detect role from backend and route to designated portal
         setCurrentUserProfile(profile);
         setHasRedirected(true);
 
@@ -3322,10 +3306,15 @@ export default function App() {
       } catch (e: any) {
         if (e.code === "auth/network-request-failed") {
           setError("Network connection to Firebase failed. Please check your connection and try again.");
-        } else if (e.code === "auth/invalid-credential" || e.code === "auth/user-not-found" || e.code === "auth/wrong-password") {
-          setError("Invalid email or password. Please verify your credentials and try again.");
+        } else if (
+          e.code === "auth/invalid-credential" ||
+          e.code === "auth/user-not-found" ||
+          e.code === "auth/wrong-password" ||
+          e.code === "auth/invalid-email"
+        ) {
+          setError("Invalid email or password.");
         } else {
-          setError(e.message);
+          setError(e.message || "Invalid email or password.");
         }
       } finally {
         setAuthLoading(false);
@@ -3505,8 +3494,6 @@ export default function App() {
         setEmail={setEmail}
         password={password}
         setPassword={setPassword}
-        selectedRole={loginRole}
-        setSelectedRole={setLoginRole}
         authLoading={authLoading}
         error={error}
         setError={setError}
