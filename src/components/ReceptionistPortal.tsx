@@ -2157,34 +2157,47 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               </div>
 
               {/* Bottom Section on Dashboard: Today's Live Waiting Queue */}
+              {/* Full Width Live Queue Table Card */}
               <div className="bg-white rounded-2xl border border-slate-100/90 shadow-sm overflow-hidden">
-                <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#064e3b] flex items-center justify-center font-bold">
-                      <Clock size={18} />
+                <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#064e3b] flex items-center justify-center font-bold shrink-0">
+                      <Clock size={19} />
                     </div>
-                    <div>
-                      <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
-                        {t("queue")} • {queueItems.length} {t("inQueueToday")}
-                      </h3>
-                      <p className="text-[11px] font-semibold text-slate-400">
-                        Today's live patients in waiting room and active consultation
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">
+                          Patient Queue
+                        </h3>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          {queueItems.length} in Queue Today
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-medium text-slate-400 mt-0.5 leading-snug">
+                        Live waiting room queue &amp; active doctor consultations
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+
+                  {/* Responsive Action Buttons: Mobile 50/50 full-width, Laptop & Desktop inline */}
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <button
+                      type="button"
                       onClick={() => setIsAddQueueModalOpen(true)}
-                      className="px-3.5 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                      className="flex-1 sm:flex-initial px-4 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.98] text-white text-xs font-extrabold rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      <Plus size={14} />
-                      <span>{t("registerPatient")}</span>
+                      <UserPlus size={14} className="shrink-0" />
+                      <span>Register</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => setActiveTab("appointments")}
-                      className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-200/80 transition-all cursor-pointer"
+                      className="flex-1 sm:flex-initial px-4 py-2.5 bg-slate-50 hover:bg-slate-100 active:scale-[0.98] text-slate-700 text-xs font-extrabold rounded-xl border border-slate-200/90 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      {t("appointments")} →
+                      <Calendar size={14} className="shrink-0 text-slate-500" />
+                      <span>Appointment</span>
+                      <ArrowRight size={13} className="shrink-0 text-slate-400 hidden xs:inline" />
                     </button>
                   </div>
                 </div>
@@ -2266,8 +2279,26 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       ))}
                       {queueItems.length === 0 && (
                         <tr>
-                          <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
-                            {t("noPatientsWaitingInQueue")}
+                          <td colSpan={7} className="py-12 px-4 text-center">
+                            <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-2.5">
+                              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                                <Users size={22} />
+                              </div>
+                              <h4 className="text-sm font-extrabold text-slate-800">Queue is Currently Empty</h4>
+                              <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                                No patients are waiting in queue today. Register a new walk-in patient to add them to the queue.
+                              </p>
+                              <div className="pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setIsAddQueueModalOpen(true)}
+                                  className="px-4 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-extrabold rounded-xl shadow-xs transition-all cursor-pointer inline-flex items-center gap-1.5"
+                                >
+                                  <UserPlus size={13} />
+                                  <span>Register Patient</span>
+                                </button>
+                              </div>
+                            </div>
                           </td>
                         </tr>
                       )}
@@ -2340,8 +2371,26 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     </div>
                   ))}
                   {queueItems.length === 0 && (
-                    <div className="p-8 text-center text-slate-400 text-xs">
-                      {t("noPatientsWaitingInQueue")}
+                    <div className="py-10 px-4 text-center">
+                      <div className="flex flex-col items-center justify-center max-w-xs mx-auto space-y-2">
+                        <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                          <Users size={20} />
+                        </div>
+                        <h4 className="text-sm font-extrabold text-slate-800">Queue is Empty</h4>
+                        <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                          No patients are currently waiting. Register a walk-in patient to add them to today's live queue.
+                        </p>
+                        <div className="pt-2 w-full">
+                          <button
+                            type="button"
+                            onClick={() => setIsAddQueueModalOpen(true)}
+                            className="w-full py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-extrabold rounded-xl shadow-xs transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
+                          >
+                            <UserPlus size={14} />
+                            <span>Register Patient</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
