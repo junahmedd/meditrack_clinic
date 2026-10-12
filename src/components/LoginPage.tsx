@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Mail,
   Lock,
@@ -69,6 +69,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (signupSuccess) {
+      setRedirectCountdown(2);
+      const timer = setInterval(() => {
+        setRedirectCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    } else {
+      setRedirectCountdown(null);
+    }
+  }, [signupSuccess]);
+
+  useEffect(() => {
+    if (redirectCountdown === 0 && signupSuccess && !authLoading) {
+      const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+      onLoginSubmit(fakeEvent);
+    }
+  }, [redirectCountdown, signupSuccess, authLoading, onLoginSubmit]);
+
+  const signupRoleTitle =
+    signupData?.role === "receptionist"
+      ? "Receptionist"
+      : signupData?.role === "admin"
+      ? "Clinic Admin"
+      : "Doctor";
+
 
   const formatErrorMessage = (err: string | null) => {
     if (!err) return "";
@@ -217,32 +251,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </div>
             )}
 
-            {/* ── SIGNUP SUCCESS ── */}
-            {signupSuccess ? (
-              <div className="text-center py-6 px-4 space-y-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl animate-in zoom-in-95 duration-200">
-                <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto border border-emerald-200">
-                  <CheckCircle2 size={28} />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Clinic Registered!</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                    Your clinic account is configured. Sign in with your credentials to access your portal.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onDismissSignupSuccess) onDismissSignupSuccess();
-                    setAuthMode("login");
-                  }}
-                  className="w-full py-3 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold rounded-xl text-xs uppercase tracking-wider cursor-pointer transition-all shadow-md"
-                >
-                  Sign In to Your Clinic &rarr;
-                </button>
-              </div>
-            ) : authMode === "login" ? (
+            {authMode === "login" ? (
               /* ── SIGN IN FORM ── */
               <div className="space-y-4">
+                {signupSuccess && (
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-sm">
+                      <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                      <span>Clinic Account Registered!</span>
+                    </div>
+                    <p className="text-emerald-700 font-medium leading-relaxed">
+                      Your {signupRoleTitle} account is ready.{" "}
+                      {redirectCountdown !== null && redirectCountdown > 0 ? (
+                        <span>
+                          Entering your <strong>{signupRoleTitle} Portal</strong> in{" "}
+                          <span className="font-bold underline">{redirectCountdown}s</span>... Or click{" "}
+                          <strong>Sign In</strong> below now.
+                        </span>
+                      ) : (
+                        <span>Click <strong>Sign In</strong> below to enter your portal.</span>
+                      )}
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <h2 className="text-xl font-black text-slate-900 tracking-tight leading-tight">
                     Welcome back

@@ -1601,11 +1601,17 @@ export default function App() {
 
 
 
+  const isSignupInProgressRef = useRef(false);
+
   // Auth State Listener
   useEffect(() => {
     let profileUnsubscribe: (() => void) | null = null;
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (isSignupInProgressRef.current) {
+        // Registration is active; do not evaluate or reject user prematurely
+        return;
+      }
       setUser(currentUser);
       if (currentUser) {
         setProfileLoaded(false);
@@ -3297,9 +3303,10 @@ export default function App() {
 
         // Auto-detect role from backend and route to designated portal
         setCurrentUserProfile(profile);
+        setSignupSuccess(false);
         setHasRedirected(true);
 
-        const targetPath = isAdm ? "/admin/dashboard" : isDoc ? "/doctor/dashboard" : "/receptionist/dashboard";
+        const targetPath = isAdm ? "/admin" : isDoc ? "/doctor" : "/receptionist";
         const targetView = isAdm ? "dashboard" : isDoc ? "doctor" : "receptionist";
         window.history.replaceState(null, "", targetPath);
         setActiveView(targetView);
@@ -3372,6 +3379,7 @@ export default function App() {
       e.preventDefault();
       setAuthLoading(true);
       setError(null);
+      isSignupInProgressRef.current = true;
       try {
         const clinicName = signupData.clinicName.trim();
         const fullName = signupData.fullName.trim();
@@ -3468,12 +3476,19 @@ export default function App() {
           await updateProfile(authUser, { displayName: fullName }).catch(() => {});
         }
 
-        // Step 6 — Set credentials and show success
+        // Step 6 — Explicitly sign out so user lands cleanly on the Login page as requested
+        await signOut(auth).catch(() => {});
+        isSignupInProgressRef.current = false;
+
+        // Step 7 — Set credentials, transition to Login page with pre-filled credentials
         setEmail(emailVal);
         setPassword(passwordVal);
         setSignupSuccess(true);
+        setAuthMode("login");
+        setError(null);
         showToast("Clinic registered successfully! Sign in to enter your portal.");
       } catch (e: any) {
+        isSignupInProgressRef.current = false;
         if (e.code === "auth/network-request-failed") {
           setError("Network connection to Firebase failed. Please check your connection and try again.");
         } else if (e.code === "auth/weak-password") {
