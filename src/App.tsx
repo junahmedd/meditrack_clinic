@@ -1353,7 +1353,12 @@ export default function App() {
     }
 
     // 2. Strict Access Control for Direct Portal URL Access
-    if (currentPath === "/admin" && !isAdm) {
+    const normalizedPath = currentPath.toLowerCase();
+    const isAdminPath = normalizedPath === "/admin" || normalizedPath.startsWith("/admin/");
+    const isDoctorPath = normalizedPath === "/doctor" || normalizedPath.startsWith("/doctor/");
+    const isReceptionistPath = normalizedPath === "/receptionist" || normalizedPath.startsWith("/receptionist/");
+
+    if (isAdminPath && !isAdm) {
       const authorizedPortalName = isDoc ? "Doctor Portal" : "Receptionist Portal";
       setToast({
         message: `ACCESS DENIED: You are not authorized to access the Admin Portal. Redirecting to your ${authorizedPortalName}...`,
@@ -1365,7 +1370,7 @@ export default function App() {
       return;
     }
 
-    if (currentPath === "/doctor" && !isDoc) {
+    if (isDoctorPath && !isDoc) {
       const authorizedPortalName = isAdm ? "Admin Portal" : "Receptionist Portal";
       setToast({
         message: `ACCESS DENIED: You are not authorized to access the Doctor Portal. Redirecting to your ${authorizedPortalName}...`,
@@ -1377,7 +1382,7 @@ export default function App() {
       return;
     }
 
-    if (currentPath === "/receptionist" && !isRec) {
+    if (isReceptionistPath && !isRec) {
       const authorizedPortalName = isAdm ? "Admin Portal" : "Doctor Portal";
       setToast({
         message: `ACCESS DENIED: You are not authorized to access the Receptionist Portal. Redirecting to your ${authorizedPortalName}...`,
@@ -1499,6 +1504,7 @@ export default function App() {
   // Auth Form states
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginRole, setLoginRole] = useState<"doctor" | "receptionist" | "admin">("doctor");
   const [signupData, setSignupData] = useState({
     clinicName: "",
     fullName: "",
@@ -3273,7 +3279,7 @@ export default function App() {
           return;
         }
 
-        const role = (profile.role || "").trim().toLowerCase();
+        const role = ((profile as any).authorizedRole || profile.role || "").trim().toLowerCase();
         const isAdm =
           role === "admin" ||
           role === "administrator" ||
@@ -3289,12 +3295,27 @@ export default function App() {
             role.includes("dentist"));
 
         const isRec = !isAdm && !isDoc;
+        const authorizedPortalRole: "doctor" | "receptionist" | "admin" = isAdm
+          ? "admin"
+          : isDoc
+          ? "doctor"
+          : "receptionist";
+
+        // Validate selected role against backend-authorized role
+        if (loginRole && loginRole !== authorizedPortalRole) {
+          await signOut(auth);
+          setError(
+            `ACCESS DENIED: Role mismatch. Your account is authorized as ${authorizedPortalRole.toUpperCase()}, not ${loginRole.toUpperCase()}. Please select your authorized portal role.`
+          );
+          setAuthLoading(false);
+          return;
+        }
 
         // Auto-route to correct portal based on Firestore role
         setCurrentUserProfile(profile);
         setHasRedirected(true);
 
-        const targetPath = isAdm ? "/admin" : isDoc ? "/doctor" : "/receptionist";
+        const targetPath = isAdm ? "/admin/dashboard" : isDoc ? "/doctor/dashboard" : "/receptionist/dashboard";
         const targetView = isAdm ? "dashboard" : isDoc ? "doctor" : "receptionist";
         window.history.replaceState(null, "", targetPath);
         setActiveView(targetView);
@@ -3484,6 +3505,8 @@ export default function App() {
         setEmail={setEmail}
         password={password}
         setPassword={setPassword}
+        selectedRole={loginRole}
+        setSelectedRole={setLoginRole}
         authLoading={authLoading}
         error={error}
         setError={setError}

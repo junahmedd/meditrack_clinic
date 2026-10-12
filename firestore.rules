@@ -15,7 +15,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.get('email', '').lower() in ["junaidudupi@gmail.com", "mohammedzaidd13@gmail.com"] ||
+        request.auth.token.get('email', '').lower() in ["junaidudupi@gmail.com", "mohammedzaidd13@gmail.com", "admin.demo@meditrack.io"] ||
         (exists(/databases/$(database)/documents/userAccess/$(request.auth.uid)) &&
          get(/databases/$(database)/documents/userAccess/$(request.auth.uid)).data.get('authorizedRole', '') in ["admin", "Administrator"])
       );
