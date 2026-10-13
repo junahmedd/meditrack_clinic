@@ -16,6 +16,7 @@ import {
   Zap,
   Sparkles,
   ChevronRight,
+  ChevronDown,
   Clock,
   ArrowRight,
 } from "lucide-react";
@@ -406,48 +407,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </div>
 
                 <form onSubmit={onSignupSubmit} className="space-y-3.5">
-                  {/* Select Role */}
+                  {/* Select Role Dropdown */}
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                      Select Role *
+                      Select Your Role *
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSignupData((prev: any) => ({ ...prev, role: "doctor" }))}
-                        className={`py-2 px-2.5 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                          (signupData.role || "doctor") === "doctor"
-                            ? "bg-[#064e3b] text-white border-[#064e3b] shadow-sm"
-                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                        }`}
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        {signupData.role === "receptionist" ? (
+                          <Users size={16} />
+                        ) : signupData.role === "admin" ? (
+                          <ShieldCheck size={16} />
+                        ) : (
+                          <Stethoscope size={16} />
+                        )}
+                      </div>
+                      <select
+                        value={signupData.role || "doctor"}
+                        onChange={(e) => setSignupData((prev: any) => ({ ...prev, role: e.target.value }))}
+                        className={`${inputCls} pr-9 cursor-pointer appearance-none font-semibold text-slate-800`}
                       >
-                        <Stethoscope size={14} />
-                        <span>Doctor</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSignupData((prev: any) => ({ ...prev, role: "receptionist" }))}
-                        className={`py-2 px-2.5 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                          signupData.role === "receptionist"
-                            ? "bg-[#064e3b] text-white border-[#064e3b] shadow-sm"
-                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                        }`}
-                      >
-                        <Users size={14} />
-                        <span>Receptionist</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSignupData((prev: any) => ({ ...prev, role: "admin" }))}
-                        className={`py-2 px-2.5 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                          signupData.role === "admin"
-                            ? "bg-[#064e3b] text-white border-[#064e3b] shadow-sm"
-                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                        }`}
-                      >
-                        <ShieldCheck size={14} />
-                        <span>Admin</span>
-                      </button>
+                        <option value="doctor">Doctor</option>
+                        <option value="receptionist">Receptionist</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                        <ChevronDown size={16} />
+                      </div>
                     </div>
                   </div>
 
