@@ -3464,36 +3464,31 @@ export default function App() {
         let linkedClinicData: any = null;
         let linkedDoctor: any = null;
 
-        // ── STRICT CLINIC VALIDATION FOR RECEPTIONIST ──
-        if (selectedRole === "receptionist") {
-          if (!enteredClinicId) {
-            throw new Error(
-              "Clinic ID is required for Receptionist registration. Please obtain your Clinic ID (e.g. MT0010) from your doctor or administrator."
-            );
-          }
-
-          // Validate Clinic ID exists in Firestore
+        // ── RESOLVE CLINIC (BY CLINIC ID IF PROVIDED, OR MATCHING CLINIC NAME) ──
+        if (enteredClinicId) {
           const clinicSnap = await getDoc(doc(db, "clinics", enteredClinicId));
-          if (!clinicSnap.exists()) {
-            throw new Error(
-              `Clinic ID "${enteredClinicId}" not found. Please verify your Clinic ID or contact your clinic administrator.`
-            );
+          if (clinicSnap.exists()) {
+            finalClinicId = enteredClinicId;
+            linkedClinicData = clinicSnap.data();
+          } else {
+            throw new Error(`Clinic ID "${enteredClinicId}" not found in MediTrack.`);
           }
-
-          linkedClinicData = clinicSnap.data();
-          const registeredClinicName = (linkedClinicData.name || "").trim().toLowerCase();
-          const enteredClinicNameLower = clinicName.toLowerCase();
-
-          // Reject if entered clinic name doesn't match registered clinic name
-          if (registeredClinicName !== enteredClinicNameLower) {
-            throw new Error(
-              `Clinic Name mismatch: The entered clinic name "${clinicName}" does not match the registered clinic name "${linkedClinicData.name}" for Clinic ID "${enteredClinicId}".`
+        } else {
+          // Check if an existing clinic matches the entered clinic name
+          const allClinicsSnap = await getDocs(collection(db, "clinics")).catch(() => null);
+          if (allClinicsSnap && !allClinicsSnap.empty) {
+            const match = allClinicsSnap.docs.find(
+              (d) => (d.data().name || "").trim().toLowerCase() === clinicName.toLowerCase()
             );
+            if (match) {
+              finalClinicId = match.id;
+              linkedClinicData = match.data();
+            }
           }
+        }
 
-          finalClinicId = enteredClinicId;
-
-          // ── RESOLVE ASSIGNED DOCTOR FROM FIREBASE ──
+        // ── IF RECEPTIONIST AND CLINIC FOUND, RESOLVE ASSIGNED DOCTOR ──
+        if (selectedRole === "receptionist" && finalClinicId) {
           const targetDocUid = (signupData as any).assignedDoctorUid || "";
           const targetDocEmail = ((signupData as any).assignedDoctorEmail || "").trim().toLowerCase();
 
@@ -3521,17 +3516,19 @@ export default function App() {
           // 3. Fallback: Any registered doctor in this clinic from users collection
           if (!linkedDoctor) {
             const clinicUsersQ = query(collection(db, "users"), where("clinicId", "==", finalClinicId));
-            const clinicUsersSnap = await getDocs(clinicUsersQ);
-            const doctorsInClinic = clinicUsersSnap.docs
-              .map((d) => ({ uid: d.id, ...d.data() }))
-              .filter((u: any) => (u.role || "").toLowerCase() === "doctor");
-            if (doctorsInClinic.length > 0) {
-              linkedDoctor = doctorsInClinic[0];
+            const clinicUsersSnap = await getDocs(clinicUsersQ).catch(() => null);
+            if (clinicUsersSnap && !clinicUsersSnap.empty) {
+              const doctorsInClinic = clinicUsersSnap.docs
+                .map((d) => ({ uid: d.id, ...d.data() }))
+                .filter((u: any) => (u.role || "").toLowerCase() === "doctor");
+              if (doctorsInClinic.length > 0) {
+                linkedDoctor = doctorsInClinic[0];
+              }
             }
           }
 
           // 4. Fallback: Primary doctor from clinic document
-          if (!linkedDoctor && linkedClinicData.primaryDoctorName) {
+          if (!linkedDoctor && linkedClinicData?.primaryDoctorName) {
             linkedDoctor = {
               uid: linkedClinicData.adminId || "",
               displayName: linkedClinicData.primaryDoctorName,
@@ -3540,25 +3537,6 @@ export default function App() {
               doctorId: linkedClinicData.primaryDoctorId || `DOC-${finalClinicId}-001`,
               category: "GP",
             };
-          }
-        } else if (selectedRole === "doctor") {
-          // If Doctor provided an existing Clinic ID to join
-          if (enteredClinicId) {
-            const clinicSnap = await getDoc(doc(db, "clinics", enteredClinicId));
-            if (!clinicSnap.exists()) {
-              throw new Error(
-                `Clinic ID "${enteredClinicId}" not found. Leave Clinic ID blank to register a new clinic, or enter a valid Clinic ID.`
-              );
-            }
-            linkedClinicData = clinicSnap.data();
-            const registeredClinicName = (linkedClinicData.name || "").trim().toLowerCase();
-            const enteredClinicNameLower = clinicName.toLowerCase();
-            if (registeredClinicName !== enteredClinicNameLower) {
-              throw new Error(
-                `Clinic Name mismatch: The entered clinic name "${clinicName}" does not match the registered clinic name "${linkedClinicData.name}" for Clinic ID "${enteredClinicId}".`
-              );
-            }
-            finalClinicId = enteredClinicId;
           }
         }
 

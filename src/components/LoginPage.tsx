@@ -406,6 +406,51 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </div>
 
                 <form onSubmit={onSignupSubmit} className="space-y-3.5">
+                  {/* Select Role */}
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                      Select Role *
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSignupData((prev: any) => ({ ...prev, role: "doctor" }))}
+                        className={`py-2 px-2.5 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          (signupData.role || "doctor") === "doctor"
+                            ? "bg-[#064e3b] text-white border-[#064e3b] shadow-sm"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        <Stethoscope size={14} />
+                        <span>Doctor</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSignupData((prev: any) => ({ ...prev, role: "receptionist" }))}
+                        className={`py-2 px-2.5 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          signupData.role === "receptionist"
+                            ? "bg-[#064e3b] text-white border-[#064e3b] shadow-sm"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        <Users size={14} />
+                        <span>Receptionist</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSignupData((prev: any) => ({ ...prev, role: "admin" }))}
+                        className={`py-2 px-2.5 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          signupData.role === "admin"
+                            ? "bg-[#064e3b] text-white border-[#064e3b] shadow-sm"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        <ShieldCheck size={14} />
+                        <span>Admin</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Clinic Name */}
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
