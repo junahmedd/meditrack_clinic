@@ -1508,12 +1508,18 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [signupData, setSignupData] = useState({
+    clinicId: "",
     clinicName: "",
     fullName: "",
     email: "",
     password: "",
     phone: "+91",
     role: "doctor",
+    assignedDoctorUid: "",
+    assignedDoctorEmail: "",
+    assignedDoctorName: "",
+    assignedDoctorId: "",
+    assignedDoctorCategory: "",
   });
 
   // Auth States
@@ -1789,16 +1795,29 @@ export default function App() {
           const needsAddressUpdate =
             latestProfile.clinicAddress !== data.address;
           const needsIdUpdate = latestProfile.clinicId !== clinicIdToUse;
+          const needsDoctorUpdate =
+            (latestProfile.role || "").toLowerCase() === "receptionist" &&
+            (!latestProfile.assignedDoctorName || latestProfile.assignedDoctorName === "Clinic Doctor") &&
+            Boolean(data.primaryDoctorName);
 
-          if (needsNameUpdate || needsAddressUpdate || needsIdUpdate) {
-            updateDoc(doc(db, "users", latestProfile.uid), {
+          if (needsNameUpdate || needsAddressUpdate || needsIdUpdate || needsDoctorUpdate) {
+            const patch: any = {
               clinicName: data.name || "",
               clinicAddress: data.address || "",
               clinicId: clinicIdToUse,
               updatedAt: serverTimestamp(),
-            }).catch((err) => {
+            };
+            if (needsDoctorUpdate && data.primaryDoctorName) {
+              patch.assignedDoctorName = data.primaryDoctorName;
+              patch.assignedDoctorEmail = data.primaryDoctorEmail || "";
+              patch.assignedDoctorId = data.primaryDoctorId || `DOC-${clinicIdToUse}-001`;
+              patch.assignedDoctorUid = data.adminId || "";
+              patch.assignedDoctorCategory = "GP";
+            }
+            updateDoc(doc(db, "users", latestProfile.uid), patch).catch((err) => {
               console.error("Error updating user profile sync:", err);
             });
+            updateDoc(doc(db, "userAccess", latestProfile.uid), patch).catch(() => {});
           }
         } else {
           // Try fallback if not found
@@ -3429,13 +3448,118 @@ export default function App() {
       setError(null);
       isSignupInProgressRef.current = true;
       try {
+        const enteredClinicId = ((signupData as any).clinicId || "").trim().toUpperCase();
         const clinicName = signupData.clinicName.trim();
         const fullName = signupData.fullName.trim();
         const emailVal = signupData.email.trim();
         const passwordVal = signupData.password;
+        const selectedRole = signupData.role || "doctor";
+        const cleanPhone = signupData.phone?.trim() || "+919876543210";
 
         if (!clinicName || !fullName || !emailVal || !passwordVal) {
-          throw new Error("Please fill in all fields.");
+          throw new Error("Please fill in all required fields.");
+        }
+
+        let finalClinicId = "";
+        let linkedClinicData: any = null;
+        let linkedDoctor: any = null;
+
+        // ── STRICT CLINIC VALIDATION FOR RECEPTIONIST ──
+        if (selectedRole === "receptionist") {
+          if (!enteredClinicId) {
+            throw new Error(
+              "Clinic ID is required for Receptionist registration. Please obtain your Clinic ID (e.g. MT0010) from your doctor or administrator."
+            );
+          }
+
+          // Validate Clinic ID exists in Firestore
+          const clinicSnap = await getDoc(doc(db, "clinics", enteredClinicId));
+          if (!clinicSnap.exists()) {
+            throw new Error(
+              `Clinic ID "${enteredClinicId}" not found. Please verify your Clinic ID or contact your clinic administrator.`
+            );
+          }
+
+          linkedClinicData = clinicSnap.data();
+          const registeredClinicName = (linkedClinicData.name || "").trim().toLowerCase();
+          const enteredClinicNameLower = clinicName.toLowerCase();
+
+          // Reject if entered clinic name doesn't match registered clinic name
+          if (registeredClinicName !== enteredClinicNameLower) {
+            throw new Error(
+              `Clinic Name mismatch: The entered clinic name "${clinicName}" does not match the registered clinic name "${linkedClinicData.name}" for Clinic ID "${enteredClinicId}".`
+            );
+          }
+
+          finalClinicId = enteredClinicId;
+
+          // ── RESOLVE ASSIGNED DOCTOR FROM FIREBASE ──
+          const targetDocUid = (signupData as any).assignedDoctorUid || "";
+          const targetDocEmail = ((signupData as any).assignedDoctorEmail || "").trim().toLowerCase();
+
+          // 1. By selected doctor UID
+          if (targetDocUid) {
+            const docSnap = await getDoc(doc(db, "users", targetDocUid));
+            if (docSnap.exists() && docSnap.data().clinicId === finalClinicId) {
+              linkedDoctor = { ...docSnap.data(), uid: targetDocUid };
+            }
+          }
+
+          // 2. By selected or entered doctor email
+          if (!linkedDoctor && targetDocEmail) {
+            const docQ = query(
+              collection(db, "users"),
+              where("email", "==", targetDocEmail),
+              where("clinicId", "==", finalClinicId)
+            );
+            const docSnap = await getDocs(docQ);
+            if (!docSnap.empty) {
+              linkedDoctor = { ...docSnap.docs[0].data(), uid: docSnap.docs[0].id };
+            }
+          }
+
+          // 3. Fallback: Any registered doctor in this clinic from users collection
+          if (!linkedDoctor) {
+            const clinicUsersQ = query(collection(db, "users"), where("clinicId", "==", finalClinicId));
+            const clinicUsersSnap = await getDocs(clinicUsersQ);
+            const doctorsInClinic = clinicUsersSnap.docs
+              .map((d) => ({ uid: d.id, ...d.data() }))
+              .filter((u: any) => (u.role || "").toLowerCase() === "doctor");
+            if (doctorsInClinic.length > 0) {
+              linkedDoctor = doctorsInClinic[0];
+            }
+          }
+
+          // 4. Fallback: Primary doctor from clinic document
+          if (!linkedDoctor && linkedClinicData.primaryDoctorName) {
+            linkedDoctor = {
+              uid: linkedClinicData.adminId || "",
+              displayName: linkedClinicData.primaryDoctorName,
+              name: linkedClinicData.primaryDoctorName,
+              email: linkedClinicData.primaryDoctorEmail || linkedClinicData.adminEmail || "",
+              doctorId: linkedClinicData.primaryDoctorId || `DOC-${finalClinicId}-001`,
+              category: "GP",
+            };
+          }
+        } else if (selectedRole === "doctor") {
+          // If Doctor provided an existing Clinic ID to join
+          if (enteredClinicId) {
+            const clinicSnap = await getDoc(doc(db, "clinics", enteredClinicId));
+            if (!clinicSnap.exists()) {
+              throw new Error(
+                `Clinic ID "${enteredClinicId}" not found. Leave Clinic ID blank to register a new clinic, or enter a valid Clinic ID.`
+              );
+            }
+            linkedClinicData = clinicSnap.data();
+            const registeredClinicName = (linkedClinicData.name || "").trim().toLowerCase();
+            const enteredClinicNameLower = clinicName.toLowerCase();
+            if (registeredClinicName !== enteredClinicNameLower) {
+              throw new Error(
+                `Clinic Name mismatch: The entered clinic name "${clinicName}" does not match the registered clinic name "${linkedClinicData.name}" for Clinic ID "${enteredClinicId}".`
+              );
+            }
+            finalClinicId = enteredClinicId;
+          }
         }
 
         // Step 1 — Create or reuse existing Firebase Auth user
@@ -3452,77 +3576,72 @@ export default function App() {
               userUid = signinCred.user.uid;
               authUser = signinCred.user;
             } catch (loginErr: any) {
-              throw new Error("This email is already registered in MediTrack. Please sign in with your correct password, or register with another email.");
+              throw new Error(
+                "This email is already registered in MediTrack. Please sign in with your correct password, or register with another email."
+              );
             }
           } else {
             throw authErr;
           }
         }
 
-        const selectedRole = signupData.role || "doctor";
-        const cleanPhone = signupData.phone?.trim() || "+919876543210";
-        const assignedTarget = (signupData as any).assignedDoctorEmail?.trim() || "";
-
-        let finalClinicId = "";
-        let linkedDoctor: any = null;
-
-        // If signing up as Receptionist with a doctor email or clinic ID provided, connect to that clinic
-        if (selectedRole === "receptionist" && assignedTarget) {
-          const targetLower = assignedTarget.toLowerCase();
-          // First try matching by clinicId
-          const clinicSnap = await getDoc(doc(db, "clinics", assignedTarget.toUpperCase()));
-          if (clinicSnap.exists()) {
-            finalClinicId = assignedTarget.toUpperCase();
-            // Look up doctor in this clinic
-            const docsSnap = await getDocs(query(collection(db, "users"), where("clinicId", "==", finalClinicId), where("role", "==", "doctor")));
-            if (!docsSnap.empty) {
-              linkedDoctor = docsSnap.docs[0].data();
-            }
-          } else {
-            // Try matching by doctor email in users collection
-            const docQ = query(collection(db, "users"), where("email", "==", targetLower));
-            const docSnap = await getDocs(docQ);
-            if (!docSnap.empty) {
-              linkedDoctor = docSnap.docs[0].data();
-              if (linkedDoctor.clinicId) {
-                finalClinicId = linkedDoctor.clinicId;
-              }
-            } else {
-              // Try authorizedAccounts
-              const emailKey = targetLower.replace(/[^a-z0-9]/g, "_");
-              const authAccSnap = await getDoc(doc(db, "authorizedAccounts", emailKey));
-              if (authAccSnap.exists()) {
-                linkedDoctor = authAccSnap.data();
-                if (linkedDoctor.clinicId) {
-                  finalClinicId = linkedDoctor.clinicId;
-                }
-              }
-            }
-          }
-        }
-
-        // If no existing clinic matched, generate sequential clinic ID
+        // If creating a brand new clinic (Doctor without existing Clinic ID, or Admin)
         if (!finalClinicId) {
           const counterRef = doc(db, "system", "clinicCounter");
           await runTransaction(db, async (transaction) => {
             const counterSnap = await transaction.get(counterRef);
-            const currentCount = counterSnap.exists() ? (counterSnap.data().count || 0) : 0;
+            const currentCount = counterSnap.exists() ? counterSnap.data().count || 0 : 0;
             const nextCount = currentCount + 1;
             const paddedNum = String(nextCount).padStart(4, "0");
             finalClinicId = `MT${paddedNum}`;
             transaction.set(counterRef, { count: nextCount }, { merge: true });
           });
 
-          // Create new clinic document
+          // Create new clinic document with primary doctor details
+          const newDocId = `DOC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`;
           await setDoc(doc(db, "clinics", finalClinicId), {
             clinicId: finalClinicId,
             name: clinicName,
             adminId: userUid,
-            adminEmail: emailVal,
-            primaryDoctorId: selectedRole === "doctor" ? `DOC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}` : `DOC-${finalClinicId}-001`,
+            adminEmail: emailVal.toLowerCase().trim(),
+            primaryDoctorId: selectedRole === "doctor" ? newDocId : `DOC-${finalClinicId}-001`,
+            primaryDoctorName: selectedRole === "doctor" ? fullName : "",
+            primaryDoctorEmail: selectedRole === "doctor" ? emailVal.toLowerCase().trim() : "",
+            doctors: selectedRole === "doctor"
+              ? [
+                  {
+                    uid: userUid,
+                    name: fullName,
+                    displayName: fullName,
+                    email: emailVal.toLowerCase().trim(),
+                    doctorId: newDocId,
+                    category: "GP",
+                  },
+                ]
+              : [],
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
+        } else if (selectedRole === "doctor" && linkedClinicData) {
+          // Doctor joined existing clinic — add to doctors list in clinic doc
+          const newDocId = `DOC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`;
+          const docEntry = {
+            uid: userUid,
+            name: fullName,
+            displayName: fullName,
+            email: emailVal.toLowerCase().trim(),
+            doctorId: newDocId,
+            category: "GP",
+          };
+          const existingDocs = Array.isArray(linkedClinicData.doctors) ? linkedClinicData.doctors : [];
+          const updatedDocs = [
+            ...existingDocs.filter((d: any) => (d.email || "").toLowerCase() !== emailVal.toLowerCase().trim()),
+            docEntry,
+          ];
+          await updateDoc(doc(db, "clinics", finalClinicId), {
+            doctors: updatedDocs,
+            updatedAt: serverTimestamp(),
+          }).catch(console.error);
         }
 
         const newDoctorId = selectedRole === "doctor"
@@ -3543,7 +3662,7 @@ export default function App() {
           status: "active",
           accountStatus: "active",
           clinicId: finalClinicId,
-          clinicName: clinicName,
+          clinicName: linkedClinicData?.name || clinicName,
           doctorId: newDoctorId,
           receptionistId: newRecId,
           contactNumber: cleanPhone,
@@ -3554,14 +3673,45 @@ export default function App() {
           updatedAt: serverTimestamp(),
         };
 
-        if (selectedRole === "receptionist" && linkedDoctor) {
-          profilePayload.assignedDoctorEmail = linkedDoctor.email || "";
-          profilePayload.assignedDoctorName = linkedDoctor.displayName || "";
-          profilePayload.assignedDoctorId = linkedDoctor.doctorId || newDoctorId;
-          profilePayload.assignedDoctorUid = linkedDoctor.uid || "";
-          profilePayload.assignedDoctorCategory = linkedDoctor.category || "GP";
-        } else if (selectedRole === "receptionist" && assignedTarget) {
-          profilePayload.assignedDoctorEmail = assignedTarget;
+        if (selectedRole === "doctor") {
+          profilePayload.category = "GP";
+        }
+
+        // ── DOCTOR–RECEPTIONIST RELATIONSHIP LINKING ──
+        if (selectedRole === "receptionist") {
+          const docEmail = linkedDoctor?.email || linkedClinicData?.primaryDoctorEmail || "";
+          const docName = linkedDoctor?.displayName || linkedDoctor?.name || linkedClinicData?.primaryDoctorName || "Dr. Zaid";
+          const docId = linkedDoctor?.doctorId || linkedClinicData?.primaryDoctorId || newDoctorId;
+          const docUid = linkedDoctor?.uid || linkedClinicData?.adminId || "";
+          const docCategory = linkedDoctor?.category || "GP";
+
+          profilePayload.assignedDoctorEmail = docEmail;
+          profilePayload.assignedDoctorName = docName;
+          profilePayload.assignedDoctorId = docId;
+          profilePayload.assignedDoctorUid = docUid;
+          profilePayload.assignedDoctorCategory = docCategory;
+
+          // Save assignment to /clinic_assignments and /doctorReceptionistMappings
+          const assignmentId = `${finalClinicId}_${docUid || "doc"}_${userUid}`;
+          const assignmentPayload = {
+            assignmentId,
+            clinicId: finalClinicId,
+            clinicName: linkedClinicData?.name || clinicName,
+            doctorId: docId,
+            doctorUid: docUid,
+            doctorEmail: docEmail,
+            doctorName: docName,
+            receptionistId: newRecId,
+            receptionistUid: userUid,
+            receptionistEmail: emailVal.toLowerCase().trim(),
+            receptionistName: fullName,
+            status: "active",
+            assignedAt: serverTimestamp(),
+            createdAt: serverTimestamp(),
+          };
+
+          await setDoc(doc(db, "clinic_assignments", assignmentId), assignmentPayload).catch(console.error);
+          await setDoc(doc(db, "doctorReceptionistMappings", `${finalClinicId}_${userUid}`), assignmentPayload).catch(console.error);
         }
 
         const userDocRef = doc(db, "users", userUid);

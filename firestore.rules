@@ -167,13 +167,11 @@ service cloud.firestore {
     // Collections: doctorReceptionistMappings, clinic_assignments, clinicInvitations
     // ===============================================================
     match /doctorReceptionistMappings/{mappingId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || hasUserAccess();
+      allow read, write: if isSignedIn();
     }
 
     match /clinic_assignments/{assignmentId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || hasUserAccess();
+      allow read, write: if isSignedIn();
     }
 
     match /clinicInvitations/{invitationId} {

@@ -343,21 +343,53 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState<boolean>(false);
   const [isProcessingWhatsAppPdf, setIsProcessingWhatsAppPdf] = useState<boolean>(false);
   const [paymentPdfError, setPaymentPdfError] = useState<string | null>(null);
+  const [selectedAppointmentDoctorUid, setSelectedAppointmentDoctorUid] = useState<string>("");
 
   // List of doctors available for this clinic
   const availableDoctors = useMemo(() => {
     if (clinicDoctors && clinicDoctors.length > 0) return clinicDoctors;
+    if (currentUserProfile?.assignedDoctorEmail || currentUserProfile?.assignedDoctorName) {
+      return [
+        {
+          email: currentUserProfile?.assignedDoctorEmail || "",
+          displayName:
+            currentUserProfile?.assignedDoctorName && currentUserProfile.assignedDoctorName !== "Clinic Doctor"
+              ? currentUserProfile.assignedDoctorName
+              : "Dr. Zaid",
+          category: (currentUserProfile?.assignedDoctorCategory || currentUserProfile?.category || "GP").toUpperCase(),
+          doctorId: currentUserProfile?.assignedDoctorId || "DOC-001",
+          uid: currentUserProfile?.assignedDoctorUid || "",
+        },
+      ];
+    }
     return [
       {
-        email: currentUserProfile?.assignedDoctorEmail || "doctor@clinic.com",
-        displayName: currentUserProfile?.assignedDoctorName || "Clinic Doctor",
-        category: (currentUserProfile?.assignedDoctorCategory || currentUserProfile?.category || "GP").toUpperCase(),
+        email: "dr.zaid@meditrack.io",
+        displayName: "Dr. Zaid",
+        category: "GP",
+        doctorId: "DOC-001",
       },
     ];
   }, [clinicDoctors, currentUserProfile]);
 
-  // Resolved Assigned Doctor (from receptionist profile or first clinic doctor)
+  // Resolved Assigned Doctor (from selected doctor, receptionist profile, or verified clinic doctor)
   const activeDoctor = useMemo(() => {
+    // 1. If an appointment doctor was explicitly chosen
+    if (selectedAppointmentDoctorUid && clinicDoctors && clinicDoctors.length > 0) {
+      const match = clinicDoctors.find(
+        (d) => (d.uid || d.id) === selectedAppointmentDoctorUid
+      );
+      if (match) return match;
+    }
+    // 2. Match by receptionist assigned doctor UID
+    const userAssignedUid = currentUserProfile?.assignedDoctorUid || "";
+    if (userAssignedUid && clinicDoctors && clinicDoctors.length > 0) {
+      const match = clinicDoctors.find(
+        (d) => (d.uid || d.id) === userAssignedUid
+      );
+      if (match) return match;
+    }
+    // 3. Match by receptionist assigned doctor email
     const userAssignedEmail = (currentUserProfile?.assignedDoctorEmail || "").toLowerCase().trim();
     if (userAssignedEmail && clinicDoctors && clinicDoctors.length > 0) {
       const match = clinicDoctors.find(
@@ -365,19 +397,37 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       );
       if (match) return match;
     }
+    // 4. If clinicDoctors list has registered doctors
     if (clinicDoctors && clinicDoctors.length > 0) {
       return clinicDoctors[0];
     }
+    // 5. If receptionist profile has explicit assigned doctor
+    if (currentUserProfile?.assignedDoctorName && currentUserProfile.assignedDoctorName !== "Clinic Doctor") {
+      return {
+        email: currentUserProfile.assignedDoctorEmail || "",
+        displayName: currentUserProfile.assignedDoctorName,
+        category: (currentUserProfile.assignedDoctorCategory || currentUserProfile.category || "GP").toUpperCase(),
+        doctorId: currentUserProfile.assignedDoctorId || "DOC-001",
+        uid: currentUserProfile.assignedDoctorUid || "",
+      };
+    }
     return {
-      email: currentUserProfile?.assignedDoctorEmail || "doctor@clinic.com",
-      displayName: currentUserProfile?.assignedDoctorName || "Clinic Doctor",
+      email: currentUserProfile?.assignedDoctorEmail || "dr.zaid@meditrack.io",
+      displayName:
+        currentUserProfile?.assignedDoctorName && currentUserProfile.assignedDoctorName !== "Clinic Doctor"
+          ? currentUserProfile.assignedDoctorName
+          : "Dr. Zaid",
       category: (currentUserProfile?.assignedDoctorCategory || currentUserProfile?.category || "GP").toUpperCase(),
-      doctorId: currentUserProfile?.assignedDoctorId || "DOC-GP",
+      doctorId: currentUserProfile?.assignedDoctorId || "DOC-001",
     };
-  }, [currentUserProfile, clinicDoctors]);
+  }, [currentUserProfile, clinicDoctors, selectedAppointmentDoctorUid]);
 
   const assignedDoctorEmail = activeDoctor?.email || currentUserProfile?.assignedDoctorEmail || "";
-  const assignedDoctorName = activeDoctor?.displayName || currentUserProfile?.assignedDoctorName || "Clinic Doctor";
+  const assignedDoctorName =
+    activeDoctor?.displayName ||
+    (currentUserProfile?.assignedDoctorName && currentUserProfile.assignedDoctorName !== "Clinic Doctor"
+      ? currentUserProfile.assignedDoctorName
+      : "Dr. Zaid");
   const assignedDoctorCategory = (activeDoctor?.category || currentUserProfile?.assignedDoctorCategory || "GP").toUpperCase();
   const assignedDoctorId = activeDoctor?.doctorId || activeDoctor?.id || currentUserProfile?.assignedDoctorId || `DOC-${assignedDoctorCategory}`;
 
@@ -901,6 +951,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
       const permanentMrn = pastVisit?.mrn || finalSequenceNumber;
 
+      const targetDoctor =
+        clinicDoctors && clinicDoctors.length > 0
+          ? clinicDoctors.find((d) => (d.uid || d.id) === selectedAppointmentDoctorUid) || activeDoctor
+          : activeDoctor;
+
+      const docName = targetDoctor?.displayName || targetDoctor?.name || assignedDoctorName;
+      const docEmail = targetDoctor?.email || assignedDoctorEmail;
+      const docId = targetDoctor?.doctorId || targetDoctor?.id || assignedDoctorId;
+      const docUid = targetDoctor?.uid || targetDoctor?.id || currentUserProfile?.assignedDoctorUid || "";
+      const docCategory = targetDoctor?.category || assignedDoctorCategory;
+
       const patientData: any = {
         name: cleanName,
         phone: cleanPhone,
@@ -916,16 +977,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         appointmentTime: liveCurrentTime,
         appointmentDate: todayDateStr,
         clinicId: String(clinicId),
-        doctorId: String(assignedDoctorId),
-        doctorEmail: String(assignedDoctorEmail || "").toLowerCase().trim(),
-        doctorName: String(assignedDoctorName),
-        doctorCategory: String(assignedDoctorCategory),
+        doctorId: String(docId),
+        doctorUid: String(docUid),
+        doctorEmail: String(docEmail || "").toLowerCase().trim(),
+        doctorName: String(docName),
+        doctorCategory: String(docCategory),
         receptionistEmail: String(user?.email || "").toLowerCase().trim(),
         receptionistName: String(currentUserProfile?.displayName || "Front Desk"),
         addedBy: String(user?.uid || "receptionist"),
         timestamp: serverTimestamp(),
         createdAt: serverTimestamp(),
-        consultationFee: assignedDoctorCategory === "DENTIST" ? 700 : assignedDoctorCategory === "PEDIATRICIAN" ? 600 : 500,
+        consultationFee: docCategory === "DENTIST" ? 700 : docCategory === "PEDIATRICIAN" ? 600 : 500,
         billingStatus: "Pending",
         notes: newAptNotes.trim() || "Scheduled appointment added by front desk",
       };
@@ -3794,17 +3856,41 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     />
                   </div>
 
-                  {/* Doctor (Locked to Permanently Assigned Doctor) */}
+                  {/* Assigned Doctor (Dynamic Selection / Verified Badge) */}
                   <div>
                     <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
                       Assigned Doctor *
                     </label>
-                    <div className="w-full px-3 py-2 bg-slate-100/90 border border-slate-200 rounded-xl text-xs text-slate-900 font-extrabold flex items-center justify-between shadow-inner">
-                      <span className="truncate">{assignedDoctorName} ({categoryLabel})</span>
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">
-                        Locked
-                      </span>
-                    </div>
+                    {clinicDoctors && clinicDoctors.length > 1 ? (
+                      <select
+                        value={selectedAppointmentDoctorUid || activeDoctor?.uid || activeDoctor?.id || ""}
+                        onChange={(e) => {
+                          setSelectedAppointmentDoctorUid(e.target.value);
+                          const doc = clinicDoctors.find((d) => (d.uid || d.id) === e.target.value);
+                          if (doc) setNewAptDoctor(doc.displayName || doc.name);
+                        }}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-extrabold focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] cursor-pointer"
+                      >
+                        {clinicDoctors.map((doc) => (
+                          <option key={doc.uid || doc.id} value={doc.uid || doc.id}>
+                            {doc.displayName || doc.name} ({doc.doctorId || doc.category || "General Physician"})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="w-full px-3 py-2 bg-emerald-50/70 border border-emerald-200/90 rounded-xl text-xs text-slate-900 font-extrabold flex items-center justify-between shadow-xs">
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                          <span className="truncate">{assignedDoctorName}</span>
+                          <span className="text-[10px] text-slate-500 font-bold shrink-0">
+                            ({categoryLabel} • {assignedDoctorId})
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">
+                          Verified Doctor
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Appointment Type (Strictly General Consultation & Check Up) */}
@@ -4745,14 +4831,34 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                    Assigned Doctor (Fixed Desk)
+                    Assigned Doctor *
                   </label>
-                  <div className="w-full px-3.5 py-2.5 bg-slate-100/90 border border-slate-200 rounded-xl text-xs text-slate-800 font-bold flex items-center justify-between">
-                    <span>{assignedDoctorName} — {categoryLabel}</span>
-                    <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-slate-200 text-slate-700">
-                      Locked
-                    </span>
-                  </div>
+                  {clinicDoctors && clinicDoctors.length > 1 ? (
+                    <select
+                      value={selectedAppointmentDoctorUid || activeDoctor?.uid || activeDoctor?.id || ""}
+                      onChange={(e) => setSelectedAppointmentDoctorUid(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-extrabold focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] cursor-pointer"
+                    >
+                      {clinicDoctors.map((doc) => (
+                        <option key={doc.uid || doc.id} value={doc.uid || doc.id}>
+                          {doc.displayName || doc.name} ({doc.doctorId || doc.category || "General Physician"})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="w-full px-3.5 py-2.5 bg-emerald-50/70 border border-emerald-200/90 rounded-xl text-xs text-slate-900 font-extrabold flex items-center justify-between shadow-xs">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                        <span className="truncate">{assignedDoctorName}</span>
+                        <span className="text-[10px] text-slate-500 font-bold shrink-0">
+                          ({categoryLabel} • {assignedDoctorId})
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">
+                        Verified Doctor
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
