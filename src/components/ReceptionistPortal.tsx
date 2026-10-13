@@ -2173,9 +2173,15 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           {queueItems.length} in Queue Today
                         </span>
+                        {(assignedDoctorEmail || currentUserProfile?.clinicId) && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/80 shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                            Connected: <strong className="font-bold text-slate-900">{assignedDoctorName}</strong> ({assignedDoctorEmail || "No Email"}) • Clinic: <strong className="font-bold text-slate-900">{currentUserProfile?.clinicId || clinicInfo?.name || "Clinic"}</strong>
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] font-medium text-slate-400 mt-0.5 leading-snug">
-                        Live waiting room queue &amp; active doctor consultations
+                        Live waiting room queue &amp; active doctor consultations synchronized with {assignedDoctorName} ({assignedDoctorEmail})
                       </p>
                     </div>
                   </div>
@@ -4622,10 +4628,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       queueNumber: Number(nextQueueNumber),
                       status: "Waiting",
                       clinicId: String(clinicId),
+                      doctorUid: String(activeDoctor?.uid || activeDoctor?.id || currentUserProfile?.assignedDoctorUid || ""),
                       doctorId: String(assignedDoctorId),
                       doctorEmail: String(assignedDoctorEmail || "").toLowerCase().trim(),
                       doctorName: String(assignedDoctorName),
                       doctorCategory: String(assignedDoctorCategory),
+                      receptionistUid: String(user?.uid || ""),
                       receptionistEmail: String(user?.email || "").toLowerCase().trim(),
                       receptionistName: String(currentUserProfile?.displayName || "Front Desk"),
                       addedBy: String(addedBy),

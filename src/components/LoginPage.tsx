@@ -40,6 +40,7 @@ interface LoginPageProps {
     password: string;
     phone?: string;
     role?: string;
+    assignedDoctorEmail?: string;
   };
   setSignupData: React.Dispatch<React.SetStateAction<any>>;
   onSignupSubmit: (e: React.FormEvent) => Promise<void>;
@@ -492,6 +493,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       </select>
                     </div>
                   </div>
+
+                  {/* If Receptionist, optionally connect to Doctor's email or Clinic ID */}
+                  {(signupData.role === "receptionist") && (
+                    <div className="space-y-1 bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100/80">
+                      <label className="block text-[11px] font-bold text-emerald-900 uppercase tracking-wide">
+                        Connect with Doctor's Email or Clinic ID
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-emerald-600">
+                          <Stethoscope size={15} />
+                        </div>
+                        <input
+                          type="text"
+                          value={signupData.assignedDoctorEmail || ""}
+                          onChange={(e) => setSignupData({ ...signupData, assignedDoctorEmail: e.target.value })}
+                          placeholder="e.g. dr.zaid@meditrack.io or MT0010"
+                          className={inputCls + " bg-white border-emerald-200 focus:ring-emerald-600/20"}
+                        />
+                      </div>
+                      <p className="text-[10px] text-emerald-700/80 mt-1">
+                        Connects your reception desk to this doctor's clinic ID and live patient queue.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Password */}
                   <div className="space-y-1">

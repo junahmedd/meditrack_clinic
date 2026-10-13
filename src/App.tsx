@@ -3411,33 +3411,78 @@ export default function App() {
           }
         }
 
-        // Step 2 — Generate sequential clinic ID (MT0001, MT0002, ...) via Firestore transaction
-        const counterRef = doc(db, "system", "clinicCounter");
-        let finalClinicId = "";
-        await runTransaction(db, async (transaction) => {
-          const counterSnap = await transaction.get(counterRef);
-          const currentCount = counterSnap.exists() ? (counterSnap.data().count || 0) : 0;
-          const nextCount = currentCount + 1;
-          const paddedNum = String(nextCount).padStart(4, "0");
-          finalClinicId = `MT${paddedNum}`;
-          transaction.set(counterRef, { count: nextCount }, { merge: true });
-        });
-
         const selectedRole = signupData.role || "doctor";
         const cleanPhone = signupData.phone?.trim() || "+919876543210";
-        const newDoctorId = selectedRole === "doctor" ? `DOC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}` : `DOC-${finalClinicId}-001`;
-        const newRecId = selectedRole === "receptionist" ? `REC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}` : `REC-${finalClinicId}-001`;
+        const assignedTarget = (signupData as any).assignedDoctorEmail?.trim() || "";
 
-        // Step 3 — Create clinic document
-        await setDoc(doc(db, "clinics", finalClinicId), {
-          clinicId: finalClinicId,
-          name: clinicName,
-          adminId: userUid,
-          adminEmail: emailVal,
-          primaryDoctorId: newDoctorId,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
+        let finalClinicId = "";
+        let linkedDoctor: any = null;
+
+        // If signing up as Receptionist with a doctor email or clinic ID provided, connect to that clinic
+        if (selectedRole === "receptionist" && assignedTarget) {
+          const targetLower = assignedTarget.toLowerCase();
+          // First try matching by clinicId
+          const clinicSnap = await getDoc(doc(db, "clinics", assignedTarget.toUpperCase()));
+          if (clinicSnap.exists()) {
+            finalClinicId = assignedTarget.toUpperCase();
+            // Look up doctor in this clinic
+            const docsSnap = await getDocs(query(collection(db, "users"), where("clinicId", "==", finalClinicId), where("role", "==", "doctor")));
+            if (!docsSnap.empty) {
+              linkedDoctor = docsSnap.docs[0].data();
+            }
+          } else {
+            // Try matching by doctor email in users collection
+            const docQ = query(collection(db, "users"), where("email", "==", targetLower));
+            const docSnap = await getDocs(docQ);
+            if (!docSnap.empty) {
+              linkedDoctor = docSnap.docs[0].data();
+              if (linkedDoctor.clinicId) {
+                finalClinicId = linkedDoctor.clinicId;
+              }
+            } else {
+              // Try authorizedAccounts
+              const emailKey = targetLower.replace(/[^a-z0-9]/g, "_");
+              const authAccSnap = await getDoc(doc(db, "authorizedAccounts", emailKey));
+              if (authAccSnap.exists()) {
+                linkedDoctor = authAccSnap.data();
+                if (linkedDoctor.clinicId) {
+                  finalClinicId = linkedDoctor.clinicId;
+                }
+              }
+            }
+          }
+        }
+
+        // If no existing clinic matched, generate sequential clinic ID
+        if (!finalClinicId) {
+          const counterRef = doc(db, "system", "clinicCounter");
+          await runTransaction(db, async (transaction) => {
+            const counterSnap = await transaction.get(counterRef);
+            const currentCount = counterSnap.exists() ? (counterSnap.data().count || 0) : 0;
+            const nextCount = currentCount + 1;
+            const paddedNum = String(nextCount).padStart(4, "0");
+            finalClinicId = `MT${paddedNum}`;
+            transaction.set(counterRef, { count: nextCount }, { merge: true });
+          });
+
+          // Create new clinic document
+          await setDoc(doc(db, "clinics", finalClinicId), {
+            clinicId: finalClinicId,
+            name: clinicName,
+            adminId: userUid,
+            adminEmail: emailVal,
+            primaryDoctorId: selectedRole === "doctor" ? `DOC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}` : `DOC-${finalClinicId}-001`,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
+
+        const newDoctorId = selectedRole === "doctor"
+          ? `DOC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`
+          : (linkedDoctor?.doctorId || `DOC-${finalClinicId}-001`);
+        const newRecId = selectedRole === "receptionist"
+          ? `REC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`
+          : `REC-${finalClinicId}-001`;
 
         // Step 4 — Create user profile & userAccess
         const profilePayload: any = {
@@ -3460,6 +3505,16 @@ export default function App() {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
+
+        if (selectedRole === "receptionist" && linkedDoctor) {
+          profilePayload.assignedDoctorEmail = linkedDoctor.email || "";
+          profilePayload.assignedDoctorName = linkedDoctor.displayName || "";
+          profilePayload.assignedDoctorId = linkedDoctor.doctorId || newDoctorId;
+          profilePayload.assignedDoctorUid = linkedDoctor.uid || "";
+          profilePayload.assignedDoctorCategory = linkedDoctor.category || "GP";
+        } else if (selectedRole === "receptionist" && assignedTarget) {
+          profilePayload.assignedDoctorEmail = assignedTarget;
+        }
 
         const userDocRef = doc(db, "users", userUid);
         await setDoc(userDocRef, profilePayload);
