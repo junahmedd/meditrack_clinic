@@ -4,6 +4,7 @@ import { MobileBottomNav } from "./MobileBottomNav";
 import { NetworkStatusBanner } from "./NetworkStatusBanner";
 import { LanguageSelector } from "./LanguageSelector";
 import { useLanguage } from "../i18n/LanguageContext";
+import { formatMedSequence } from "../utils/patientSequence";
 import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp, collection, onSnapshot, addDoc, deleteDoc } from "firebase/firestore";
 import {
@@ -263,6 +264,8 @@ export type ToothCondition =
 
 export interface Patient {
   id: string;
+  sequenceNumber?: string;
+  mrn?: string;
   name: string;
   phone: string;
   age?: string;
@@ -1742,7 +1745,8 @@ export function DoctorPortal({
                   {doctorQueue.length > 0 ? (
                     doctorQueue.map((item) => {
                       const isSelected = activePatient?.id === item.id || item.status === "Called";
-                      const mrnStr = `PT-${item.id.slice(-6).toUpperCase()}`;
+                      const medSeq = item.sequenceNumber || formatMedSequence(item.queueNumber || 1);
+                      const mrnStr = item.mrn || medSeq;
                       const statusStr =
                         item.status === "Called"
                           ? "Consulting"
@@ -1775,13 +1779,13 @@ export function DoctorPortal({
                           <div className="flex items-center gap-3">
                             {/* Queue Number Badge */}
                             <div
-                              className={`w-9 h-9 rounded-lg flex items-center justify-center font-black text-xs ${
+                              className={`px-2 py-1 rounded-lg flex items-center justify-center font-mono font-black text-xs ${
                                 isSelected
                                   ? "bg-[#064e3b] text-white shadow-xs"
-                                  : "bg-slate-100 text-slate-600"
+                                  : "bg-slate-100 text-slate-800"
                               }`}
                             >
-                              #{item.queueNumber}
+                              {medSeq}
                             </div>
 
                             {/* Patient Summary */}
@@ -1850,13 +1854,18 @@ export function DoctorPortal({
                             .toUpperCase()}
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-base font-black text-slate-900 font-display">
                               {activePatient.name}
                             </h3>
-                            <span className="text-xs font-mono font-bold text-slate-400">
-                              PT-{activePatient.id.slice(-6).toUpperCase()}
+                            <span className="text-xs font-mono font-black text-[#065f46] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              {activePatient.sequenceNumber || formatMedSequence(activePatient.queueNumber || 1)}
                             </span>
+                            {activePatient.mrn && (
+                              <span className="text-xs font-mono font-bold text-slate-400">
+                                {activePatient.mrn}
+                              </span>
+                            )}
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                               {t("consulting")}
                             </span>
@@ -3446,7 +3455,14 @@ export function DoctorPortal({
                     return (
                     <div key={i} className="p-2.5 bg-slate-50/90 rounded-xl border border-slate-100/90 space-y-1 text-xs">
                       <div className="flex items-center justify-between text-[11px] font-bold text-[#065f46]">
-                        <span>Visit #{medicalHistory.length - i}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span>Visit #{medicalHistory.length - i}</span>
+                          {(item.sequenceNumber || item.mrn) && (
+                            <span className="font-mono text-[9.5px] px-1.5 py-0.2 bg-emerald-100/70 text-emerald-900 rounded font-black">
+                              {item.sequenceNumber || item.mrn}
+                            </span>
+                          )}
+                        </span>
                         <span className="text-slate-400 text-[10px]">{dateStr}</span>
                       </div>
                       {item.doctorName && (

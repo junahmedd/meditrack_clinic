@@ -6,6 +6,7 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { auth, db, createSecondaryAuthUser } from "./firebase";
 import { sendWhatsApp } from "./utils/whatsappService";
+import { getNextPatientSequence, formatMedSequence } from "./utils/patientSequence";
 import {
   signInWithPopup,
   GoogleAuthProvider,
@@ -246,6 +247,8 @@ export interface Patient {
   id: string;
   appointmentId?: string;
   patientId?: string;
+  sequenceNumber?: string; // e.g. "MED001", "MED002", ..., "MED1000", ...
+  mrn?: string;
   name: string;
   phone: string;
   age?: string;
@@ -1939,9 +1942,13 @@ export default function App() {
       return;
     }
 
+    const targetPhone = activeDoctorPatient.phone ? activeDoctorPatient.phone.replace(/\D/g, "") : "";
+    const targetMrn = (activeDoctorPatient.mrn || activeDoctorPatient.sequenceNumber || "").trim().toUpperCase();
+    const targetName = (activeDoctorPatient.name || "").trim().toLowerCase();
+
     const q = query(
       collection(db, "consultations"),
-      where("patientPhone", "==", activeDoctorPatient.phone),
+      where("clinicId", "==", currentUserProfile.clinicId),
     );
 
     const unsubscribe = onSnapshot(
@@ -1963,7 +1970,23 @@ export default function App() {
             id: doc.id,
             ...doc.data(),
           }))
-          .filter((item: any) => item.clinicId === currentUserProfile.clinicId)
+          .filter((item: any) => {
+            // Match by permanent MRN or sequence number
+            const itemMrn = (item.mrn || item.sequenceNumber || "").trim().toUpperCase();
+            if (targetMrn && itemMrn && itemMrn === targetMrn) return true;
+
+            // Match by normalized phone
+            const itemPhone = item.patientPhone ? String(item.patientPhone).replace(/\D/g, "") : "";
+            if (targetPhone && itemPhone && (itemPhone.endsWith(targetPhone) || targetPhone.endsWith(itemPhone))) {
+              return true;
+            }
+
+            // Match by name if exact
+            const itemName = (item.patientName || "").trim().toLowerCase();
+            if (targetName && itemName && itemName === targetName) return true;
+
+            return false;
+          })
           .sort((a: any, b: any) => getMillis(b.timestamp) - getMillis(a.timestamp));
 
         setMedicalHistory(history);
@@ -2008,10 +2031,27 @@ export default function App() {
         );
       });
 
-      const nextQueueNumber =
-        todayPatients.length > 0
-          ? Math.max(...todayPatients.map((p) => p.queueNumber || 0)) + 1
-          : 1;
+      const cleanClinicId = String(currentUserProfile.clinicId);
+      const cleanPhone = regPatientPhone.trim();
+      const cleanName = regPatientName.trim();
+
+      // Retrieve sequence number atomically in MED continuation series (starts from 1 each day)
+      const seqResult = await getNextPatientSequence(cleanClinicId, todayPatients);
+      const finalQueueNumber = seqResult.queueNumber;
+      const finalSequenceNumber = seqResult.sequenceNumber; // e.g. "MED001", "MED002", ..., "MED1000", ...
+
+      // Check if patient has visited previously in this clinic to retain historical MRN/history
+      const normalizedPhone = cleanPhone.replace(/\D/g, "");
+      const pastVisit = patients.find((p) => {
+        if (!p.phone) return false;
+        const pNorm = p.phone.replace(/\D/g, "");
+        if (normalizedPhone && pNorm && (pNorm.endsWith(normalizedPhone) || normalizedPhone.endsWith(pNorm))) {
+          return true;
+        }
+        return p.name.trim().toLowerCase() === cleanName.toLowerCase();
+      });
+
+      const permanentMrn = pastVisit?.mrn || finalSequenceNumber;
 
       const isDoc = (currentUserProfile.role || "").toLowerCase() === "doctor";
 
@@ -2050,13 +2090,18 @@ export default function App() {
 
       // CLEAN OBJECT: Scoped to assigned doctor and receptionist
       const patientData: any = {
-        name: regPatientName.trim(),
-        phone: regPatientPhone.trim(),
-        age: regPatientAge.trim(),
-        gender: detectGenderFromName(regPatientName.trim()),
-        queueNumber: Number(nextQueueNumber),
+        name: cleanName,
+        phone: cleanPhone,
+        age: regPatientAge.trim() || pastVisit?.age || "",
+        gender: detectGenderFromName(cleanName) || pastVisit?.gender || "Male",
+        queueNumber: Number(finalQueueNumber),
+        sequenceNumber: finalSequenceNumber, // Daily sequence e.g. MED001
+        mrn: permanentMrn, // Permanent or daily sequence identifier
+        patientId: permanentMrn,
+        isReturningPatient: !!pastVisit,
+        previousVisitCount: pastVisit ? (pastVisit.previousVisitCount ? pastVisit.previousVisitCount + 1 : 1) : 0,
         status: "Waiting",
-        clinicId: String(currentUserProfile.clinicId),
+        clinicId: cleanClinicId,
         doctorUid: String(assignedDoctorUid || ""),
         doctorId: String(assignedDoctorId || ""),
         doctorEmail: String(assignedDoctorEmail || "").toLowerCase().trim(),
@@ -2076,6 +2121,7 @@ export default function App() {
       setRegPatientPhone("+91");
       setRegPatientAge("");
       setError(null);
+      showToast(`Token #${finalSequenceNumber} registered for ${cleanName}!${pastVisit ? " (Returning Patient — Past History Linked)" : ""}`);
     } catch (err: any) {
       try {
         handleFirestoreError(err, OperationType.CREATE, "patients");
@@ -2601,6 +2647,8 @@ export default function App() {
       const consultationRef = doc(collection(db, "consultations"));
       batch.set(consultationRef, {
         patientId: patient.id || "",
+        mrn: patient.mrn || patient.sequenceNumber || `MED${String(patient.queueNumber || 1).padStart(3, "0")}`,
+        sequenceNumber: patient.sequenceNumber || "",
         patientPhone: patient.phone || "",
         patientName: patient.name || "",
         patientAge: patient.age || "",

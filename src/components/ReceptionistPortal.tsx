@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { generateInvoicePDF } from "../utils/pdfGenerator";
 import { sendWhatsApp } from "../utils/whatsappService";
+import { getNextPatientSequence, formatMedSequence } from "../utils/patientSequence";
 import { MediTrackLogo } from "./MediTrackLogo";
 import { detectGenderFromName } from "./DoctorPortal";
 import { AnalogClockPicker } from "./AnalogClockPicker";
@@ -87,6 +88,8 @@ import { doc, updateDoc, deleteDoc, addDoc, collection, serverTimestamp } from "
 
 export interface Patient {
   id: string;
+  sequenceNumber?: string;
+  mrn?: string;
   name: string;
   phone: string;
   age?: string;
@@ -216,6 +219,7 @@ export const formatWhatsAppNumber = (rawPhone?: string): string => {
 export interface QueueItem {
   id: string;
   queueNo: number;
+  sequenceNumber?: string;
   mrn: string;
   name: string;
   phone: string;
@@ -229,6 +233,7 @@ export interface QueueItem {
 // Billing Item Interfaces
 export interface BillingPendingItem {
   id: string;
+  sequenceNumber?: string;
   mrn: string;
   name: string;
   phone: string;
@@ -425,19 +430,24 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             p.status === "Dispensed") &&
           p.billingStatus !== "Paid"
       )
-      .map((p) => ({
-        id: p.id,
-        mrn: `MRN-${p.id.slice(-4).toUpperCase()}`,
-        name: p.name,
-        phone: p.phone,
-        doctor: p.doctorName || assignedDoctorName,
-        specialty: categoryLabel,
-        dateTime: p.timestamp?.toDate
-          ? new Date(p.timestamp.toDate()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
-          : "Today",
-        fee: p.consultationFee || 500,
-        status: "Pending" as const,
-      }));
+      .map((p) => {
+        const medSeq = p.sequenceNumber || formatMedSequence(p.queueNumber || 1);
+        const displayMrn = p.mrn || medSeq;
+        return {
+          id: p.id,
+          sequenceNumber: medSeq,
+          mrn: displayMrn,
+          name: p.name,
+          phone: p.phone,
+          doctor: p.doctorName || assignedDoctorName,
+          specialty: categoryLabel,
+          dateTime: p.timestamp?.toDate
+            ? new Date(p.timestamp.toDate()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+            : "Today",
+          fee: p.consultationFee || 500,
+          status: "Pending" as const,
+        };
+      });
   }, [scopedPatients, assignedDoctorName, categoryLabel]);
 
   // Live Paid Invoices derived from scoped Firestore patients
@@ -499,23 +509,28 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           p.status === "CONSULTING"
         );
       })
-      .map((p) => ({
-        id: p.id,
-        queueNo: p.queueNumber,
-        mrn: `${queuePrefix}${String(p.queueNumber).padStart(2, "0")}`,
-        name: p.name,
-        phone: p.phone,
-        doctor: p.doctorName || assignedDoctorName,
-        specialty: categoryLabel,
-        time: p.timestamp?.toDate
-          ? new Date(p.timestamp.toDate()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
-          : "Live Queue",
-        status:
-          p.status === "Called" || p.status === "Consulting" || p.status === "In Consultation" || p.status === "CONSULTING"
-            ? ("Consulting" as const)
-            : ("Waiting" as const),
-        age: p.age,
-      }));
+      .map((p) => {
+        const medSeq = p.sequenceNumber || formatMedSequence(p.queueNumber || 1);
+        const displayMrn = p.mrn || medSeq;
+        return {
+          id: p.id,
+          queueNo: p.queueNumber,
+          sequenceNumber: medSeq,
+          mrn: displayMrn,
+          name: p.name,
+          phone: p.phone,
+          doctor: p.doctorName || assignedDoctorName,
+          specialty: categoryLabel,
+          time: p.timestamp?.toDate
+            ? new Date(p.timestamp.toDate()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+            : "Live Queue",
+          status:
+            p.status === "Called" || p.status === "Consulting" || p.status === "In Consultation" || p.status === "CONSULTING"
+              ? ("Consulting" as const)
+              : ("Waiting" as const),
+          age: p.age,
+        };
+      });
   }, [scopedPatients, queuePrefix, assignedDoctorName, categoryLabel]);
 
   const [queuePage, setQueuePage] = useState<number>(1);
@@ -867,15 +882,35 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     const todayDateStr = new Date().toISOString().split("T")[0];
     const liveCurrentTime = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
     const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "";
-    const nextQueueNumber = scopedPatients.length > 0 ? Math.max(...scopedPatients.map((p) => p.queueNumber || 0)) + 1 : 1;
 
     try {
+      const todayPatients = scopedPatients.filter((p) => isTodayPatient(p));
+      const seqResult = await getNextPatientSequence(clinicId, todayPatients);
+      const finalQueueNumber = seqResult.queueNumber;
+      const finalSequenceNumber = seqResult.sequenceNumber;
+
+      const cleanPhone = newAptPhone.trim();
+      const cleanName = newAptName.trim();
+      const normalizedPhone = cleanPhone.replace(/\D/g, "");
+      const pastVisit = scopedPatients.find((p) => {
+        if (!p.phone) return false;
+        const pNorm = p.phone.replace(/\D/g, "");
+        if (normalizedPhone && pNorm && (pNorm.endsWith(normalizedPhone) || normalizedPhone.endsWith(pNorm))) return true;
+        return p.name.trim().toLowerCase() === cleanName.toLowerCase();
+      });
+
+      const permanentMrn = pastVisit?.mrn || finalSequenceNumber;
+
       const patientData: any = {
-        name: newAptName.trim(),
-        phone: newAptPhone.trim(),
-        age: newAptAge.trim() || "",
-        gender: newAptGender || detectGenderFromName(newAptName.trim()),
-        queueNumber: Number(nextQueueNumber),
+        name: cleanName,
+        phone: cleanPhone,
+        age: newAptAge.trim() || pastVisit?.age || "",
+        gender: newAptGender || detectGenderFromName(cleanName) || pastVisit?.gender || "Male",
+        queueNumber: Number(finalQueueNumber),
+        sequenceNumber: finalSequenceNumber,
+        mrn: permanentMrn,
+        patientId: permanentMrn,
+        isReturningPatient: !!pastVisit,
         status: "SCHEDULED",
         appointmentType: newAptType,
         appointmentTime: liveCurrentTime,
@@ -902,7 +937,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       setNewAptAge("");
       setNewAptNotes("");
       setShowNewAptAnalogClock(false);
-      showToast(`Appointment scheduled for ${newAptName.trim()} at ${liveCurrentTime}! (Status: SCHEDULED)`);
+      showToast(`Appointment scheduled for ${cleanName} (#${finalSequenceNumber}) at ${liveCurrentTime}!${pastVisit ? " (Past History Linked)" : ""}`);
     } catch (err: any) {
       console.error("Schedule error:", err);
       showToast("Appointment created successfully!");
@@ -2225,7 +2260,11 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <tbody className="divide-y divide-slate-100 text-xs">
                       {queueItems.map((q) => (
                         <tr key={q.id} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="py-2.5 px-4 font-bold text-slate-400">#{q.queueNo}</td>
+                          <td className="py-2.5 px-4 font-bold text-slate-400">
+                            <span className="font-mono font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/80 text-[11px]">
+                              {q.sequenceNumber || `MED${String(q.queueNo).padStart(3, "0")}`}
+                            </span>
+                          </td>
                           <td className="py-2.5 px-4">
                             <span className="font-extrabold text-slate-900 block leading-tight">{q.name}</span>
                             <span className="text-[10px] font-mono text-slate-400 font-semibold">{q.mrn}</span>
@@ -2318,8 +2357,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <div key={q.id} className="p-4 space-y-3 bg-white">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2.5">
-                          <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-800 font-mono font-black text-xs flex items-center justify-center shrink-0">
-                            #{q.queueNo}
+                          <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-mono font-black text-xs flex items-center justify-center shrink-0 border border-emerald-200/80">
+                            {q.sequenceNumber || `MED${String(q.queueNo).padStart(3, "0")}`}
                           </span>
                           <div>
                             <span className="font-extrabold text-slate-900 text-sm leading-tight block">{q.name}</span>
@@ -3005,14 +3044,14 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black ${
                             p.status === "Waiting"
-                              ? "bg-amber-50 text-amber-700"
+                              ? "bg-amber-50 text-amber-700 border border-amber-200"
                               : p.status === "Called"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-emerald-50 text-emerald-700"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                           }`}>
-                            Token #{p.queueNumber}
+                            {p.sequenceNumber || `MED${String(p.queueNumber).padStart(3, "0")}`}
                           </span>
 
                           <div className="flex items-center gap-1">
@@ -4612,20 +4651,36 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     return;
                   }
                   try {
-                    const nextQueueNumber =
-                      patients.length > 0
-                        ? Math.max(...patients.map((p) => p.queueNumber || 0)) + 1
-                        : 1;
-
                     const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "";
                     const addedBy = user?.uid || "receptionist";
 
+                    const todayPatients = scopedPatients.filter((p) => isTodayPatient(p));
+                    const seqResult = await getNextPatientSequence(clinicId, todayPatients);
+                    const finalQueueNumber = seqResult.queueNumber;
+                    const finalSequenceNumber = seqResult.sequenceNumber;
+
+                    const cleanPhone = newQueuePhone.trim();
+                    const cleanName = newQueueName.trim();
+                    const normalizedPhone = cleanPhone.replace(/\D/g, "");
+                    const pastVisit = scopedPatients.find((p) => {
+                      if (!p.phone) return false;
+                      const pNorm = p.phone.replace(/\D/g, "");
+                      if (normalizedPhone && pNorm && (pNorm.endsWith(normalizedPhone) || normalizedPhone.endsWith(pNorm))) return true;
+                      return p.name.trim().toLowerCase() === cleanName.toLowerCase();
+                    });
+
+                    const permanentMrn = pastVisit?.mrn || finalSequenceNumber;
+
                     const patientData: any = {
-                      name: newQueueName.trim(),
-                      phone: newQueuePhone.trim(),
-                      age: newQueueAge.trim(),
-                      gender: newQueueGender,
-                      queueNumber: Number(nextQueueNumber),
+                      name: cleanName,
+                      phone: cleanPhone,
+                      age: newQueueAge.trim() || pastVisit?.age || "",
+                      gender: newQueueGender || pastVisit?.gender || "Male",
+                      queueNumber: Number(finalQueueNumber),
+                      sequenceNumber: finalSequenceNumber, // e.g. "MED001", "MED002", ..., "MED1000", ...
+                      mrn: permanentMrn,
+                      patientId: permanentMrn,
+                      isReturningPatient: !!pastVisit,
                       status: "Waiting",
                       clinicId: String(clinicId),
                       doctorUid: String(activeDoctor?.uid || activeDoctor?.id || currentUserProfile?.assignedDoctorUid || ""),
@@ -4648,7 +4703,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     setNewQueuePhone("");
                     setNewQueueAge("");
                     setNewQueueGender("Male");
-                    showToast(`Token #${queuePrefix}${String(nextQueueNumber).padStart(2, "0")} generated for ${newQueueName.trim()} (${assignedDoctorName})!`);
+                    showToast(`Token #${finalSequenceNumber} generated for ${cleanName} (${assignedDoctorName})!${pastVisit ? " (Past History Linked)" : ""}`);
                   } catch (err: any) {
                     console.error("Error adding patient to queue:", err);
                     setIsAddQueueModalOpen(false);
@@ -5281,8 +5336,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <p className="font-extrabold text-slate-900 mt-0.5">{viewingPatient.age ? `${viewingPatient.age} years` : "N/A"}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Queue Token</span>
-                  <p className="font-black text-[#065f46] mt-0.5 text-sm">#{viewingPatient.queueNumber}</p>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Sequence Number</span>
+                  <p className="font-mono font-black text-[#065f46] mt-0.5 text-sm">
+                    {viewingPatient.sequenceNumber || `MED${String(viewingPatient.queueNumber).padStart(3, "0")}`}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Patient MRN / ID</span>
+                  <p className="font-mono font-extrabold text-slate-800 mt-0.5 text-xs">
+                    {viewingPatient.mrn || viewingPatient.sequenceNumber || `MED${String(viewingPatient.queueNumber).padStart(3, "0")}`}
+                  </p>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Live Queue Status</span>
