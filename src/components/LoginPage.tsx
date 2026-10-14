@@ -79,6 +79,39 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
+  const [existingClinics, setExistingClinics] = useState<
+    Array<{ id: string; name: string; doctorName?: string; doctorEmail?: string }>
+  >([]);
+
+  useEffect(() => {
+    // Load registered clinics to facilitate auto-suggestion and ensure same Clinic ID linking
+    getDocs(collection(db, "clinics"))
+      .then((snap) => {
+        const list: Array<{ id: string; name: string; doctorName?: string; doctorEmail?: string }> = [];
+        const seen = new Set<string>();
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          const name = (data.name || "").trim();
+          if (!name) return;
+          const lower = name.toLowerCase();
+          const docName = data.primaryDoctorName || data.doctors?.[0]?.name || data.doctors?.[0]?.displayName || "";
+          const docEmail = data.primaryDoctorEmail || data.adminEmail || "";
+          if (seen.has(lower)) {
+            const idx = list.findIndex((c) => c.name.toLowerCase() === lower);
+            if (idx !== -1 && !list[idx].doctorName && docName) {
+              list[idx] = { id: d.id, name, doctorName: docName, doctorEmail: docEmail };
+            }
+          } else {
+            seen.add(lower);
+            list.push({ id: d.id, name, doctorName: docName, doctorEmail: docEmail });
+          }
+        });
+        setExistingClinics(list);
+      })
+      .catch((err) => {
+        console.warn("Could not prefetch clinics list:", err);
+      });
+  }, []);
 
 
 
@@ -113,6 +146,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       : signupData?.role === "admin"
       ? "Clinic Admin"
       : "Doctor";
+
+  const matchedClinic = existingClinics.find(
+    (c) => c.name.toLowerCase() === (signupData?.clinicName || "").trim().toLowerCase()
+  );
 
 
   const formatErrorMessage = (err: string | null) => {
@@ -439,9 +476,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
                   {/* Clinic Name */}
                   <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                      Clinic / Practice Name *
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                        Clinic / Practice Name *
+                      </label>
+                      {matchedClinic && (
+                        <span className="text-[10px] font-black text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-300 shadow-2xs">
+                          Clinic ID: {matchedClinic.id}
+                        </span>
+                      )}
+                    </div>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                         <Building2 size={16} />
@@ -449,12 +493,45 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       <input
                         type="text"
                         required
+                        list="registered-clinics-list"
                         value={signupData.clinicName}
-                        onChange={(e) => setSignupData((prev: any) => ({ ...prev, clinicName: e.target.value }))}
-                        placeholder="Apollo HealthCare"
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const found = existingClinics.find(
+                            (c) => c.name.toLowerCase() === val.trim().toLowerCase()
+                          );
+                          setSignupData((prev: any) => ({
+                            ...prev,
+                            clinicName: val,
+                            clinicId: found ? found.id : "",
+                            assignedDoctorEmail: found?.doctorEmail || "",
+                          }));
+                        }}
+                        placeholder="e.g. Hadi Clinic"
                         className={inputCls}
                       />
+                      <datalist id="registered-clinics-list">
+                        {existingClinics.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.id}{c.doctorName ? ` • ${c.doctorName}` : ""}
+                          </option>
+                        ))}
+                      </datalist>
                     </div>
+                    {signupData.role === "receptionist" && (
+                      <p className="text-[10.5px] text-slate-500 font-medium pt-0.5 leading-snug">
+                        {matchedClinic ? (
+                          <span className="text-emerald-700 font-bold flex items-center gap-1">
+                            <CheckCircle2 size={12} className="inline text-emerald-600 shrink-0" />
+                            Linking to {matchedClinic.name} (Clinic ID: {matchedClinic.id}{matchedClinic.doctorName ? ` • ${matchedClinic.doctorName}` : ""})
+                          </span>
+                        ) : (
+                          <span>
+                            Tip: Choose your doctor&apos;s registered clinic name from the suggestions so both accounts share the same Clinic ID.
+                          </span>
+                        )}
+                      </p>
+                    )}
                   </div>
 
                   {/* Full Name */}

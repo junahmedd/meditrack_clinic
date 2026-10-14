@@ -3475,16 +3475,37 @@ export default function App() {
           }
         } else {
           // Check if an existing clinic matches the entered clinic name
+          const cleanName = clinicName.trim().toLowerCase();
           const allClinicsSnap = await getDocs(collection(db, "clinics")).catch(() => null);
           if (allClinicsSnap && !allClinicsSnap.empty) {
-            const match = allClinicsSnap.docs.find(
-              (d) => (d.data().name || "").trim().toLowerCase() === clinicName.toLowerCase()
-            );
-            if (match) {
-              finalClinicId = match.id;
-              linkedClinicData = match.data();
+            const matches = allClinicsSnap.docs
+              .map((d) => ({ id: d.id, ...d.data() }))
+              .filter(
+                (c: any) =>
+                  (c.name || "").trim().toLowerCase() === cleanName ||
+                  (c.clinicId || "").trim().toLowerCase() === cleanName
+              );
+
+            if (matches.length > 0) {
+              // Prioritize clinic with registered doctors
+              const bestMatch =
+                matches.find(
+                  (c: any) =>
+                    (Array.isArray(c.doctors) && c.doctors.length > 0) ||
+                    c.primaryDoctorEmail ||
+                    c.primaryDoctorName
+                ) || matches[0];
+              finalClinicId = bestMatch.id;
+              linkedClinicData = bestMatch;
             }
           }
+        }
+
+        // A receptionist MUST join an existing clinic created by their doctor/admin!
+        if (selectedRole === "receptionist" && !finalClinicId) {
+          throw new Error(
+            `Clinic "${clinicName}" was not found in MediTrack. Please select your doctor's registered clinic from the suggestions so both accounts share the same Clinic ID.`
+          );
         }
 
         // ── IF RECEPTIONIST AND CLINIC FOUND, RESOLVE ASSIGNED DOCTOR ──
@@ -3618,6 +3639,14 @@ export default function App() {
           ];
           await updateDoc(doc(db, "clinics", finalClinicId), {
             doctors: updatedDocs,
+            updatedAt: serverTimestamp(),
+          }).catch(console.error);
+        } else if (selectedRole === "receptionist" && finalClinicId) {
+          const generatedRecId = `REC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`;
+          await updateDoc(doc(db, "clinics", finalClinicId), {
+            primaryReceptionistId: generatedRecId,
+            primaryReceptionistEmail: emailVal.toLowerCase().trim(),
+            primaryReceptionistName: fullName,
             updatedAt: serverTimestamp(),
           }).catch(console.error);
         }
