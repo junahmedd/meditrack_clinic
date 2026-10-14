@@ -481,7 +481,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     {/* Clinic Name */}
                     <div className="space-y-1">
                       <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                        Clinic / Practice Name *
+                        Clinic Name
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
