@@ -521,7 +521,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                          Clinic ID {signupData.role === "receptionist" ? "*" : "(Auto / Shared)"}
+                          Clinic ID
                         </label>
                         {matchedClinic && (
                           <span className="text-[9px] font-black text-emerald-800 bg-emerald-100/90 px-1.5 py-0.5 rounded border border-emerald-300">
@@ -548,7 +548,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               assignedDoctorEmail: found?.doctorEmail || prev.assignedDoctorEmail || "",
                             }));
                           }}
-                          placeholder={signupData.role === "receptionist" ? "e.g. MT0016" : "e.g. MT0016 or blank"}
+                          placeholder="e.g. MT0016"
                           className={`${inputCls} font-mono uppercase font-bold`}
                         />
                       </div>
@@ -556,7 +556,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   </div>
 
                   {/* Clinic Matching / Sync Notification Banner */}
-                  {matchedClinic ? (
+                  {matchedClinic && (
                     <div className="p-2.5 bg-emerald-50/90 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 flex items-center justify-between gap-2 shadow-2xs">
                       <div className="flex items-center gap-1.5 truncate">
                         <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
@@ -573,14 +573,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         Shared Clinic ID
                       </span>
                     </div>
-                  ) : signupData.role === "receptionist" ? (
-                    <p className="text-[10.5px] text-slate-500 font-medium">
-                      Enter the same Clinic Name or Clinic ID registered by your doctor so both accounts share the same Clinic ID and real-time live queue.
-                    </p>
-                  ) : (
-                    <p className="text-[10.5px] text-slate-500 font-medium">
-                      Enter your clinic name. A unique Clinic ID (e.g. MT0016) will be generated for your clinic, which your receptionists can enter or match to join.
-                    </p>
                   )}
 
                   {/* Full Name */}
