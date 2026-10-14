@@ -148,7 +148,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       : "Doctor";
 
   const matchedClinic = existingClinics.find(
-    (c) => c.name.toLowerCase() === (signupData?.clinicName || "").trim().toLowerCase()
+    (c) =>
+      (signupData?.clinicId && c.id.toUpperCase() === (signupData?.clinicId || "").trim().toUpperCase()) ||
+      (signupData?.clinicName && c.name.toLowerCase() === (signupData?.clinicName || "").trim().toLowerCase())
   );
 
 
@@ -474,65 +476,112 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Clinic Name */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
+                  {/* Clinic Name & Clinic ID Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* Clinic Name */}
+                    <div className="space-y-1">
                       <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
                         Clinic / Practice Name *
                       </label>
-                      {matchedClinic && (
-                        <span className="text-[10px] font-black text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-300 shadow-2xs">
-                          Clinic ID: {matchedClinic.id}
-                        </span>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <Building2 size={16} />
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <Building2 size={16} />
+                        </div>
+                        <input
+                          type="text"
+                          required
+                          list="registered-clinics-list"
+                          value={signupData.clinicName}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const found = existingClinics.find(
+                              (c) => c.name.toLowerCase() === val.trim().toLowerCase()
+                            );
+                            setSignupData((prev: any) => ({
+                              ...prev,
+                              clinicName: val,
+                              clinicId: found ? found.id : prev.clinicId,
+                              assignedDoctorEmail: found?.doctorEmail || prev.assignedDoctorEmail || "",
+                            }));
+                          }}
+                          placeholder="e.g. Hadi Clinic"
+                          className={inputCls}
+                        />
+                        <datalist id="registered-clinics-list">
+                          {existingClinics.map((c) => (
+                            <option key={c.id} value={c.name}>
+                              {c.id}{c.doctorName ? ` • ${c.doctorName}` : ""}
+                            </option>
+                          ))}
+                        </datalist>
                       </div>
-                      <input
-                        type="text"
-                        required
-                        list="registered-clinics-list"
-                        value={signupData.clinicName}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const found = existingClinics.find(
-                            (c) => c.name.toLowerCase() === val.trim().toLowerCase()
-                          );
-                          setSignupData((prev: any) => ({
-                            ...prev,
-                            clinicName: val,
-                            clinicId: found ? found.id : "",
-                            assignedDoctorEmail: found?.doctorEmail || "",
-                          }));
-                        }}
-                        placeholder="e.g. Hadi Clinic"
-                        className={inputCls}
-                      />
-                      <datalist id="registered-clinics-list">
-                        {existingClinics.map((c) => (
-                          <option key={c.id} value={c.name}>
-                            {c.id}{c.doctorName ? ` • ${c.doctorName}` : ""}
-                          </option>
-                        ))}
-                      </datalist>
                     </div>
-                    {signupData.role === "receptionist" && (
-                      <p className="text-[10.5px] text-slate-500 font-medium pt-0.5 leading-snug">
-                        {matchedClinic ? (
-                          <span className="text-emerald-700 font-bold flex items-center gap-1">
-                            <CheckCircle2 size={12} className="inline text-emerald-600 shrink-0" />
-                            Linking to {matchedClinic.name} (Clinic ID: {matchedClinic.id}{matchedClinic.doctorName ? ` • ${matchedClinic.doctorName}` : ""})
-                          </span>
-                        ) : (
-                          <span>
-                            Tip: Choose your doctor&apos;s registered clinic name from the suggestions so both accounts share the same Clinic ID.
+
+                    {/* Clinic ID */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                          Clinic ID {signupData.role === "receptionist" ? "*" : "(Auto / Shared)"}
+                        </label>
+                        {matchedClinic && (
+                          <span className="text-[9px] font-black text-emerald-800 bg-emerald-100/90 px-1.5 py-0.5 rounded border border-emerald-300">
+                            Matched
                           </span>
                         )}
-                      </p>
-                    )}
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <Building2 size={16} />
+                        </div>
+                        <input
+                          type="text"
+                          value={signupData.clinicId || ""}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase().trim();
+                            const found = existingClinics.find(
+                              (c) => c.id.toUpperCase() === val
+                            );
+                            setSignupData((prev: any) => ({
+                              ...prev,
+                              clinicId: val,
+                              clinicName: found ? found.name : prev.clinicName,
+                              assignedDoctorEmail: found?.doctorEmail || prev.assignedDoctorEmail || "",
+                            }));
+                          }}
+                          placeholder={signupData.role === "receptionist" ? "e.g. MT0016" : "e.g. MT0016 or blank"}
+                          className={`${inputCls} font-mono uppercase font-bold`}
+                        />
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Clinic Matching / Sync Notification Banner */}
+                  {matchedClinic ? (
+                    <div className="p-2.5 bg-emerald-50/90 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 flex items-center justify-between gap-2 shadow-2xs">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                        <span className="font-bold truncate">
+                          {matchedClinic.name} ({matchedClinic.id})
+                        </span>
+                        {matchedClinic.doctorName && (
+                          <span className="text-emerald-700 font-semibold text-[10.5px] truncate">
+                            • {matchedClinic.doctorName}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-200/80 text-emerald-900 shrink-0">
+                        Shared Clinic ID
+                      </span>
+                    </div>
+                  ) : signupData.role === "receptionist" ? (
+                    <p className="text-[10.5px] text-slate-500 font-medium">
+                      Enter the same Clinic Name or Clinic ID registered by your doctor so both accounts share the same Clinic ID and real-time live queue.
+                    </p>
+                  ) : (
+                    <p className="text-[10.5px] text-slate-500 font-medium">
+                      Enter your clinic name. A unique Clinic ID (e.g. MT0016) will be generated for your clinic, which your receptionists can enter or match to join.
+                    </p>
+                  )}
 
                   {/* Full Name */}
                   <div className="space-y-1">
