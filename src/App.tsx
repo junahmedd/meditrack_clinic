@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { auth, db, createSecondaryAuthUser } from "./firebase";
-import { sendWhatsApp } from "./utils/whatsappService";
+import { sendWhatsApp as dispatchWhatsAppApi } from "./utils/whatsappService";
 import { getNextPatientSequence, formatMedSequence } from "./utils/patientSequence";
 import {
   signInWithPopup,
@@ -98,6 +98,7 @@ import {
   SlidersHorizontal,
   MoreVertical,
   Bell,
+  Download,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import html2canvas from "html2canvas";
@@ -192,6 +193,7 @@ export interface UserProfile {
   clinicId?: string;
   clinicAddress?: string;
   contactNumber?: string;
+  phone?: string;
   isDeactivated?: boolean;
   status?: string;
   // Doctor & Dedicated Receptionist Mapping Fields
@@ -249,6 +251,7 @@ export interface Patient {
   patientId?: string;
   sequenceNumber?: string; // e.g. "MED001", "MED002", ..., "MED1000", ...
   mrn?: string;
+  previousVisitCount?: number;
   name: string;
   phone: string;
   age?: string;
@@ -2537,7 +2540,7 @@ export default function App() {
 
       const message = `Hello ${patientName},\n\nYour prescription from ${clinicInfo?.name || currentUserProfile?.clinicName || "the clinic"} is attached below.\n\n*Notes:*\n${notes}\n\nGet well soon!`;
 
-      await sendWhatsApp({
+      await dispatchWhatsAppApi({
         to,
         message,
         mediaBase64,
@@ -2882,7 +2885,7 @@ export default function App() {
       }
 
       try {
-        await sendWhatsApp({
+        await dispatchWhatsAppApi({
           to: cleanPhone || patient.phone,
           message,
           mediaBase64,
@@ -3736,7 +3739,6 @@ export default function App() {
         // Step 7 — Set credentials, transition to Login page with pre-filled credentials
         setEmail(emailVal);
         setPassword(passwordVal);
-        setLoginClinicId(finalClinicId);
         setLoginRole(selectedRole);
         setSignupSuccess(true);
         setAuthMode("login");

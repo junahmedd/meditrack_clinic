@@ -118,6 +118,9 @@ export interface Patient {
   followUpDate?: string;
   followUpNotes?: string;
   doctorId?: string;
+  doctorUid?: string;
+  receptionistUid?: string;
+  invoicePdfData?: string | null;
   doctorEmail?: string;
   doctorName?: string;
   doctorCategory?: "GP" | "PEDIATRICIAN" | "DENTIST" | string;
@@ -128,6 +131,13 @@ export interface Patient {
   appointmentDate?: string;
   createdAt?: any;
   billingAmount?: number;
+}
+
+export interface InvoiceItem {
+  description: string;
+  qty: number;
+  rate: number;
+  amount: number;
 }
 
 interface UserProfile {
@@ -142,11 +152,13 @@ interface UserProfile {
   contactNumber?: string;
   phone?: string;
   assignedDoctorId?: string;
+  assignedDoctorUid?: string;
   assignedDoctorEmail?: string;
   assignedDoctorName?: string;
   assignedDoctorCategory?: string;
   assignedReceptionistEmail?: string;
   category?: string;
+  isDeactivated?: boolean;
 }
 
 interface ReceptionistPortalProps {
@@ -195,8 +207,9 @@ export interface AppointmentItem {
   phone: string;
   doctor: string;
   type: "General Consultation" | "Check Up" | "General" | "Dental" | "Follow-up";
-  status: "Completed" | "Consulting" | "Waiting" | "Scheduled" | "In Billing" | "Billing" | "Cancelled";
+  status: "Completed" | "Consulting" | "Waiting" | "Scheduled" | "SCHEDULED" | "In Billing" | "Billing" | "Cancelled" | "PAID" | string;
   age?: string;
+  gender?: string;
   notes?: string;
   date?: string;
 }
@@ -1247,7 +1260,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       scopedPatients.filter(
         (p) =>
           (p.status === "In Billing" || p.status === "Billing" || p.status === "BILLING" || p.status === "UNPAID" || p.status === "Completed" || p.status === "Dispensed") &&
-          p.billingStatus !== "Paid" && p.status !== "PAID"
+          p.billingStatus !== "Paid"
       ),
     [scopedPatients]
   );

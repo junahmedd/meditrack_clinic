@@ -12,13 +12,13 @@ export async function sendWhatsApp(payload: SendWhatsAppPayload): Promise<{ succ
 
   // 1. Check for client-side direct Meta credentials in environment variables or localStorage
   const token = (
-    (typeof import.meta !== "undefined" && import.meta.env?.VITE_WHATSAPP_TOKEN) ||
+    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_WHATSAPP_TOKEN) ||
     localStorage.getItem("WHATSAPP_TOKEN") ||
     ""
   ).trim();
   
   const phoneNumberId = (
-    (typeof import.meta !== "undefined" && import.meta.env?.VITE_WHATSAPP_PHONE_NUMBER_ID) ||
+    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_WHATSAPP_PHONE_NUMBER_ID) ||
     localStorage.getItem("WHATSAPP_PHONE_NUMBER_ID") ||
     ""
   ).trim();

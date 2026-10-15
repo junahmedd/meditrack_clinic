@@ -289,6 +289,8 @@ export interface Patient {
   paidAt?: any;
   invoiceNumber?: string;
   doctorId?: string;
+  doctorUid?: string;
+  receptionistUid?: string;
   doctorEmail?: string;
   doctorName?: string;
   doctorCategory?: DoctorCategory | string;
