@@ -1507,6 +1507,8 @@ export default function App() {
   // Auth Form states
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginRole, setLoginRole] = useState("doctor");
+  const [loginClinicId, setLoginClinicId] = useState("");
   const [signupData, setSignupData] = useState({
     clinicId: "",
     clinicName: "",
@@ -3368,6 +3370,37 @@ export default function App() {
 
         const isRec = !isAdm && !isDoc;
 
+        // Section 7 Requirement: Validate entered Clinic ID against account's saved clinic
+        const cleanEnteredClinicId = (loginClinicId || "").replace(/[^a-zA-Z0-9_\-]/g, "").trim().toUpperCase();
+        if (cleanEnteredClinicId && profile.clinicId) {
+          const profileClinicId = profile.clinicId.replace(/[^a-zA-Z0-9_\-]/g, "").trim().toUpperCase();
+          if (cleanEnteredClinicId !== profileClinicId) {
+            await signOut(auth);
+            setError(`Entered Clinic ID "${cleanEnteredClinicId}" does not match your registered Clinic ID (${profile.clinicId}).`);
+            setAuthLoading(false);
+            return;
+          }
+        }
+
+        // Section 7 Requirement: Validate selected Role against account's registered role
+        const selectedLoginRole = (loginRole || "doctor").toLowerCase().trim();
+        if (selectedLoginRole === "doctor" && !isDoc) {
+          await signOut(auth);
+          setError(`Your account is registered as a ${role.toUpperCase()}, not as a Doctor. Please select "${role}" to sign in.`);
+          setAuthLoading(false);
+          return;
+        } else if (selectedLoginRole === "receptionist" && !isRec) {
+          await signOut(auth);
+          setError(`Your account is registered as a ${role.toUpperCase()}, not as a Receptionist. Please select "${role}" to sign in.`);
+          setAuthLoading(false);
+          return;
+        } else if (selectedLoginRole === "admin" && !isAdm) {
+          await signOut(auth);
+          setError(`Your account is registered as a ${role.toUpperCase()}, not as an Admin. Please select "${role}" to sign in.`);
+          setAuthLoading(false);
+          return;
+        }
+
         // Auto-detect role from backend and route to designated portal
         setCurrentUserProfile(profile);
         setSignupSuccess(false);
@@ -3448,73 +3481,71 @@ export default function App() {
       setError(null);
       isSignupInProgressRef.current = true;
       try {
-        const enteredClinicId = ((signupData as any).clinicId || "").trim().toUpperCase();
+        const enteredClinicId = ((signupData as any).clinicId || "").replace(/[^a-zA-Z0-9_\-]/g, "").trim().toUpperCase();
         const clinicName = signupData.clinicName.trim();
         const fullName = signupData.fullName.trim();
         const emailVal = signupData.email.trim();
         const passwordVal = signupData.password;
-        const selectedRole = signupData.role || "doctor";
+        const selectedRole = (signupData.role || "doctor").toLowerCase().trim();
         const cleanPhone = signupData.phone?.trim() || "+919876543210";
 
-        if (!clinicName || !fullName || !emailVal || !passwordVal) {
-          throw new Error("Please fill in all required fields.");
+        // Section 1 & 2 & 3: Required manual entry validation
+        if (!clinicName) {
+          throw new Error("Please enter your Clinic Name.");
+        }
+        if (!enteredClinicId) {
+          throw new Error("Please enter a Clinic ID (e.g. MT001).");
+        }
+        if (enteredClinicId.length < 2) {
+          throw new Error("Clinic ID must be at least 2 characters long.");
+        }
+        if (!fullName) {
+          throw new Error("Please enter your Full Name.");
+        }
+        if (!emailVal) {
+          throw new Error("Please enter your Work Email.");
+        }
+        if (!passwordVal || passwordVal.length < 6) {
+          throw new Error("Password must be at least 6 characters.");
         }
 
-        let finalClinicId = "";
-        let linkedClinicData: any = null;
+        const finalClinicId = enteredClinicId;
+        const clinicRef = doc(db, "clinics", finalClinicId);
+        const clinicSnap = await getDoc(clinicRef);
+        const clinicExists = clinicSnap.exists();
+        let linkedClinicData: any = clinicExists ? clinicSnap.data() : null;
         let linkedDoctor: any = null;
 
-        // ── RESOLVE CLINIC (BY CLINIC ID IF PROVIDED, OR MATCHING CLINIC NAME) ──
-        if (enteredClinicId) {
-          const clinicSnap = await getDoc(doc(db, "clinics", enteredClinicId));
-          if (clinicSnap.exists()) {
-            finalClinicId = enteredClinicId;
-            linkedClinicData = clinicSnap.data();
-          } else {
-            throw new Error(`Clinic ID "${enteredClinicId}" not found in MediTrack.`);
-          }
-        } else {
-          // Check if an existing clinic matches the entered clinic name
-          const cleanName = clinicName.trim().toLowerCase();
-          const allClinicsSnap = await getDocs(collection(db, "clinics")).catch(() => null);
-          if (allClinicsSnap && !allClinicsSnap.empty) {
-            const matches = allClinicsSnap.docs
-              .map((d) => ({ id: d.id, ...d.data() }))
-              .filter(
-                (c: any) =>
-                  (c.name || "").trim().toLowerCase() === cleanName ||
-                  (c.clinicId || "").trim().toLowerCase() === cleanName
+        // Section 2: Doctor/Admin Registration Validation
+        if (selectedRole === "doctor" || selectedRole === "admin") {
+          if (clinicExists) {
+            // Clinic already exists — verify authorization to prevent unauthorized takeover
+            const adminEmail = (linkedClinicData?.adminEmail || "").toLowerCase().trim();
+            const isOwner = adminEmail === emailVal.toLowerCase().trim();
+            const isDocMember =
+              Array.isArray(linkedClinicData?.doctors) &&
+              linkedClinicData.doctors.some(
+                (d: any) => (d.email || "").toLowerCase().trim() === emailVal.toLowerCase().trim()
               );
 
-            if (matches.length > 0) {
-              // Prioritize clinic with registered doctors
-              const bestMatch =
-                matches.find(
-                  (c: any) =>
-                    (Array.isArray(c.doctors) && c.doctors.length > 0) ||
-                    c.primaryDoctorEmail ||
-                    c.primaryDoctorName
-                ) || matches[0];
-              finalClinicId = bestMatch.id;
-              linkedClinicData = bestMatch;
+            if (!isOwner && !isDocMember) {
+              throw new Error(
+                `Clinic ID "${finalClinicId}" is already registered by another clinic owner. If this is your clinic, please sign in with your registered credentials, or choose a unique Clinic ID.`
+              );
             }
           }
-        }
+        } else if (selectedRole === "receptionist") {
+          // Section 3: Receptionist Registration Validation
+          if (!clinicExists) {
+            throw new Error(
+              `Clinic ID "${finalClinicId}" not found in MediTrack. Please verify the Clinic ID provided by your Doctor before registering.`
+            );
+          }
 
-        // A receptionist MUST join an existing clinic created by their doctor/admin!
-        if (selectedRole === "receptionist" && !finalClinicId) {
-          throw new Error(
-            `Clinic "${clinicName}" was not found in MediTrack. Please select your doctor's registered clinic from the suggestions so both accounts share the same Clinic ID.`
-          );
-        }
-
-        // ── IF RECEPTIONIST AND CLINIC FOUND, RESOLVE ASSIGNED DOCTOR FROM CLINIC RECORD ──
-        if (selectedRole === "receptionist" && finalClinicId) {
-          const targetDocUid = (signupData as any).assignedDoctorUid || "";
-          const targetDocEmail = ((signupData as any).assignedDoctorEmail || "").trim().toLowerCase();
-
-          // 1. From linkedClinicData.doctors array (instant, zero permission overhead)
+          // Section 4: Resolve assigned doctor from the verified clinic record
           if (Array.isArray(linkedClinicData?.doctors) && linkedClinicData.doctors.length > 0) {
+            const targetDocUid = (signupData as any).assignedDoctorUid || "";
+            const targetDocEmail = ((signupData as any).assignedDoctorEmail || "").trim().toLowerCase();
             if (targetDocUid) {
               linkedDoctor = linkedClinicData.doctors.find((d: any) => d.uid === targetDocUid);
             }
@@ -3528,7 +3559,6 @@ export default function App() {
             }
           }
 
-          // 2. From primary doctor fields on clinic record
           if (!linkedDoctor && linkedClinicData?.primaryDoctorName) {
             linkedDoctor = {
               uid: linkedClinicData.adminId || "",
@@ -3564,21 +3594,13 @@ export default function App() {
           }
         }
 
-        // If creating a brand new clinic (Doctor without existing Clinic ID, or Admin)
-        if (!finalClinicId) {
-          const counterRef = doc(db, "system", "clinicCounter");
-          await runTransaction(db, async (transaction) => {
-            const counterSnap = await transaction.get(counterRef);
-            const currentCount = counterSnap.exists() ? counterSnap.data().count || 0 : 0;
-            const nextCount = currentCount + 1;
-            const paddedNum = String(nextCount).padStart(4, "0");
-            finalClinicId = `MT${paddedNum}`;
-            transaction.set(counterRef, { count: nextCount }, { merge: true });
-          });
+        // Step 2 — Create or update Clinic record using manual Clinic ID
+        const newDocId = `DOC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`;
+        const newRecId = `REC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`;
 
-          // Create new clinic document with primary doctor details
-          const newDocId = `DOC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`;
-          await setDoc(doc(db, "clinics", finalClinicId), {
+        if (!clinicExists) {
+          // Brand new clinic created with manually entered Clinic ID
+          await setDoc(clinicRef, {
             clinicId: finalClinicId,
             name: clinicName,
             adminId: userUid,
@@ -3601,9 +3623,8 @@ export default function App() {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
-        } else if (selectedRole === "doctor" && linkedClinicData) {
-          // Doctor joined existing clinic — add to doctors list in clinic doc
-          const newDocId = `DOC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`;
+        } else if (selectedRole === "doctor") {
+          // Doctor joined or re-authorized for existing clinic
           const docEntry = {
             uid: userUid,
             name: fullName,
@@ -3612,31 +3633,28 @@ export default function App() {
             doctorId: newDocId,
             category: "GP",
           };
-          const existingDocs = Array.isArray(linkedClinicData.doctors) ? linkedClinicData.doctors : [];
+          const existingDocs = Array.isArray(linkedClinicData?.doctors) ? linkedClinicData.doctors : [];
           const updatedDocs = [
             ...existingDocs.filter((d: any) => (d.email || "").toLowerCase() !== emailVal.toLowerCase().trim()),
             docEntry,
           ];
-          await updateDoc(doc(db, "clinics", finalClinicId), {
+          await updateDoc(clinicRef, {
             doctors: updatedDocs,
             updatedAt: serverTimestamp(),
           }).catch(console.error);
-        } else if (selectedRole === "receptionist" && finalClinicId) {
-          const generatedRecId = `REC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`;
-          await updateDoc(doc(db, "clinics", finalClinicId), {
-            primaryReceptionistId: generatedRecId,
+        } else if (selectedRole === "receptionist") {
+          // Receptionist registered into existing clinic
+          await updateDoc(clinicRef, {
+            primaryReceptionistId: newRecId,
             primaryReceptionistEmail: emailVal.toLowerCase().trim(),
             primaryReceptionistName: fullName,
             updatedAt: serverTimestamp(),
           }).catch(console.error);
         }
 
-        const newDoctorId = selectedRole === "doctor"
-          ? `DOC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`
+        const finalDoctorId = selectedRole === "doctor"
+          ? newDocId
           : (linkedDoctor?.doctorId || `DOC-${finalClinicId}-001`);
-        const newRecId = selectedRole === "receptionist"
-          ? `REC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`
-          : `REC-${finalClinicId}-001`;
 
         // Step 4 — Create user profile & userAccess
         const profilePayload: any = {
@@ -3650,7 +3668,7 @@ export default function App() {
           accountStatus: "active",
           clinicId: finalClinicId,
           clinicName: linkedClinicData?.name || clinicName,
-          doctorId: newDoctorId,
+          doctorId: finalDoctorId,
           receptionistId: newRecId,
           contactNumber: cleanPhone,
           registeredPhoneNumber: cleanPhone,
@@ -3668,7 +3686,7 @@ export default function App() {
         if (selectedRole === "receptionist") {
           const docEmail = linkedDoctor?.email || linkedClinicData?.primaryDoctorEmail || "";
           const docName = linkedDoctor?.displayName || linkedDoctor?.name || linkedClinicData?.primaryDoctorName || "Dr. Zaid";
-          const docId = linkedDoctor?.doctorId || linkedClinicData?.primaryDoctorId || newDoctorId;
+          const docId = linkedDoctor?.doctorId || linkedClinicData?.primaryDoctorId || newDocId;
           const docUid = linkedDoctor?.uid || linkedClinicData?.adminId || "";
           const docCategory = linkedDoctor?.category || "GP";
 
@@ -3723,6 +3741,8 @@ export default function App() {
         // Step 7 — Set credentials, transition to Login page with pre-filled credentials
         setEmail(emailVal);
         setPassword(passwordVal);
+        setLoginClinicId(finalClinicId);
+        setLoginRole(selectedRole);
         setSignupSuccess(true);
         setAuthMode("login");
         setError(null);
@@ -3749,6 +3769,10 @@ export default function App() {
         setEmail={setEmail}
         password={password}
         setPassword={setPassword}
+        loginRole={loginRole}
+        setLoginRole={setLoginRole}
+        loginClinicId={loginClinicId}
+        setLoginClinicId={setLoginClinicId}
         authLoading={authLoading}
         error={error}
         setError={setError}

@@ -30,6 +30,10 @@ interface LoginPageProps {
   setEmail: (email: string) => void;
   password: string;
   setPassword: (password: string) => void;
+  loginRole?: string;
+  setLoginRole?: (role: string) => void;
+  loginClinicId?: string;
+  setLoginClinicId?: (clinicId: string) => void;
   authLoading: boolean;
   error: string | null;
   setError: (err: string | null) => void;
@@ -63,6 +67,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   setEmail,
   password,
   setPassword,
+  loginRole = "doctor",
+  setLoginRole,
+  loginClinicId = "",
+  setLoginClinicId,
   authLoading,
   error,
   setError,
@@ -79,41 +87,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
-  const [existingClinics, setExistingClinics] = useState<
-    Array<{ id: string; name: string; doctorName?: string; doctorEmail?: string }>
-  >([]);
-
-  useEffect(() => {
-    // Load registered clinics to facilitate auto-suggestion and ensure same Clinic ID linking
-    getDocs(collection(db, "clinics"))
-      .then((snap) => {
-        const list: Array<{ id: string; name: string; doctorName?: string; doctorEmail?: string }> = [];
-        const seen = new Set<string>();
-        snap.docs.forEach((d) => {
-          const data = d.data();
-          const name = (data.name || "").trim();
-          if (!name) return;
-          const lower = name.toLowerCase();
-          const docName = data.primaryDoctorName || data.doctors?.[0]?.name || data.doctors?.[0]?.displayName || "";
-          const docEmail = data.primaryDoctorEmail || data.adminEmail || "";
-          if (seen.has(lower)) {
-            const idx = list.findIndex((c) => c.name.toLowerCase() === lower);
-            if (idx !== -1 && !list[idx].doctorName && docName) {
-              list[idx] = { id: d.id, name, doctorName: docName, doctorEmail: docEmail };
-            }
-          } else {
-            seen.add(lower);
-            list.push({ id: d.id, name, doctorName: docName, doctorEmail: docEmail });
-          }
-        });
-        setExistingClinics(list);
-      })
-      .catch((err) => {
-        console.warn("Could not prefetch clinics list:", err);
-      });
-  }, []);
-
-
 
   useEffect(() => {
     if (signupSuccess) {
@@ -146,12 +119,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       : signupData?.role === "admin"
       ? "Clinic Admin"
       : "Doctor";
-
-  const matchedClinic = existingClinics.find(
-    (c) =>
-      (signupData?.clinicId && c.id.toUpperCase() === (signupData?.clinicId || "").trim().toUpperCase()) ||
-      (signupData?.clinicName && c.name.toLowerCase() === (signupData?.clinicName || "").trim().toLowerCase())
-  );
 
 
   const formatErrorMessage = (err: string | null) => {
@@ -335,6 +302,62 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </div>
 
                 <form onSubmit={onLoginSubmit} className="space-y-3.5">
+                  {/* Role & Clinic ID Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* Role */}
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                        Role *
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          {loginRole === "receptionist" ? (
+                            <Users size={16} />
+                          ) : loginRole === "admin" ? (
+                            <ShieldCheck size={16} />
+                          ) : (
+                            <Stethoscope size={16} />
+                          )}
+                        </div>
+                        <select
+                          value={loginRole}
+                          onChange={(e) => setLoginRole && setLoginRole(e.target.value)}
+                          className={`${inputCls} pr-9 cursor-pointer appearance-none font-semibold text-slate-800`}
+                        >
+                          <option value="doctor">Doctor</option>
+                          <option value="receptionist">Receptionist</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                          <ChevronDown size={16} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Clinic ID */}
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                        Clinic ID *
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <Building2 size={16} />
+                        </div>
+                        <input
+                          type="text"
+                          required
+                          value={loginClinicId}
+                          onChange={(e) =>
+                            setLoginClinicId &&
+                            setLoginClinicId(e.target.value.toUpperCase().replace(/[^A-Z0-9_\-]/g, ""))
+                          }
+                          placeholder="e.g. MT001"
+                          className={`${inputCls} font-mono uppercase font-bold`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Email */}
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
@@ -481,7 +504,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     {/* Clinic Name */}
                     <div className="space-y-1">
                       <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                        Clinic Name
+                        Clinic Name *
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -490,90 +513,52 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <input
                           type="text"
                           required
-                          list="registered-clinics-list"
                           value={signupData.clinicName}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const found = existingClinics.find(
-                              (c) => c.name.toLowerCase() === val.trim().toLowerCase()
-                            );
+                          onChange={(e) =>
                             setSignupData((prev: any) => ({
                               ...prev,
-                              clinicName: val,
-                              clinicId: found ? found.id : prev.clinicId,
-                              assignedDoctorEmail: found?.doctorEmail || prev.assignedDoctorEmail || "",
-                            }));
-                          }}
-                          placeholder="e.g. Hadi Clinic"
+                              clinicName: e.target.value,
+                            }))
+                          }
+                          placeholder="e.g. Al Sabah Clinic"
                           className={inputCls}
                         />
-                        <datalist id="registered-clinics-list">
-                          {existingClinics.map((c) => (
-                            <option key={c.id} value={c.name}>
-                              {c.id}{c.doctorName ? ` • ${c.doctorName}` : ""}
-                            </option>
-                          ))}
-                        </datalist>
                       </div>
                     </div>
 
                     {/* Clinic ID */}
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                          Clinic ID
-                        </label>
-                        {matchedClinic && (
-                          <span className="text-[9px] font-black text-emerald-800 bg-emerald-100/90 px-1.5 py-0.5 rounded border border-emerald-300">
-                            Matched
-                          </span>
-                        )}
-                      </div>
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                        Clinic ID *
+                      </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                           <Building2 size={16} />
                         </div>
                         <input
                           type="text"
+                          required
                           value={signupData.clinicId || ""}
                           onChange={(e) => {
-                            const val = e.target.value.toUpperCase().trim();
-                            const found = existingClinics.find(
-                              (c) => c.id.toUpperCase() === val
-                            );
+                            const val = e.target.value.toUpperCase().replace(/[^A-Z0-9_\-]/g, "");
                             setSignupData((prev: any) => ({
                               ...prev,
                               clinicId: val,
-                              clinicName: found ? found.name : prev.clinicName,
-                              assignedDoctorEmail: found?.doctorEmail || prev.assignedDoctorEmail || "",
                             }));
                           }}
-                          placeholder="e.g. MT0016"
+                          placeholder="e.g. MT001"
                           className={`${inputCls} font-mono uppercase font-bold`}
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Clinic Matching / Sync Notification Banner */}
-                  {matchedClinic && (
-                    <div className="p-2.5 bg-emerald-50/90 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 flex items-center justify-between gap-2 shadow-2xs">
-                      <div className="flex items-center gap-1.5 truncate">
-                        <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                        <span className="font-bold truncate">
-                          {matchedClinic.name} ({matchedClinic.id})
-                        </span>
-                        {matchedClinic.doctorName && (
-                          <span className="text-emerald-700 font-semibold text-[10.5px] truncate">
-                            • {matchedClinic.doctorName}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-200/80 text-emerald-900 shrink-0">
-                        Shared Clinic ID
-                      </span>
-                    </div>
-                  )}
+                  {/* Explanatory notice */}
+                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                    {signupData.role === "receptionist"
+                      ? "Enter the exact Clinic ID provided by your Doctor to connect to their clinic queue."
+                      : "Enter a custom Clinic ID (e.g. MT001). Share this exact Clinic ID with your receptionists so both accounts connect to the same clinic."}
+                  </p>
 
                   {/* Full Name */}
                   <div className="space-y-1">
