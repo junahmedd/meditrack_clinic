@@ -1508,7 +1508,6 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginRole, setLoginRole] = useState("doctor");
-  const [loginClinicId, setLoginClinicId] = useState("");
   const [signupData, setSignupData] = useState({
     clinicId: "",
     clinicName: "",
@@ -3370,19 +3369,15 @@ export default function App() {
 
         const isRec = !isAdm && !isDoc;
 
-        // Section 7 Requirement: Validate entered Clinic ID against account's saved clinic
-        const cleanEnteredClinicId = (loginClinicId || "").replace(/[^a-zA-Z0-9_\-]/g, "").trim().toUpperCase();
-        if (cleanEnteredClinicId && profile.clinicId) {
-          const profileClinicId = profile.clinicId.replace(/[^a-zA-Z0-9_\-]/g, "").trim().toUpperCase();
-          if (cleanEnteredClinicId !== profileClinicId) {
-            await signOut(auth);
-            setError(`Entered Clinic ID "${cleanEnteredClinicId}" does not match your registered Clinic ID (${profile.clinicId}).`);
-            setAuthLoading(false);
-            return;
-          }
+        // Automatically retrieve and verify user's saved Clinic ID from database profile
+        if (!profile.clinicId) {
+          await signOut(auth);
+          setError("No registered Clinic ID found for this account. Please sign up to create or join a clinic.");
+          setAuthLoading(false);
+          return;
         }
 
-        // Section 7 Requirement: Validate selected Role against account's registered role
+        // Validate selected Role against account's registered role
         const selectedLoginRole = (loginRole || "doctor").toLowerCase().trim();
         if (selectedLoginRole === "doctor" && !isDoc) {
           await signOut(auth);
@@ -3685,7 +3680,7 @@ export default function App() {
         // ── DOCTOR–RECEPTIONIST RELATIONSHIP LINKING ──
         if (selectedRole === "receptionist") {
           const docEmail = linkedDoctor?.email || linkedClinicData?.primaryDoctorEmail || "";
-          const docName = linkedDoctor?.displayName || linkedDoctor?.name || linkedClinicData?.primaryDoctorName || "Dr. Zaid";
+          const docName = linkedDoctor?.displayName || linkedDoctor?.name || linkedClinicData?.primaryDoctorName || "Clinic Doctor";
           const docId = linkedDoctor?.doctorId || linkedClinicData?.primaryDoctorId || newDocId;
           const docUid = linkedDoctor?.uid || linkedClinicData?.adminId || "";
           const docCategory = linkedDoctor?.category || "GP";
@@ -3771,8 +3766,6 @@ export default function App() {
         setPassword={setPassword}
         loginRole={loginRole}
         setLoginRole={setLoginRole}
-        loginClinicId={loginClinicId}
-        setLoginClinicId={setLoginClinicId}
         authLoading={authLoading}
         error={error}
         setError={setError}

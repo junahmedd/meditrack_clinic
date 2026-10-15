@@ -32,8 +32,6 @@ interface LoginPageProps {
   setPassword: (password: string) => void;
   loginRole?: string;
   setLoginRole?: (role: string) => void;
-  loginClinicId?: string;
-  setLoginClinicId?: (clinicId: string) => void;
   authLoading: boolean;
   error: string | null;
   setError: (err: string | null) => void;
@@ -69,8 +67,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   setPassword,
   loginRole = "doctor",
   setLoginRole,
-  loginClinicId = "",
-  setLoginClinicId,
   authLoading,
   error,
   setError,
@@ -302,58 +298,32 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </div>
 
                 <form onSubmit={onLoginSubmit} className="space-y-3.5">
-                  {/* Role & Clinic ID Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {/* Role */}
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                        Role *
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                          {loginRole === "receptionist" ? (
-                            <Users size={16} />
-                          ) : loginRole === "admin" ? (
-                            <ShieldCheck size={16} />
-                          ) : (
-                            <Stethoscope size={16} />
-                          )}
-                        </div>
-                        <select
-                          value={loginRole}
-                          onChange={(e) => setLoginRole && setLoginRole(e.target.value)}
-                          className={`${inputCls} pr-9 cursor-pointer appearance-none font-semibold text-slate-800`}
-                        >
-                          <option value="doctor">Doctor</option>
-                          <option value="receptionist">Receptionist</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                          <ChevronDown size={16} />
-                        </div>
+                  {/* Role */}
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                      Select Your Role *
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        {loginRole === "receptionist" ? (
+                          <Users size={16} />
+                        ) : loginRole === "admin" ? (
+                          <ShieldCheck size={16} />
+                        ) : (
+                          <Stethoscope size={16} />
+                        )}
                       </div>
-                    </div>
-
-                    {/* Clinic ID */}
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                        Clinic ID *
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                          <Building2 size={16} />
-                        </div>
-                        <input
-                          type="text"
-                          required
-                          value={loginClinicId}
-                          onChange={(e) =>
-                            setLoginClinicId &&
-                            setLoginClinicId(e.target.value.toUpperCase().replace(/[^A-Z0-9_\-]/g, ""))
-                          }
-                          placeholder="e.g. MT001"
-                          className={`${inputCls} font-mono uppercase font-bold`}
-                        />
+                      <select
+                        value={loginRole}
+                        onChange={(e) => setLoginRole && setLoginRole(e.target.value)}
+                        className={`${inputCls} pr-9 cursor-pointer appearance-none font-semibold text-slate-800`}
+                      >
+                        <option value="doctor">Doctor</option>
+                        <option value="receptionist">Receptionist</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                        <ChevronDown size={16} />
                       </div>
                     </div>
                   </div>

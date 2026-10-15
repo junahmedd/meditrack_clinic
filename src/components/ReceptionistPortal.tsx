@@ -412,22 +412,19 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       };
     }
     return {
-      email: currentUserProfile?.assignedDoctorEmail || "dr.zaid@meditrack.io",
-      displayName:
-        currentUserProfile?.assignedDoctorName && currentUserProfile.assignedDoctorName !== "Clinic Doctor"
-          ? currentUserProfile.assignedDoctorName
-          : "Dr. Zaid",
+      email: currentUserProfile?.assignedDoctorEmail || "",
+      displayName: currentUserProfile?.assignedDoctorName || "Clinic Doctor",
       category: (currentUserProfile?.assignedDoctorCategory || currentUserProfile?.category || "GP").toUpperCase(),
       doctorId: currentUserProfile?.assignedDoctorId || "DOC-001",
+      uid: currentUserProfile?.assignedDoctorUid || "",
     };
   }, [currentUserProfile, clinicDoctors, selectedAppointmentDoctorUid]);
 
   const assignedDoctorEmail = activeDoctor?.email || currentUserProfile?.assignedDoctorEmail || "";
   const assignedDoctorName =
     activeDoctor?.displayName ||
-    (currentUserProfile?.assignedDoctorName && currentUserProfile.assignedDoctorName !== "Clinic Doctor"
-      ? currentUserProfile.assignedDoctorName
-      : "Dr. Zaid");
+    currentUserProfile?.assignedDoctorName ||
+    "Clinic Doctor";
   const assignedDoctorCategory = (activeDoctor?.category || currentUserProfile?.assignedDoctorCategory || "GP").toUpperCase();
   const assignedDoctorId = activeDoctor?.doctorId || activeDoctor?.id || currentUserProfile?.assignedDoctorId || `DOC-${assignedDoctorCategory}`;
 
