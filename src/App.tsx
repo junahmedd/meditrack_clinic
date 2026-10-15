@@ -3508,47 +3508,27 @@ export default function App() {
           );
         }
 
-        // ── IF RECEPTIONIST AND CLINIC FOUND, RESOLVE ASSIGNED DOCTOR ──
+        // ── IF RECEPTIONIST AND CLINIC FOUND, RESOLVE ASSIGNED DOCTOR FROM CLINIC RECORD ──
         if (selectedRole === "receptionist" && finalClinicId) {
           const targetDocUid = (signupData as any).assignedDoctorUid || "";
           const targetDocEmail = ((signupData as any).assignedDoctorEmail || "").trim().toLowerCase();
 
-          // 1. By selected doctor UID
-          if (targetDocUid) {
-            const docSnap = await getDoc(doc(db, "users", targetDocUid));
-            if (docSnap.exists() && docSnap.data().clinicId === finalClinicId) {
-              linkedDoctor = { ...docSnap.data(), uid: targetDocUid };
+          // 1. From linkedClinicData.doctors array (instant, zero permission overhead)
+          if (Array.isArray(linkedClinicData?.doctors) && linkedClinicData.doctors.length > 0) {
+            if (targetDocUid) {
+              linkedDoctor = linkedClinicData.doctors.find((d: any) => d.uid === targetDocUid);
+            }
+            if (!linkedDoctor && targetDocEmail) {
+              linkedDoctor = linkedClinicData.doctors.find(
+                (d: any) => (d.email || "").trim().toLowerCase() === targetDocEmail
+              );
+            }
+            if (!linkedDoctor) {
+              linkedDoctor = linkedClinicData.doctors[0];
             }
           }
 
-          // 2. By selected or entered doctor email
-          if (!linkedDoctor && targetDocEmail) {
-            const docQ = query(
-              collection(db, "users"),
-              where("email", "==", targetDocEmail),
-              where("clinicId", "==", finalClinicId)
-            );
-            const docSnap = await getDocs(docQ);
-            if (!docSnap.empty) {
-              linkedDoctor = { ...docSnap.docs[0].data(), uid: docSnap.docs[0].id };
-            }
-          }
-
-          // 3. Fallback: Any registered doctor in this clinic from users collection
-          if (!linkedDoctor) {
-            const clinicUsersQ = query(collection(db, "users"), where("clinicId", "==", finalClinicId));
-            const clinicUsersSnap = await getDocs(clinicUsersQ).catch(() => null);
-            if (clinicUsersSnap && !clinicUsersSnap.empty) {
-              const doctorsInClinic = clinicUsersSnap.docs
-                .map((d) => ({ uid: d.id, ...d.data() }))
-                .filter((u: any) => (u.role || "").toLowerCase() === "doctor");
-              if (doctorsInClinic.length > 0) {
-                linkedDoctor = doctorsInClinic[0];
-              }
-            }
-          }
-
-          // 4. Fallback: Primary doctor from clinic document
+          // 2. From primary doctor fields on clinic record
           if (!linkedDoctor && linkedClinicData?.primaryDoctorName) {
             linkedDoctor = {
               uid: linkedClinicData.adminId || "",

@@ -47,18 +47,7 @@ service cloud.firestore {
     // Collection: userAccess
     // ===============================================================
     match /userAccess/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow update: if isAdmin() || (
-        isUser(userId) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'phoneVerified',
-          'initialVerificationCompleted',
-          'verificationCompletedAt',
-          'updatedAt'
-        ])
-      );
-      allow delete: if isAdmin();
+      allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
     }
 
     // ===============================================================
@@ -66,7 +55,7 @@ service cloud.firestore {
     // ===============================================================
     match /authorizedAccounts/{emailKey} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && (request.resource.data.uid == request.auth.uid || isAdmin());
+      allow write: if isSignedIn() && (request.resource.data.get('uid', request.auth.uid) == request.auth.uid || isAdmin());
     }
 
     // ===============================================================
@@ -74,14 +63,7 @@ service cloud.firestore {
     // ===============================================================
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow update: if isSignedIn() && (
-        isAdmin() || (
-          request.auth.uid == userId &&
-          request.resource.data.get('role', resource.data.get('role', '')) == resource.data.get('role', '') &&
-          request.resource.data.get('clinicId', resource.data.get('clinicId', '')) == resource.data.get('clinicId', '')
-        )
-      );
+      allow create, update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow delete: if isAdmin();
     }
 
@@ -90,10 +72,7 @@ service cloud.firestore {
     // ===============================================================
     match /clinics/{clinicId} {
       allow read: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (
-        isAdmin() || (hasUserAccess() && getUserClinic() == clinicId)
-      );
+      allow create, update: if isSignedIn();
       allow delete: if isAdmin();
     }
 
