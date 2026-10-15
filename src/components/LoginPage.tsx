@@ -298,36 +298,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </div>
 
                 <form onSubmit={onLoginSubmit} className="space-y-3.5">
-                  {/* Role */}
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                      Select Your Role *
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        {loginRole === "receptionist" ? (
-                          <Users size={16} />
-                        ) : loginRole === "admin" ? (
-                          <ShieldCheck size={16} />
-                        ) : (
-                          <Stethoscope size={16} />
-                        )}
-                      </div>
-                      <select
-                        value={loginRole}
-                        onChange={(e) => setLoginRole && setLoginRole(e.target.value)}
-                        className={`${inputCls} pr-9 cursor-pointer appearance-none font-semibold text-slate-800`}
-                      >
-                        <option value="doctor">Doctor</option>
-                        <option value="receptionist">Receptionist</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                        <ChevronDown size={16} />
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Email */}
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
@@ -522,13 +492,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       </div>
                     </div>
                   </div>
-
-                  {/* Explanatory notice */}
-                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                    {signupData.role === "receptionist"
-                      ? "Enter the exact Clinic ID provided by your Doctor to connect to their clinic queue."
-                      : "Enter a custom Clinic ID (e.g. MT001). Share this exact Clinic ID with your receptionists so both accounts connect to the same clinic."}
-                  </p>
 
                   {/* Full Name */}
                   <div className="space-y-1">

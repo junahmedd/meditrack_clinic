@@ -3380,26 +3380,7 @@ export default function App() {
           return;
         }
 
-        // Validate selected Role against account's registered role
-        const selectedLoginRole = (loginRole || "doctor").toLowerCase().trim();
-        if (selectedLoginRole === "doctor" && !isDoc) {
-          await signOut(auth);
-          setError(`Your account is registered as a ${role.toUpperCase()}, not as a Doctor. Please select "${role}" to sign in.`);
-          setAuthLoading(false);
-          return;
-        } else if (selectedLoginRole === "receptionist" && !isRec) {
-          await signOut(auth);
-          setError(`Your account is registered as a ${role.toUpperCase()}, not as a Receptionist. Please select "${role}" to sign in.`);
-          setAuthLoading(false);
-          return;
-        } else if (selectedLoginRole === "admin" && !isAdm) {
-          await signOut(auth);
-          setError(`Your account is registered as a ${role.toUpperCase()}, not as an Admin. Please select "${role}" to sign in.`);
-          setAuthLoading(false);
-          return;
-        }
-
-        // Auto-detect role from backend and route to designated portal
+        // Auto-detect role from backend and route directly to designated portal
         setCurrentUserProfile(profile);
         setSignupSuccess(false);
         setHasRedirected(true);
