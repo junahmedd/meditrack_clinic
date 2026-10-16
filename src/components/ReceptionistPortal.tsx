@@ -2266,52 +2266,19 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               {/* Bottom Section on Dashboard: Today's Live Waiting Queue */}
               {/* Full Width Live Queue Table Card */}
               <div className="bg-white rounded-2xl border border-slate-100/90 shadow-sm overflow-hidden">
-                <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-                  <div className="flex items-start sm:items-center gap-3">
+                <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-3.5">
+                  <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#064e3b] flex items-center justify-center font-bold shrink-0">
                       <Clock size={19} />
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">
-                          Patient Queue
-                        </h3>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shrink-0">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          {queueItems.length} in Queue Today
-                        </span>
-                        {(assignedDoctorEmail || currentUserProfile?.clinicId) && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/80 shrink-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                            Connected: <strong className="font-bold text-slate-900">{assignedDoctorName}</strong> ({assignedDoctorEmail || "No Email"}) • Clinic: <strong className="font-bold text-slate-900">{currentUserProfile?.clinicId || clinicInfo?.name || "Clinic"}</strong>
-                          </span>
-                        )}
-                      </div>
+                      <h3 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">
+                        Patient Queue
+                      </h3>
                       <p className="text-[11px] font-medium text-slate-400 mt-0.5 leading-snug">
-                        Live waiting room queue &amp; active doctor consultations synchronized with {assignedDoctorName} ({assignedDoctorEmail})
+                        Live waiting room queue &amp; active doctor consultations
                       </p>
                     </div>
-                  </div>
-
-                  {/* Responsive Action Buttons: Mobile 50/50 full-width, Laptop & Desktop inline */}
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <button
-                      type="button"
-                      onClick={() => setIsAddQueueModalOpen(true)}
-                      className="flex-1 sm:flex-initial px-4 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.98] text-white text-xs font-extrabold rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <UserPlus size={14} className="shrink-0" />
-                      <span>Register</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("appointments")}
-                      className="flex-1 sm:flex-initial px-4 py-2.5 bg-slate-50 hover:bg-slate-100 active:scale-[0.98] text-slate-700 text-xs font-extrabold rounded-xl border border-slate-200/90 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <Calendar size={14} className="shrink-0 text-slate-500" />
-                      <span>Appointment</span>
-                      <ArrowRight size={13} className="shrink-0 text-slate-400 hidden xs:inline" />
-                    </button>
                   </div>
                 </div>
 
