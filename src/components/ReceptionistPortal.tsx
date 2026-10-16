@@ -426,7 +426,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     }
     return {
       email: currentUserProfile?.assignedDoctorEmail || "",
-      displayName: currentUserProfile?.assignedDoctorName || "Clinic Doctor",
+      displayName: currentUserProfile?.assignedDoctorName || "Dr. Zaid",
       category: (currentUserProfile?.assignedDoctorCategory || currentUserProfile?.category || "GP").toUpperCase(),
       doctorId: currentUserProfile?.assignedDoctorId || "DOC-001",
       uid: currentUserProfile?.assignedDoctorUid || "",
@@ -437,7 +437,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   const assignedDoctorName =
     activeDoctor?.displayName ||
     currentUserProfile?.assignedDoctorName ||
-    "Clinic Doctor";
+    "Dr. Zaid";
   const assignedDoctorCategory = (activeDoctor?.category || currentUserProfile?.assignedDoctorCategory || "GP").toUpperCase();
   const assignedDoctorId = activeDoctor?.doctorId || activeDoctor?.id || currentUserProfile?.assignedDoctorId || `DOC-${assignedDoctorCategory}`;
 
@@ -3833,41 +3833,15 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     />
                   </div>
 
-                  {/* Assigned Doctor (Dynamic Selection / Verified Badge) */}
+                  {/* Assigned Doctor (Greyed out: Dr. Zaid) */}
                   <div>
                     <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
                       Assigned Doctor *
                     </label>
-                    {clinicDoctors && clinicDoctors.length > 1 ? (
-                      <select
-                        value={selectedAppointmentDoctorUid || activeDoctor?.uid || activeDoctor?.id || ""}
-                        onChange={(e) => {
-                          setSelectedAppointmentDoctorUid(e.target.value);
-                          const doc = clinicDoctors.find((d) => (d.uid || d.id) === e.target.value);
-                          if (doc) setNewAptDoctor(doc.displayName || doc.name);
-                        }}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-extrabold focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] cursor-pointer"
-                      >
-                        {clinicDoctors.map((doc) => (
-                          <option key={doc.uid || doc.id} value={doc.uid || doc.id}>
-                            {doc.displayName || doc.name} ({doc.doctorId || doc.category || "General Physician"})
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 font-bold flex items-center justify-between cursor-not-allowed select-none opacity-90">
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                          <span className="truncate text-slate-700">{assignedDoctorName}</span>
-                          <span className="text-[10px] text-slate-400 font-semibold shrink-0">
-                            ({categoryLabel} • {assignedDoctorId})
-                          </span>
-                        </div>
-                        <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-slate-200 text-slate-600 shrink-0">
-                          Assigned
-                        </span>
-                      </div>
-                    )}
+                    <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-bold flex items-center gap-2 cursor-not-allowed select-none">
+                      <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                      <span>{assignedDoctorName || "Dr. Zaid"}</span>
+                    </div>
                   </div>
 
                   {/* Appointment Type (Strictly General Consultation & Check Up) */}
@@ -4023,16 +3997,14 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
-                  {/* Assigned Doctor (Greyed out) */}
+                  {/* Assigned Doctor (Greyed out: Dr. Zaid) */}
                   <div>
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                       Assigned Doctor
                     </label>
-                    <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-500 font-bold flex items-center justify-between cursor-not-allowed select-none opacity-80">
-                      <span className="truncate">{assignedDoctorName}</span>
-                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-500">
-                        Assigned
-                      </span>
+                    <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-bold flex items-center gap-2 cursor-not-allowed select-none">
+                      <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                      <span>{assignedDoctorName || "Dr. Zaid"}</span>
                     </div>
                   </div>
 
@@ -4813,32 +4785,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
                     Assigned Doctor *
                   </label>
-                  {clinicDoctors && clinicDoctors.length > 1 ? (
-                    <select
-                      value={selectedAppointmentDoctorUid || activeDoctor?.uid || activeDoctor?.id || ""}
-                      onChange={(e) => setSelectedAppointmentDoctorUid(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-extrabold focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] cursor-pointer"
-                    >
-                      {clinicDoctors.map((doc) => (
-                        <option key={doc.uid || doc.id} value={doc.uid || doc.id}>
-                          {doc.displayName || doc.name} ({doc.doctorId || doc.category || "General Physician"})
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 font-bold flex items-center justify-between cursor-not-allowed select-none opacity-90">
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                        <span className="truncate text-slate-700">{assignedDoctorName}</span>
-                        <span className="text-[10px] text-slate-400 font-semibold shrink-0">
-                          ({categoryLabel} • {assignedDoctorId})
-                        </span>
-                      </div>
-                      <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-slate-200 text-slate-600 shrink-0">
-                        Assigned
-                      </span>
-                    </div>
-                  )}
+                  <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-bold flex items-center gap-2 cursor-not-allowed select-none">
+                    <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                    <span>{assignedDoctorName || "Dr. Zaid"}</span>
+                  </div>
                 </div>
 
                 <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
