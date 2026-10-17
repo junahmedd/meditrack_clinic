@@ -438,6 +438,18 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     activeDoctor?.displayName ||
     currentUserProfile?.assignedDoctorName ||
     "Dr. Zaid";
+
+  const formattedDoctorDisplayName = useMemo(() => {
+    const raw = (assignedDoctorName || "Dr. Zaid").trim();
+    if (!raw || raw.toLowerCase() === "clinic doctor") return "Dr. Zaid";
+    if (raw.toLowerCase().startsWith("dr.")) {
+      return raw;
+    }
+    if (raw.toLowerCase().startsWith("dr ")) {
+      return `Dr. ${raw.slice(3).trim()}`;
+    }
+    return `Dr. ${raw}`;
+  }, [assignedDoctorName]);
   const assignedDoctorCategory = (activeDoctor?.category || currentUserProfile?.assignedDoctorCategory || "GP").toUpperCase();
   const assignedDoctorId = activeDoctor?.doctorId || activeDoctor?.id || currentUserProfile?.assignedDoctorId || `DOC-${assignedDoctorCategory}`;
 
@@ -757,8 +769,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   const [newAptPhone, setNewAptPhone] = useState("");
   const [newAptAge, setNewAptAge] = useState("");
   const [newAptGender, setNewAptGender] = useState<"Male" | "Female" | "Other">("Male");
-  const [newAptDoctor, setNewAptDoctor] = useState(assignedDoctorName);
-  const [newAptType, setNewAptType] = useState<"General Consultation" | "Check Up">("General Consultation");
+  const [newAptDoctor, setNewAptDoctor] = useState(formattedDoctorDisplayName);
+  const [newAptType, setNewAptType] = useState<string>("Check Up");
   const [newAptTime, setNewAptTime] = useState("10:30 AM");
   const [newAptNotes, setNewAptNotes] = useState("");
 
@@ -966,7 +978,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           ? clinicDoctors.find((d) => (d.uid || d.id) === selectedAppointmentDoctorUid) || activeDoctor
           : activeDoctor;
 
-      const docName = targetDoctor?.displayName || targetDoctor?.name || assignedDoctorName;
+      const docName = formattedDoctorDisplayName;
       const docEmail = targetDoctor?.email || assignedDoctorEmail;
       const docId = targetDoctor?.doctorId || targetDoctor?.id || assignedDoctorId;
       const docUid = targetDoctor?.uid || targetDoctor?.id || currentUserProfile?.assignedDoctorUid || "";
@@ -3833,32 +3845,27 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     />
                   </div>
 
-                  {/* Assigned Doctor (Greyed out: Dr. Zaid) */}
+                  {/* Assigned Doctor (Greyed out: Dr. Doctor Name) */}
                   <div>
                     <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
                       Assigned Doctor *
                     </label>
-                    <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-bold flex items-center gap-2 cursor-not-allowed select-none">
-                      <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                      <span>{assignedDoctorName || "Dr. Zaid"}</span>
+                    <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
+                      <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
+                      <span className="text-slate-400 font-semibold">{formattedDoctorDisplayName}</span>
                     </div>
                   </div>
 
-                  {/* Appointment Type (Strictly General Consultation & Check Up) */}
+                  {/* Appointment Type (Strictly Check Up dropdown) */}
                   <div>
                     <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
                       Appointment Type *
                     </label>
                     <select
                       value={newAptType}
-                      onChange={(e) =>
-                        setNewAptType(
-                          e.target.value as "General Consultation" | "Check Up"
-                        )
-                      }
+                      onChange={(e) => setNewAptType(e.target.value)}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium cursor-pointer"
                     >
-                      <option value="General Consultation">General Consultation</option>
                       <option value="Check Up">Check Up</option>
                     </select>
                   </div>
@@ -3990,21 +3997,20 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       onChange={(e) => setEditAptType(e.target.value as any)}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium cursor-pointer"
                     >
-                      <option value="General Consultation">General Consultation</option>
                       <option value="Check Up">Check Up</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
-                  {/* Assigned Doctor (Greyed out: Dr. Zaid) */}
+                  {/* Assigned Doctor (Greyed out: Dr. Doctor Name) */}
                   <div>
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                       Assigned Doctor
                     </label>
-                    <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-bold flex items-center gap-2 cursor-not-allowed select-none">
-                      <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                      <span>{assignedDoctorName || "Dr. Zaid"}</span>
+                    <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
+                      <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
+                      <span className="text-slate-400 font-semibold">{formattedDoctorDisplayName}</span>
                     </div>
                   </div>
 
@@ -4785,9 +4791,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
                     Assigned Doctor *
                   </label>
-                  <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-bold flex items-center gap-2 cursor-not-allowed select-none">
-                    <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                    <span>{assignedDoctorName || "Dr. Zaid"}</span>
+                  <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
+                    <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
+                    <span className="text-slate-400 font-semibold">{formattedDoctorDisplayName}</span>
                   </div>
                 </div>
 
