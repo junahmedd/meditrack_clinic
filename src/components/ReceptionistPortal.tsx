@@ -3813,81 +3813,73 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               </div>
 
               {/* Form */}
-              <form onSubmit={handleScheduleAppointment} className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <form onSubmit={handleScheduleAppointment} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Patient Name */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
                       Patient Full Name *
                     </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Ramesh Kumar"
-                      value={newAptName}
-                      onChange={(e) => setNewAptName(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
-                    />
-                  </div>
-
-                  {/* Phone */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                      Phone Number *
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+91 98765 43210"
-                      value={newAptPhone}
-                      onChange={(e) => setNewAptPhone(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
-                    />
-                  </div>
-
-                  {/* Assigned Doctor (Greyed out: Dr. Doctor Name) */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                      Assigned Doctor *
-                    </label>
-                    <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
-                      <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
-                      <span className="text-slate-400 font-semibold">{formattedDoctorDisplayName}</span>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <UserIcon size={14} />
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Ramesh Kumar"
+                        value={newAptName}
+                        onChange={(e) => setNewAptName(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium transition-all"
+                      />
                     </div>
                   </div>
 
-                  {/* Appointment Type (Strictly Check Up dropdown) */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                      Appointment Type *
+                  {/* Phone */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Phone Number *
                     </label>
-                    <select
-                      value={newAptType}
-                      onChange={(e) => setNewAptType(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium cursor-pointer"
-                    >
-                      <option value="Check Up">Check Up</option>
-                    </select>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <Phone size={14} />
+                      </div>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="+91 98765 43210"
+                        value={newAptPhone}
+                        onChange={(e) => setNewAptPhone(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium transition-all"
+                      />
+                    </div>
                   </div>
 
+                  {/* Assigned Doctor (Greyed out: Dr. Doctor Name) */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Assigned Doctor
+                    </label>
+                    <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
+                      <Stethoscope size={14} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{formattedDoctorDisplayName}</span>
+                    </div>
+                  </div>
 
-
-                  {/* Date */}
-                  <div className="sm:col-span-2">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                  {/* Appointment Date */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                       Appointment Date
                     </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={dynamicTodayDateStr}
-                      className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 font-extrabold cursor-not-allowed"
-                    />
+                    <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-500 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
+                      <Calendar size={14} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{dynamicTodayDateStr}</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Submit Actions */}
-                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100">
+                <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsNewAptModalOpen(false)}
@@ -3897,7 +3889,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-2 transition-all cursor-pointer"
+                    className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-2 transition-all cursor-pointer"
                   >
                     <Check size={15} />
                     <span>Confirm &amp; Schedule</span>
@@ -3958,71 +3950,65 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
               {/* Form */}
               <div className="space-y-3">
-                {/* Patient Full Name */}
-                <div>
-                  <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                    Patient Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editAptName}
-                    onChange={(e) => setEditAptName(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Patient Name */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Patient Name *
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <UserIcon size={14} />
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={editAptName}
+                        onChange={(e) => setEditAptName(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium transition-all"
+                      />
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
                   {/* Phone */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
                       Phone Number *
                     </label>
-                    <input
-                      type="tel"
-                      required
-                      value={editAptPhone}
-                      onChange={(e) => setEditAptPhone(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium"
-                    />
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <Phone size={14} />
+                      </div>
+                      <input
+                        type="tel"
+                        required
+                        value={editAptPhone}
+                        onChange={(e) => setEditAptPhone(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium transition-all"
+                      />
+                    </div>
                   </div>
 
-                  {/* Appointment Type */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                      Type *
-                    </label>
-                    <select
-                      value={editAptType}
-                      onChange={(e) => setEditAptType(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium cursor-pointer"
-                    >
-                      <option value="Check Up">Check Up</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5">
                   {/* Assigned Doctor (Greyed out: Dr. Doctor Name) */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                       Assigned Doctor
                     </label>
-                    <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
-                      <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
-                      <span className="text-slate-400 font-semibold">{formattedDoctorDisplayName}</span>
+                    <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
+                      <Stethoscope size={14} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{formattedDoctorDisplayName}</span>
                     </div>
                   </div>
 
                   {/* Status */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
                       Status *
                     </label>
                     <select
                       value={editAptStatus}
                       onChange={(e) => setEditAptStatus(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium cursor-pointer"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium cursor-pointer transition-all"
                     >
                       <option value="Waiting">Waiting</option>
                       <option value="Consulting">Consulting</option>
