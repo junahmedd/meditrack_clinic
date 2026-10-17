@@ -558,6 +558,46 @@ export function DoctorPortal({
     return `Dr. ${rawName}`;
   }, [currentUserProfile, user]);
 
+  // Live Greeting based on real-time Asia/Mumbai (IST) local time
+  const [currentMumbaiTime, setCurrentMumbaiTime] = useState(() => new Date());
+
+  useEffect(() => {
+    // Refresh live time every 30 seconds so greeting transitions seamlessly in real time
+    const timer = setInterval(() => {
+      setCurrentMumbaiTime(new Date());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const timeGreeting = useMemo(() => {
+    try {
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Mumbai",
+        hour: "numeric",
+        hour12: false,
+      });
+      const hourStr = formatter.format(currentMumbaiTime);
+      const hour = parseInt(hourStr, 10);
+      const safeHour = isNaN(hour) ? currentMumbaiTime.getHours() : hour;
+      if (safeHour >= 4 && safeHour < 12) {
+        return t("goodMorning");
+      } else if (safeHour >= 12 && safeHour < 17) {
+        return t("goodAfternoon");
+      } else {
+        return t("goodEvening");
+      }
+    } catch (e) {
+      const localHour = currentMumbaiTime.getHours();
+      if (localHour >= 4 && localHour < 12) {
+        return t("goodMorning");
+      } else if (localHour >= 12 && localHour < 17) {
+        return t("goodAfternoon");
+      } else {
+        return t("goodEvening");
+      }
+    }
+  }, [currentMumbaiTime, t]);
+
   const doctorInitials = useMemo(() => {
     const clean = doctorDisplayName.replace(/^Dr\.\s*/i, "").trim();
     const parts = clean.split(" ");
@@ -2600,7 +2640,7 @@ export function DoctorPortal({
 
               {/* Text content */}
               <div className="space-y-1 z-10 relative">
-                <p className="text-sm font-semibold text-emerald-200 tracking-wide">{t("goodMorning")}</p>
+                <p className="text-sm font-semibold text-emerald-200 tracking-wide">{timeGreeting}</p>
                 <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-none drop-shadow-md">
                   {doctorDisplayName}
                 </h2>
