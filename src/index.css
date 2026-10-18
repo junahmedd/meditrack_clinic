@@ -285,3 +285,42 @@ body.modal-open {
     padding-top: env(safe-area-inset-top, 20px);
   }
 }
+
+/* Mobile Touch & Haptic Feedback Enhancements */
+@media (pointer: coarse) {
+  button, 
+  [role="button"], 
+  .clickable-card {
+    touch-action: manipulation;
+  }
+}
+
+/* Active micro-press for mobile buttons & pills */
+.touch-press {
+  transition: transform 0.12s cubic-bezier(0.3, 0, 0, 1), opacity 0.12s ease;
+}
+.touch-press:active {
+  transform: scale(0.96);
+  opacity: 0.9;
+}
+
+/* Native Mobile Pill Utility */
+.mobile-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-weight: 800;
+  letter-spacing: 0.025em;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* Pull to refresh visual stability */
+html {
+  overscroll-behavior-y: contain;
+}
+

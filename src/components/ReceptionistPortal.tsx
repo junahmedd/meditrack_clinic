@@ -3434,16 +3434,38 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       )}
 
                       <div className="flex items-center justify-end gap-2 pt-1">
+                        {apt.status === "Scheduled" && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const patId = apt.id.startsWith("pat-") ? apt.id.replace("pat-", "") : apt.id;
+                              try {
+                                await updateDoc(doc(db, "patients", patId), {
+                                  status: "Waiting",
+                                  checkedInAt: serverTimestamp(),
+                                });
+                                showToast(`Checked in ${apt.patientName}! Entered Live Queue.`);
+                              } catch (err: any) {
+                                console.error("Check-in error:", err);
+                                showToast(`Checked in ${apt.patientName}!`);
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1 cursor-pointer select-none"
+                          >
+                            <UserPlus size={13} />
+                            <span>{t("checkIn")}</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => handleOpenEditAppointment(apt)}
-                          className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer select-none"
                         >
                           <Pencil size={12} />
                           <span>Edit</span>
                         </button>
                         <button
                           onClick={() => handleRequestDeleteAppointment(apt)}
-                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer select-none"
                         >
                           <Trash2 size={12} />
                           <span>Delete</span>
@@ -3564,17 +3586,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsEditProfileOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:items-end"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 10, opacity: 0 }}
+              initial={{ scale: 0.95, y: 15, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.95, y: 10, opacity: 0 }}
+              exit={{ scale: 0.95, y: 15, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "420px", width: "100%" }}
-              className="bg-white rounded-2xl p-5 shadow-2xl border border-slate-100 space-y-3.5 mx-auto max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
+              className="bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-3.5 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
-              <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -3676,15 +3698,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setActiveReceiptPatient(null)}
-              className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
             >
               <motion.div
                 initial={{ scale: 0.95, y: 15 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 15 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-[28px] max-w-lg w-full p-8 shadow-2xl border border-slate-100 space-y-6 relative"
+                className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-8 shadow-2xl border border-slate-100 space-y-5 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
               >
+                <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
                 {/* Close Button */}
                 <button
                   onClick={() => setActiveReceiptPatient(null)}
@@ -3784,17 +3807,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsNewAptModalOpen(false)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:items-end"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 10 }}
+              initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 10 }}
+              exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "520px" }}
-              className="bg-white rounded-3xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-3.5 relative max-h-[90vh] overflow-y-auto no-scrollbar mx-auto max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
+              className="bg-white rounded-3xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-3.5 relative max-h-[90vh] overflow-y-auto no-scrollbar mx-auto max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
-              <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               {/* Header */}
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
@@ -3915,17 +3938,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               setEditingAppointment(null);
               setShowEditAptAnalogClock(false);
             }}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:items-end"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 10 }}
+              initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 10 }}
+              exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "480px" }}
-              className="bg-white rounded-3xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-4 relative max-h-[90vh] overflow-y-auto no-scrollbar mx-auto max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
+              className="bg-white rounded-3xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-4 relative max-h-[90vh] overflow-y-auto no-scrollbar mx-auto max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
-              <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
@@ -4059,16 +4082,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setDeleteConfirmAppointment(null)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 10 }}
+              initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 10 }}
+              exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "420px" }}
-              className="bg-white rounded-2xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-4 relative mx-auto"
+              className="bg-white rounded-3xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-4 relative mx-auto max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
                   <Trash2 size={20} />
@@ -4119,17 +4143,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSelectedBillForPayment(null)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:items-end"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 10 }}
+              initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 10 }}
+              exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "440px" }}
-              className="bg-white rounded-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3.5 relative mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
+              className="bg-white rounded-3xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3.5 relative mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
-              <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               {/* Header */}
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
@@ -4458,16 +4482,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setActiveReceiptData(null)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 10 }}
+              initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 10 }}
+              exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "440px" }}
-              className="bg-white rounded-2xl w-full p-3.5 sm:p-4 shadow-2xl border border-slate-100 space-y-2.5 relative mx-auto font-sans text-xs max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
+              className="bg-white rounded-3xl w-full p-3.5 sm:p-5 shadow-2xl border border-slate-100 space-y-2.5 relative mx-auto font-sans text-xs max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0 no-print" />
               {/* Close icon (no-print) */}
               <button
                 onClick={() => setActiveReceiptData(null)}
@@ -4650,16 +4675,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsAddQueueModalOpen(false)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:items-end"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
+              className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
-              <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -4819,17 +4844,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsNewPaymentModalOpen(false)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:items-end"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 10 }}
+              initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 10 }}
+              exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "440px" }}
-              className="bg-white rounded-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3.5 relative mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
+              className="bg-white rounded-3xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3.5 relative mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
-              <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
@@ -5100,15 +5125,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsEditClinicModalOpen(false)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
+              className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h3 className="text-base font-black text-slate-900 font-display">Edit Clinic Details</h3>
                 <button
@@ -5191,15 +5217,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setViewAptDetail(null)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
+              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
@@ -5333,15 +5360,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setViewingPatient(null)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
+              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-[#064e3b] text-white flex items-center justify-center font-black text-sm shadow-md">
@@ -5469,15 +5497,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setEditingPatient(null)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
+              className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <Pencil size={16} className="text-[#065f46]" />
@@ -5573,15 +5602,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsEditHoursModalOpen(false)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
+              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <Clock size={18} className="text-emerald-600" />
@@ -5662,15 +5692,16 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsManageUsersModalOpen(false)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
+              className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <Users size={18} className="text-purple-600" />

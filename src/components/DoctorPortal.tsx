@@ -2537,7 +2537,7 @@ export function DoctorPortal({
                                   value={item.dosage}
                                   onChange={(e) => handleUpdateMedicine(idx, "dosage", e.target.value)}
                                   placeholder="1-0-1"
-                                  className="w-full px-2 py-1.5 bg-white border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
+                                  className="w-full px-2 py-2 bg-white border border-slate-200/80 rounded-xl text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                                 />
                               </div>
                               <div>
@@ -2547,7 +2547,7 @@ export function DoctorPortal({
                                   value={item.duration}
                                   onChange={(e) => handleUpdateMedicine(idx, "duration", e.target.value)}
                                   placeholder="5 Days"
-                                  className="w-full px-2 py-1.5 bg-white border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
+                                  className="w-full px-2 py-2 bg-white border border-slate-200/80 rounded-xl text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                                 />
                               </div>
                               <div>
@@ -2555,12 +2555,31 @@ export function DoctorPortal({
                                 <select
                                   value={item.instructions || "After food"}
                                   onChange={(e) => handleUpdateMedicine(idx, "instructions", e.target.value)}
-                                  className="w-full px-1.5 py-1.5 bg-white border border-slate-200/80 rounded-lg text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
+                                  className="w-full px-1.5 py-2 bg-white border border-slate-200/80 rounded-xl text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
                                 >
                                   <option value="After food">After food</option>
                                   <option value="Before food">Before food</option>
                                 </select>
                               </div>
+                            </div>
+
+                            {/* Mobile Quick-Tap Frequency Pills */}
+                            <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto no-scrollbar">
+                              <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider shrink-0">Quick:</span>
+                              {["1-0-1", "1-0-0", "0-0-1", "1-1-1", "SOS"].map((quickDose) => (
+                                <button
+                                  key={quickDose}
+                                  type="button"
+                                  onClick={() => handleUpdateMedicine(idx, "dosage", quickDose)}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer shrink-0 active:scale-90 select-none ${
+                                    item.dosage === quickDose
+                                      ? "bg-[#064e3b] text-white shadow-xs"
+                                      : "bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-800"
+                                  }`}
+                                >
+                                  {quickDose}
+                                </button>
+                              ))}
                             </div>
                           </div>
                         ))}
@@ -2573,14 +2592,14 @@ export function DoctorPortal({
                     </div>
 
                     {/* 5. BOTTOM ACTION BAR */}
-                    <div className="space-y-2 pt-1">
+                    <div className="space-y-2 pt-1 pb-2">
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                         <button
                           type="button"
                           onClick={() => showToast(t("saveDraft"))}
-                          className="w-full sm:w-auto px-5 py-2.5 bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-700 font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full sm:w-auto px-5 py-3 min-h-[46px] bg-white border border-slate-200/90 hover:bg-slate-50 active:scale-95 text-slate-700 font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer select-none"
                         >
-                          <FileText size={14} />
+                          <FileText size={15} />
                           <span>{t("saveAsDraft")}</span>
                         </button>
 
@@ -2588,10 +2607,10 @@ export function DoctorPortal({
                           type="button"
                           onClick={handleComplete}
                           disabled={isSubmitting}
-                          className="w-full sm:w-auto px-7 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                          className="w-full sm:w-auto px-7 py-3.5 min-h-[48px] bg-[#064e3b] hover:bg-[#043d2e] active:scale-95 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-950/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 select-none"
                         >
                           <span>{isSubmitting ? t("completingConsultation") : t("completeConsultation")}</span>
-                          <ArrowRight size={15} />
+                          <ArrowRight size={16} />
                         </button>
                       </div>
                       <p className="text-[11px] text-center text-slate-400 font-medium">
@@ -2660,39 +2679,39 @@ export function DoctorPortal({
               </div>
             </div>
 
-            {/* 4 Summary KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* 4 Summary KPI Cards (Responsive 2x2 on Mobile, 4-col on Desktop) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
               {/* Card 1: Waiting Patients */}
               <div
                 onClick={() => setActiveTab("consultation")}
-                className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-4 group"
+                className="p-3.5 sm:p-5 bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md active:scale-95 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 group select-none"
               >
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <Users size={22} />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Users size={20} className="sm:w-[22px] sm:h-[22px]" />
                 </div>
-                <div>
-                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">{t("waitingPatients")}</p>
-                  <h3 className="text-2xl font-black text-slate-900 mt-0.5">{doctorQueue.length}</h3>
-                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">{doctorQueue.length} {t("inQueueToday")}</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-wider truncate">{t("waitingPatients")}</p>
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{doctorQueue.length}</h3>
+                  <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">{doctorQueue.length} {t("inQueueToday")}</p>
                 </div>
               </div>
 
               {/* Card 2: Completed Consultations */}
               <div
                 onClick={() => setActiveTab("patients")}
-                className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-4 group"
+                className="p-3.5 sm:p-5 bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md active:scale-95 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 group select-none"
               >
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <CheckCircle2 size={22} />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <CheckCircle2 size={20} className="sm:w-[22px] sm:h-[22px]" />
                 </div>
-                <div>
-                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-wider truncate">
                     {selectedPeriod === "today" ? t("completedToday") : t("completed")}
                   </p>
-                  <h3 className="text-2xl font-black text-slate-900 mt-0.5">
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">
                     {analyticsData.active.completedCount}
                   </h3>
-                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                  <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">
                     {selectedPeriod === "today" ? `${analyticsData.active.completedCount} ${t("completed")}` : t("completed")}
                   </p>
                 </div>
@@ -2701,17 +2720,17 @@ export function DoctorPortal({
               {/* Card 3: Total Patients */}
               <div
                 onClick={() => setActiveTab("patients")}
-                className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-4 group"
+                className="p-3.5 sm:p-5 bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md active:scale-95 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 group select-none"
               >
-                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <Users size={22} />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Users size={20} className="sm:w-[22px] sm:h-[22px]" />
                 </div>
-                <div>
-                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-wider truncate">
                     {selectedPeriod === "today" ? t("todayPatient") : t("totalPatient")}
                   </p>
-                  <h3 className="text-2xl font-black text-slate-900 mt-0.5">{analyticsData.active.patientsCount}</h3>
-                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{analyticsData.active.patientsCount}</h3>
+                  <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">
                     {analyticsData.active.patientsCount} {t("registeredPatients")}
                   </p>
                 </div>
@@ -2720,18 +2739,18 @@ export function DoctorPortal({
               {/* Card 4: Revenue */}
               <div
                 onClick={() => setActiveTab("profile")}
-                className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-4 group"
+                className="p-3.5 sm:p-5 bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md active:scale-95 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 group select-none"
               >
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 font-extrabold text-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-600 font-extrabold text-base sm:text-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   ₹
                 </div>
-                <div>
-                  <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-wider truncate">
                     {t("revenue")}
                   </p>
-                  <h3 className="text-2xl font-black text-slate-900 mt-0.5">₹{analyticsData.active.revenue.toLocaleString()}</h3>
-                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
-                    {analyticsData.active.billedCount} {t("paidVisits")} • ₹{consultationFee} {t("feeLabel")}
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">₹{analyticsData.active.revenue.toLocaleString()}</h3>
+                  <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5 truncate">
+                    {analyticsData.active.billedCount} {t("paidVisits")} • ₹{consultationFee}
                   </p>
                 </div>
               </div>
@@ -2975,18 +2994,18 @@ export function DoctorPortal({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center max-sm:items-end z-50 p-4"
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end z-50"
               onClick={() => setIsAddMedicineModalOpen(false)}
             >
               <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
+                initial={{ scale: 0.95, opacity: 0, y: 15 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 15 }}
                 onClick={(e) => e.stopPropagation()}
                 style={{ maxWidth: "420px" }}
-                className="bg-white rounded-2xl shadow-2xl w-full p-5 space-y-4 border border-slate-100 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
+                className="bg-white rounded-3xl shadow-2xl w-full p-5 space-y-4 border border-slate-100 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[88dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
               >
-                <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
+                <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
                 {/* Modal Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <h3 className="text-lg font-bold text-slate-900">
@@ -3324,17 +3343,17 @@ export function DoctorPortal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsEditProfileOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center max-sm:items-end p-4"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 10, opacity: 0 }}
+              initial={{ scale: 0.95, y: 15, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.95, y: 10, opacity: 0 }}
+              exit={{ scale: 0.95, y: 15, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "420px", width: "100%" }}
-              className="bg-white rounded-2xl p-5 shadow-2xl border border-slate-100 space-y-3.5 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
+              className="bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-3.5 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[88dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
-              <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -3462,7 +3481,7 @@ export function DoctorPortal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsHistoryOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center max-sm:items-end p-4"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
@@ -3470,9 +3489,9 @@ export function DoctorPortal({
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "440px", width: "100%" }}
-              className="bg-white rounded-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 flex flex-col max-h-[75vh] relative mx-auto max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
+              className="bg-white rounded-3xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 flex flex-col max-h-[75vh] relative mx-auto max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[88dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
             >
-              <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold shrink-0">
