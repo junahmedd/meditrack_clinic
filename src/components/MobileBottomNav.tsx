@@ -27,135 +27,121 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   pendingBillingCount = 0,
   onOpenSidePanel,
 }) => {
+  const NavButton = ({
+    isActive,
+    onClick,
+    icon: Icon,
+    label,
+    badge,
+    badgeColor = "bg-[#00d26a]",
+  }: {
+    isActive: boolean;
+    onClick: () => void;
+    icon: React.ElementType;
+    label: string;
+    badge?: number;
+    badgeColor?: string;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center flex-1 h-full py-1.5 gap-0.5 cursor-pointer relative transition-all duration-200 active:scale-90 ${
+        isActive
+          ? "text-[#00d26a]"
+          : "text-neutral-500 hover:text-neutral-300"
+      }`}
+    >
+      <div className="relative">
+        <Icon
+          size={21}
+          className={isActive ? "stroke-[2.5]" : "stroke-[1.7]"}
+        />
+        {badge !== undefined && badge > 0 && (
+          <span
+            className={`absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full ${badgeColor} text-black text-[9px] font-black flex items-center justify-center shadow-lg shadow-black/30`}
+          >
+            {badge > 9 ? "9+" : badge}
+          </span>
+        )}
+      </div>
+      <span
+        className={`text-[9px] uppercase tracking-[0.08em] leading-none mt-0.5 ${
+          isActive ? "font-black" : "font-semibold"
+        }`}
+      >
+        {label}
+      </span>
+      {/* Active indicator dot */}
+      {isActive && (
+        <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#00d26a] shadow-[0_0_6px_rgba(0,210,106,0.6)]" />
+      )}
+    </button>
+  );
+
+  // Tab 2 config based on role
+  const tab2 = role === "doctor"
+    ? { tab: "medicine", icon: Pill, label: "Medicine", isActive: activeTab === "medicine" || activeTab === "appointments" }
+    : { tab: "appointments", icon: Calendar, label: "Appoint", isActive: activeTab === "appointments" };
+
+  // Tab 3 config based on role
+  const tab3 = role === "doctor"
+    ? { tab: "consultation", icon: Stethoscope, label: "Consult", isActive: activeTab === "consultation" }
+    : { tab: "billing", icon: CreditCard, label: "Billing", isActive: activeTab === "billing" };
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-neutral-800/80 z-40 md:hidden select-none shadow-[0_-4px_25px_rgba(0,0,0,0.7)] pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="h-16 px-1 flex items-center justify-around max-w-lg mx-auto">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 md:hidden select-none"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+    >
+      {/* Glassmorphism background */}
+      <div className="absolute inset-0 bg-[#0a0f1a]/95 backdrop-blur-xl border-t border-white/[0.06] shadow-[0_-8px_32px_rgba(0,0,0,0.5)]" />
+
+      <div className="relative h-[60px] px-2 flex items-center justify-around max-w-lg mx-auto">
         {/* Tab 1: Dashboard */}
-        <button
-          type="button"
+        <NavButton
+          isActive={activeTab === "dashboard"}
           onClick={() => setActiveTab("dashboard")}
-          className={`flex flex-col items-center justify-center flex-1 h-full py-1 gap-1 cursor-pointer transition-colors active:scale-95 ${
-            activeTab === "dashboard"
-              ? "text-[#00d26a] font-black"
-              : "text-neutral-400 hover:text-white font-bold"
-          }`}
-        >
-          <LayoutDashboard
-            size={20}
-            className={activeTab === "dashboard" ? "stroke-[2.5] text-[#00d26a]" : "stroke-[1.8]"}
-          />
-          <span className="text-[9px] uppercase tracking-wider leading-none">
-            Dashboard
-          </span>
-        </button>
+          icon={LayoutDashboard}
+          label="Home"
+        />
 
-        {/* Tab 2: Medicine (Doctor) / Appointments (Receptionist) */}
-        <button
-          type="button"
-          onClick={() => {
-            if (role === "doctor") setActiveTab("medicine");
-            else if (role === "receptionist") setActiveTab("appointments");
-            else setActiveTab("dashboard");
-          }}
-          className={`flex flex-col items-center justify-center flex-1 h-full py-1 gap-1 cursor-pointer relative transition-colors active:scale-95 ${
-            (role === "doctor" && (activeTab === "medicine" || activeTab === "appointments")) ||
-            (role === "receptionist" && activeTab === "appointments")
-              ? "text-[#00d26a] font-black"
-              : "text-neutral-400 hover:text-white font-bold"
-          }`}
-        >
-          {role === "doctor" ? (
-            <Pill
-              size={20}
-              className={
-                activeTab === "medicine" || activeTab === "appointments"
-                  ? "stroke-[2.5] text-[#00d26a]"
-                  : "stroke-[1.8]"
-              }
-            />
-          ) : (
-            <Calendar
-              size={20}
-              className={activeTab === "appointments" ? "stroke-[2.5] text-[#00d26a]" : "stroke-[1.8]"}
-            />
-          )}
-          <span className="text-[9px] uppercase tracking-wider leading-none">
-            {role === "doctor" ? "Medicine" : "Appoint"}
-          </span>
-          {role === "receptionist" && waitingCount > 0 && (
-            <span className="absolute top-1 right-2.5 w-4 h-4 rounded-full bg-[#00d26a] text-black text-[9px] font-black flex items-center justify-center">
-              {waitingCount}
-            </span>
-          )}
-        </button>
+        {/* Tab 2: Medicine / Appointments */}
+        <NavButton
+          isActive={tab2.isActive}
+          onClick={() => setActiveTab(tab2.tab)}
+          icon={tab2.icon}
+          label={tab2.label}
+          badge={role === "receptionist" ? waitingCount : undefined}
+        />
 
-        {/* Tab 3: Consultation (Doctor) / Billing (Receptionist) */}
-        <button
-          type="button"
-          onClick={() => {
-            if (role === "doctor") setActiveTab("consultation");
-            else if (role === "receptionist") setActiveTab("billing");
-            else setActiveTab("dashboard");
-          }}
-          className={`flex flex-col items-center justify-center flex-1 h-full py-1 gap-1 cursor-pointer relative transition-colors active:scale-95 ${
-            (role === "doctor" && activeTab === "consultation") ||
-            (role === "receptionist" && activeTab === "billing")
-              ? "text-[#00d26a] font-black"
-              : "text-neutral-400 hover:text-white font-bold"
-          }`}
-        >
-          {role === "doctor" ? (
-            <Stethoscope
-              size={20}
-              className={activeTab === "consultation" ? "stroke-[2.5] text-[#00d26a]" : "stroke-[1.8]"}
-            />
-          ) : (
-            <CreditCard
-              size={20}
-              className={activeTab === "billing" ? "stroke-[2.5] text-[#00d26a]" : "stroke-[1.8]"}
-            />
-          )}
-          <span className="text-[9px] uppercase tracking-wider leading-none">
-            {role === "doctor" ? "Consult" : "Billing"}
-          </span>
-          {role === "receptionist" && pendingBillingCount > 0 && (
-            <span className="absolute top-1 right-2.5 w-4 h-4 rounded-full bg-amber-500 text-black text-[9px] font-black flex items-center justify-center">
-              {pendingBillingCount}
-            </span>
-          )}
-        </button>
+        {/* Tab 3: Consultation / Billing */}
+        <NavButton
+          isActive={tab3.isActive}
+          onClick={() => setActiveTab(tab3.tab)}
+          icon={tab3.icon}
+          label={tab3.label}
+          badge={role === "receptionist" ? pendingBillingCount : undefined}
+          badgeColor="bg-amber-400"
+        />
 
         {/* Tab 4: Profile */}
-        <button
-          type="button"
+        <NavButton
+          isActive={activeTab === "profile"}
           onClick={() => setActiveTab("profile")}
-          className={`flex flex-col items-center justify-center flex-1 h-full py-1 gap-1 cursor-pointer transition-colors active:scale-95 ${
-            activeTab === "profile"
-              ? "text-[#00d26a] font-black"
-              : "text-neutral-400 hover:text-white font-bold"
-          }`}
-        >
-          <User
-            size={20}
-            className={activeTab === "profile" ? "stroke-[2.5] text-[#00d26a]" : "stroke-[1.8]"}
-          />
-          <span className="text-[9px] uppercase tracking-wider leading-none">
-            Profile
-          </span>
-        </button>
+          icon={User}
+          label="Profile"
+        />
 
-        {/* Tab 5: Side Panel (Drawer) */}
+        {/* Tab 5: Side Panel */}
         <button
           type="button"
-          onClick={() => {
-            if (onOpenSidePanel) onOpenSidePanel();
-          }}
-          className="flex flex-col items-center justify-center flex-1 h-full py-1 gap-1 cursor-pointer text-neutral-400 hover:text-white font-bold transition-colors active:scale-95"
+          onClick={() => onOpenSidePanel?.()}
+          className="flex flex-col items-center justify-center flex-1 h-full py-1.5 gap-0.5 cursor-pointer text-neutral-500 hover:text-neutral-300 transition-all duration-200 active:scale-90"
           aria-label="Open side menu panel"
         >
-          <Menu size={20} className="stroke-[1.8]" />
-          <span className="text-[9px] uppercase tracking-wider leading-none">
-            Panel
+          <Menu size={21} className="stroke-[1.7]" />
+          <span className="text-[9px] uppercase tracking-[0.08em] leading-none font-semibold mt-0.5">
+            Menu
           </span>
         </button>
       </div>

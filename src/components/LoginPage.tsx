@@ -135,7 +135,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   const inputCls =
-    "w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/15 focus:border-emerald-600 transition-all font-medium";
+    "w-full pl-9 pr-3 py-3 min-h-[48px] bg-slate-50 border border-slate-200 rounded-xl text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/15 focus:border-emerald-600 transition-all font-medium";
 
   return (
     <div className="min-h-screen w-full flex bg-[#031d16] font-sans antialiased text-slate-900 selection:bg-emerald-500 selection:text-white relative overflow-x-hidden">
@@ -155,7 +155,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
       <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row min-h-screen relative z-10">
         {/* ── LEFT SHOWCASE PANEL (Enterprise Clinic Platform) ── */}
-        <div className="lg:w-7/12 p-8 lg:p-14 flex flex-col justify-between text-white relative">
+        <div className="hidden lg:flex lg:w-7/12 p-8 lg:p-14 flex-col justify-between text-white relative">
           {/* Top Logo & Live Pulse */}
           <div>
             <div className="flex items-center gap-3">
@@ -253,8 +253,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         </div>
 
         {/* ── RIGHT AUTHENTICATION PANEL ── */}
-        <div className="lg:w-5/12 p-4 sm:p-8 lg:p-12 flex items-center justify-center">
+        <div className="w-full lg:w-5/12 p-4 sm:p-8 lg:p-12 flex items-center justify-center min-h-screen lg:min-h-0">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl shadow-black/40 border border-slate-100/80 p-6 sm:p-8 transition-all">
+
+            {/* Mobile Branding (visible only on mobile) */}
+            <div className="lg:hidden flex flex-col items-center mb-5">
+              <div className="flex items-center gap-2.5 mb-1">
+                <div className="w-9 h-9 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-center">
+                  <svg viewBox="0 0 36 36" className="w-5 h-5" fill="none">
+                    <rect x="14" y="4" width="8" height="28" rx="2" fill="#059669" />
+                    <rect x="4" y="14" width="28" height="8" rx="2" fill="#059669" />
+                  </svg>
+                </div>
+                <span className="text-lg font-black tracking-[0.14em] text-slate-900 uppercase">MEDITRACK</span>
+              </div>
+              <span className="text-[10px] font-bold tracking-[0.15em] text-emerald-700 uppercase">Clinical Operating System</span>
+            </div>
 
             {/* Error Message */}
             {error && (

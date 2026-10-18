@@ -199,3 +199,89 @@ h1, h2, h3, h4, .font-display {
     display: none !important;
   }
 }
+
+/* ========================================================================= */
+/* MOBILE BOTTOM SHEET ANIMATIONS & UTILITIES                                */
+/* ========================================================================= */
+
+/* Slide-up animation for mobile bottom sheets */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0.5;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.32s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.2s ease-out forwards;
+}
+
+/* Bottom sheet drag handle indicator */
+.bottom-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.15);
+  margin: 0 auto 8px;
+}
+
+/* Safe bottom padding that accounts for mobile nav bar + system gesture area */
+.pb-mobile-nav {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Prevent body scroll when modal/sheet is open */
+body.modal-open {
+  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* Mobile-optimized scrollable areas inside bottom sheets */
+.mobile-sheet-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+/* Standalone PWA status bar area compensation */
+@media all and (display-mode: standalone) {
+  .pt-standalone {
+    padding-top: env(safe-area-inset-top, 20px);
+  }
+}

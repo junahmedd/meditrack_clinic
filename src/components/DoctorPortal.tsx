@@ -1597,7 +1597,7 @@ export function DoctorPortal({
       {/* 2. MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col min-w-0 bg-[#f8fafc] overflow-y-auto pb-28 md:pb-6 w-full max-w-full overflow-x-hidden">
         {/* 1. MOBILE TOP HEADER (Strictly for mobile screens < 768px matching shared image: Hamburger + Centered MEDITRACK in Green Theme) */}
-        <header className="md:hidden h-14 bg-white border-b border-emerald-950/10 px-4 flex items-center justify-between sticky top-0 z-30 shrink-0 select-none shadow-[0_1px_3px_rgba(6,78,59,0.03)]">
+        <header className="md:hidden h-14 bg-white border-b border-emerald-950/10 px-4 flex items-center justify-between sticky top-0 z-30 shrink-0 select-none shadow-[0_1px_3px_rgba(6,78,59,0.03)] pt-standalone">
           <button
             type="button"
             onClick={() => setIsMobileDrawerOpen(true)}
@@ -2975,7 +2975,7 @@ export function DoctorPortal({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center max-sm:items-end z-50 p-4"
               onClick={() => setIsAddMedicineModalOpen(false)}
             >
               <motion.div
@@ -2984,8 +2984,9 @@ export function DoctorPortal({
                 exit={{ scale: 0.95, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
                 style={{ maxWidth: "420px" }}
-                className="bg-white rounded-2xl shadow-2xl w-full p-5 space-y-4 border border-slate-100 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
+                className="bg-white rounded-2xl shadow-2xl w-full p-5 space-y-4 border border-slate-100 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
               >
+                <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
                 {/* Modal Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <h3 className="text-lg font-bold text-slate-900">
@@ -3323,7 +3324,7 @@ export function DoctorPortal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsEditProfileOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center max-sm:items-end p-4"
           >
             <motion.div
               initial={{ scale: 0.95, y: 10, opacity: 0 }}
@@ -3331,8 +3332,9 @@ export function DoctorPortal({
               exit={{ scale: 0.95, y: 10, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "420px", width: "100%" }}
-              className="bg-white rounded-2xl p-5 shadow-2xl border border-slate-100 space-y-3.5 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
+              className="bg-white rounded-2xl p-5 shadow-2xl border border-slate-100 space-y-3.5 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
             >
+              <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -3460,7 +3462,7 @@ export function DoctorPortal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsHistoryOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center max-sm:items-end p-4"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
@@ -3468,8 +3470,9 @@ export function DoctorPortal({
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: "440px", width: "100%" }}
-              className="bg-white rounded-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 flex flex-col max-h-[75vh] relative mx-auto"
+              className="bg-white rounded-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 flex flex-col max-h-[75vh] relative mx-auto max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
             >
+              <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold shrink-0">
