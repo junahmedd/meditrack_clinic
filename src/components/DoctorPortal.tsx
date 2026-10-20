@@ -1906,14 +1906,6 @@ export function DoctorPortal({
                             <h3 className="text-base font-black text-slate-900 font-display">
                               {activePatient.name}
                             </h3>
-                            <span className="text-xs font-mono font-black text-[#065f46] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                              {activePatient.sequenceNumber || formatMedSequence(activePatient.queueNumber || 1)}
-                            </span>
-                            {activePatient.mrn && (
-                              <span className="text-xs font-mono font-bold text-slate-400">
-                                {activePatient.mrn}
-                              </span>
-                            )}
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                               {t("consulting")}
                             </span>
