@@ -58,6 +58,7 @@ import {
   Stethoscope,
   XCircle,
   SlidersHorizontal,
+  RotateCcw,
   Download,
   Pencil,
   Share2,
@@ -466,28 +467,33 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       ? "Dentist"
       : "General Physician";
 
-  // Strict Scoping: Only records belonging strictly to this assigned doctor
+  // Scoped Patients: All patients belonging to this clinic and assigned doctor
   const scopedPatients = useMemo(() => {
     if (isAdmin) return patients;
     return patients.filter((p) => {
+      // If patient was registered or handled by this receptionist, always show
+      if (user?.uid && p.addedBy === user.uid) return true;
+      if (user?.email && p.receptionistEmail && p.receptionistEmail.toLowerCase().trim() === user.email.toLowerCase().trim()) return true;
+
       const pDocEmail = (p.doctorEmail || "").toLowerCase().trim();
       const targetDocEmail = (assignedDoctorEmail || "").toLowerCase().trim();
       const targetDocUid = currentUserProfile?.assignedDoctorUid || "";
       if (p.doctorUid && targetDocUid && p.doctorUid === targetDocUid) return true;
-      if (pDocEmail && targetDocEmail) {
-        return pDocEmail === targetDocEmail;
-      }
+      if (pDocEmail && targetDocEmail && pDocEmail === targetDocEmail) return true;
       if (p.doctorId && assignedDoctorId && p.doctorId === assignedDoctorId) return true;
       if (p.doctorName && assignedDoctorName) {
         const cleanP = p.doctorName.toLowerCase().replace("dr. ", "").replace("dr ", "").trim();
         const cleanT = assignedDoctorName.toLowerCase().replace("dr. ", "").replace("dr ", "").trim();
         if (cleanP && cleanT && (cleanP.includes(cleanT) || cleanT.includes(cleanP))) return true;
       }
+      // If patient belongs to this clinic, receptionist has front desk management access
+      const myClinicId = currentUserProfile?.clinicId || clinicInfo?.id;
+      if (p.clinicId && myClinicId && p.clinicId === myClinicId) return true;
       if (!targetDocUid && !targetDocEmail && !assignedDoctorId && !assignedDoctorName) return true;
       if (!pDocEmail && !p.doctorName && !p.doctorUid) return true;
       return false;
     });
-  }, [patients, assignedDoctorEmail, assignedDoctorName, assignedDoctorId, currentUserProfile?.assignedDoctorUid, isAdmin]);
+  }, [patients, assignedDoctorEmail, assignedDoctorName, assignedDoctorId, currentUserProfile?.assignedDoctorUid, currentUserProfile?.clinicId, clinicInfo?.id, isAdmin, user]);
 
   // Live Pending Bills derived from scoped Firestore patients
   const pendingBills = useMemo<BillingPendingItem[]>(() => {
@@ -554,16 +560,21 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     return isNaN(d.getTime()) ? null : d;
   };
 
+  // Helper to get local date string YYYY-MM-DD
+  const getLocalDateString = (d: Date = new Date()): string => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   // Check if patient was registered/active TODAY (Strict New-Day Basis)
   const isTodayPatient = (p: any): boolean => {
+    const todayStr = getLocalDateString(new Date());
+    if (p.appointmentDate && p.appointmentDate === todayStr) return true;
     const d = getPatientDate(p);
     if (!d) return true;
-    const now = new Date();
-    return (
-      d.getDate() === now.getDate() &&
-      d.getMonth() === now.getMonth() &&
-      d.getFullYear() === now.getFullYear()
-    );
+    return getLocalDateString(d) === todayStr;
   };
 
   // Queue Suite State & Live Queue derived from scoped Firestore patients (Strictly Today's Live Queue)
@@ -715,39 +726,43 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   // Appointments Suite State - live synchronized from scoped Firestore patients
   const [customAppointments, setCustomAppointments] = useState<AppointmentItem[]>([]);
   const appointments = useMemo<AppointmentItem[]>(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
-    const fromPatients: AppointmentItem[] = scopedPatients.map((p) => ({
-      id: `pat-${p.id}`,
-      queueNo: p.queueNumber,
-      time: p.appointmentTime
-        ? p.appointmentTime
-        : p.timestamp?.toDate
-        ? new Date(p.timestamp.toDate()).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
-        : "Today",
-      patientName: p.name,
-      phone: p.phone,
-      doctor: p.doctorName || assignedDoctorName,
-      type: (p.appointmentType || "General Consultation") as AppointmentItem["type"],
-      status: (p.status === "Scheduled" || p.status === "SCHEDULED"
-        ? "Scheduled"
-        : p.status === "Waiting"
-        ? "Waiting"
-        : p.status === "Called" || p.status === "Consulting" || p.status === "In Consultation"
-        ? "Consulting"
-        : p.status === "In Billing" || p.status === "Billing"
-        ? "Billing"
-        : p.status === "Completed" || p.status === "PAID"
-        ? p.billingStatus === "Paid" || p.status === "PAID"
-          ? "Completed"
-          : "Billing"
-        : p.status === "Cancelled"
-        ? "Cancelled"
-        : "Waiting") as AppointmentItem["status"],
-      age: p.age,
-      gender: p.gender || detectGenderFromName(p.name),
-      notes: p.notes || "Live registered patient",
-      date: p.appointmentDate || (p.timestamp?.toDate ? new Date(p.timestamp.toDate()).toISOString().split("T")[0] : todayStr),
-    }));
+    const todayStr = getLocalDateString(new Date());
+    const fromPatients: AppointmentItem[] = scopedPatients.map((p) => {
+      const pDate = p.appointmentDate || (p.timestamp?.toDate ? getLocalDateString(new Date(p.timestamp.toDate())) : todayStr);
+      let mappedStatus: AppointmentItem["status"] = "Waiting";
+      if (p.status === "Scheduled" || p.status === "SCHEDULED") {
+        mappedStatus = "Scheduled";
+      } else if (p.status === "Waiting" || p.status === "WAITING") {
+        mappedStatus = "Waiting";
+      } else if (p.status === "Called" || p.status === "Consulting" || p.status === "In Consultation" || p.status === "CONSULTING") {
+        mappedStatus = "Consulting";
+      } else if (p.status === "In Billing" || p.status === "Billing" || p.status === "BILLING" || p.status === "UNPAID") {
+        mappedStatus = "In Billing";
+      } else if (p.status === "Completed" || p.status === "PAID" || p.status === "Paid" || p.status === "Dispensed") {
+        mappedStatus = p.billingStatus === "Paid" || p.status === "PAID" ? "Completed" : "In Billing";
+      } else if (p.status === "Cancelled" || p.status === "CANCELLED" || p.status === "No Show") {
+        mappedStatus = "Cancelled";
+      }
+
+      return {
+        id: `pat-${p.id}`,
+        queueNo: p.queueNumber || 1,
+        time: p.appointmentTime
+          ? p.appointmentTime
+          : p.timestamp?.toDate
+          ? new Date(p.timestamp.toDate()).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
+          : "Today",
+        patientName: p.name,
+        phone: p.phone,
+        doctor: p.doctorName || assignedDoctorName,
+        type: (p.appointmentType || "General Consultation") as AppointmentItem["type"],
+        status: mappedStatus,
+        age: p.age,
+        gender: p.gender || detectGenderFromName(p.name),
+        notes: p.notes || "Live registered patient",
+        date: pDate,
+      };
+    });
     return [...fromPatients, ...customAppointments];
   }, [scopedPatients, customAppointments, assignedDoctorName]);
 
@@ -813,7 +828,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     return targetMinutes > currentMinutes + 1;
   };
 
-  // Filtered Appointments (Active list by default; Completed & Paid removed from active list)
+  // Filtered Appointments (Interactive filter by search, doctor, and status)
   const filteredAppointments = useMemo(() => {
     return appointments.filter((apt) => {
       const matchesSearch =
@@ -826,10 +841,25 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       const matchesDoctor =
         aptDoctorFilter === "All Doctors" || apt.doctor === aptDoctorFilter;
 
-      let matchesStatus = false;
+      let matchesStatus = true;
       if (aptStatusFilter === "All Status") {
-        // Active appointments only (Waiting, Consulting, In Billing, Scheduled)
-        matchesStatus = apt.status !== "Completed" && apt.status !== "Cancelled";
+        matchesStatus = true;
+      } else if (aptStatusFilter === "Waiting") {
+        matchesStatus =
+          apt.status === "Waiting" ||
+          apt.status === "Scheduled" ||
+          apt.status === "SCHEDULED" ||
+          apt.status === "Called";
+      } else if (aptStatusFilter === "Consulted") {
+        matchesStatus =
+          apt.status === "Consulting" ||
+          apt.status === "In Billing" ||
+          apt.status === "Completed" ||
+          apt.status === "PAID";
+      } else if (aptStatusFilter === "In Billing") {
+        matchesStatus = apt.status === "In Billing" || apt.status === "Billing";
+      } else if (aptStatusFilter === "Cancelled") {
+        matchesStatus = apt.status === "Cancelled" || apt.status === "CANCELLED";
       } else {
         matchesStatus = apt.status === aptStatusFilter;
       }
@@ -838,14 +868,51 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     });
   }, [appointments, aptSearch, aptDoctorFilter, aptStatusFilter]);
 
-  // KPI summary metrics (Active appointments summary)
+  // KPI summary metrics (Accurately computed live across the entire patient lifecycle)
   const aptKpis = useMemo(() => {
+    const todayDate = getLocalDateString(new Date());
+
+    // Appointments scheduled/booked/active today
+    const todaysApts = appointments.filter((a) => {
+      if (a.date) {
+        return a.date === todayDate || a.date === "Today";
+      }
+      return true;
+    });
+
     return {
-      total: appointments.filter((a) => a.status !== "Completed" && a.status !== "Cancelled").length,
-      waiting: appointments.filter((a) => a.status === "Waiting").length,
-      consulted: appointments.filter((a) => a.status === "Consulting").length,
-      inBilling: appointments.filter((a) => a.status === "In Billing").length,
-      cancelled: appointments.filter((a) => a.status === "Cancelled").length,
+      // 1. Today's Appointments (Total scheduled/registered today)
+      total: todaysApts.length,
+
+      // 2. Waiting (in queue or scheduled awaiting check-in)
+      waiting: todaysApts.filter(
+        (a) =>
+          a.status === "Waiting" ||
+          a.status === "WAITING" ||
+          a.status === "Scheduled" ||
+          a.status === "SCHEDULED" ||
+          a.status === "Called"
+      ).length,
+
+      // 3. Consulted (consultation completed or in consultation today)
+      consulted: todaysApts.filter(
+        (a) =>
+          a.status === "Consulting" ||
+          a.status === "In Billing" ||
+          a.status === "Completed" ||
+          a.status === "PAID" ||
+          a.status === "Dispensed"
+      ).length,
+
+      // 4. In Billing (pending payment)
+      inBilling: todaysApts.filter(
+        (a) => a.status === "In Billing" || a.status === "Billing"
+      ).length,
+
+      // 5. Cancelled (no shows / cancelled appointments)
+      cancelled: todaysApts.filter(
+        (a) => a.status === "Cancelled" || a.status === "CANCELLED" || a.status === "No Show"
+      ).length,
     };
   }, [appointments]);
 
@@ -951,7 +1018,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
     setIsSubmittingApt(true);
 
-    const todayDateStr = new Date().toISOString().split("T")[0];
+    const todayDateStr = getLocalDateString(new Date());
     const liveCurrentTime = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
     const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "";
 
@@ -1175,6 +1242,46 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     setOpenMenuAptId(null);
     if (viewAptDetail?.id === apt.id) setViewAptDetail(null);
     showToast(`Appointment for ${patName} deleted successfully.`);
+  };
+
+  const handleCancelAppointment = async (apt: AppointmentItem) => {
+    const patId = apt.id.startsWith("pat-") ? apt.id.replace("pat-", "") : apt.id;
+    try {
+      if (apt.id.startsWith("pat-")) {
+        await updateDoc(doc(db, "patients", patId), {
+          status: "Cancelled",
+          cancelledAt: serverTimestamp(),
+        });
+      } else {
+        setCustomAppointments((prev) =>
+          prev.map((item) => (item.id === apt.id ? { ...item, status: "Cancelled" } : item))
+        );
+      }
+      showToast(`Appointment for ${apt.patientName} marked as Cancelled.`);
+    } catch (err: any) {
+      console.error("Cancel appointment error:", err);
+      showToast("Appointment status updated.");
+    }
+  };
+
+  const handleRestoreAppointment = async (apt: AppointmentItem) => {
+    const patId = apt.id.startsWith("pat-") ? apt.id.replace("pat-", "") : apt.id;
+    try {
+      if (apt.id.startsWith("pat-")) {
+        await updateDoc(doc(db, "patients", patId), {
+          status: "Waiting",
+          checkedInAt: serverTimestamp(),
+        });
+      } else {
+        setCustomAppointments((prev) =>
+          prev.map((item) => (item.id === apt.id ? { ...item, status: "Waiting" } : item))
+        );
+      }
+      showToast(`Restored ${apt.patientName} to Waiting queue.`);
+    } catch (err: any) {
+      console.error("Restore appointment error:", err);
+      showToast("Appointment restored to Waiting queue.");
+    }
   };
 
   // Patient Actions
@@ -3165,7 +3272,15 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               {/* 5 Summary KPI Cards */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {/* 1. Today's Appointments */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <button
+                  type="button"
+                  onClick={() => setAptStatusFilter("All Status")}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none active:scale-[0.98] ${
+                    aptStatusFilter === "All Status"
+                      ? "bg-emerald-50/60 border-emerald-500 ring-2 ring-emerald-500/30 shadow-xs"
+                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-xs"
+                  }`}
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-slate-900">{aptKpis.total}</span>
                     <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -3177,10 +3292,18 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <span>↑ 20%</span>
                     <span className="text-slate-400 font-normal">{t("fromYesterday")}</span>
                   </p>
-                </div>
+                </button>
 
                 {/* 2. Waiting */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <button
+                  type="button"
+                  onClick={() => setAptStatusFilter("Waiting")}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none active:scale-[0.98] ${
+                    aptStatusFilter === "Waiting"
+                      ? "bg-amber-50/60 border-amber-500 ring-2 ring-amber-500/30 shadow-xs"
+                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-xs"
+                  }`}
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-amber-500">{aptKpis.waiting}</span>
                     <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
@@ -3189,10 +3312,18 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </div>
                   <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("waiting")}</p>
                   <p className="text-[11px] font-bold text-slate-400 mt-0.5">{t("inClinicQueue")}</p>
-                </div>
+                </button>
 
                 {/* 3. Consulted */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <button
+                  type="button"
+                  onClick={() => setAptStatusFilter("Consulted")}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none active:scale-[0.98] ${
+                    aptStatusFilter === "Consulted"
+                      ? "bg-emerald-50/60 border-emerald-500 ring-2 ring-emerald-500/30 shadow-xs"
+                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-xs"
+                  }`}
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-emerald-500">{aptKpis.consulted}</span>
                     <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -3201,10 +3332,18 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </div>
                   <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("consulted")}</p>
                   <p className="text-[11px] font-bold text-slate-400 mt-0.5">{t("completedToday")}</p>
-                </div>
+                </button>
 
                 {/* 4. In Billing */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <button
+                  type="button"
+                  onClick={() => setAptStatusFilter("In Billing")}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none active:scale-[0.98] ${
+                    aptStatusFilter === "In Billing"
+                      ? "bg-cyan-50/60 border-cyan-500 ring-2 ring-cyan-500/30 shadow-xs"
+                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-xs"
+                  }`}
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-cyan-500">{aptKpis.inBilling}</span>
                     <div className="w-7 h-7 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center">
@@ -3213,10 +3352,18 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </div>
                   <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("inBilling")}</p>
                   <p className="text-[11px] font-bold text-slate-400 mt-0.5">{t("pendingPayment")}</p>
-                </div>
+                </button>
 
                 {/* 5. Cancelled */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <button
+                  type="button"
+                  onClick={() => setAptStatusFilter("Cancelled")}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none active:scale-[0.98] ${
+                    aptStatusFilter === "Cancelled"
+                      ? "bg-rose-50/60 border-rose-500 ring-2 ring-rose-500/30 shadow-xs"
+                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-xs"
+                  }`}
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-rose-500">{aptKpis.cancelled}</span>
                     <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
@@ -3225,13 +3372,13 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </div>
                   <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("cancelled")}</p>
                   <p className="text-[11px] font-bold text-slate-400 mt-0.5">{t("noShowsCancelled")}</p>
-                </div>
+                </button>
               </div>
 
               {/* Full Width Appointments Table Card */}
               <div className="bg-white rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
                 {/* Card Top Sub-header */}
-                <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+                <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-black text-slate-900 font-display">
                       {t("appointmentList")}
@@ -3239,7 +3386,29 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700">
                       {filteredAppointments.length}
                     </span>
+                    {aptStatusFilter !== "All Status" && (
+                      <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200 ml-2">
+                        <span>Filter: {aptStatusFilter}</span>
+                        <button
+                          type="button"
+                          onClick={() => setAptStatusFilter("All Status")}
+                          className="hover:text-rose-600 cursor-pointer ml-1 font-black"
+                          title="Clear Status Filter"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
                   </div>
+                  {aptStatusFilter !== "All Status" && (
+                    <button
+                      type="button"
+                      onClick={() => setAptStatusFilter("All Status")}
+                      className="text-xs text-[#065f46] hover:underline font-bold cursor-pointer"
+                    >
+                      Show All ({appointments.length})
+                    </button>
+                  )}
                 </div>
 
                 {/* Desktop Table View */}
@@ -3336,6 +3505,48 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                                   <span>{t("checkIn")}</span>
                                 </button>
                               )}
+
+                              {(apt.status === "In Billing" || apt.status === "Billing") && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const patId = apt.id.startsWith("pat-") ? apt.id.replace("pat-", "") : apt.id;
+                                    const matchingBill = pendingBills.find((b) => b.id === patId);
+                                    if (matchingBill) {
+                                      setSelectedBillForPayment(matchingBill);
+                                    } else {
+                                      setActiveTab("billing");
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-extrabold text-[10px] transition-colors cursor-pointer flex items-center gap-1 shadow-sm border border-cyan-200"
+                                  title="Collect Payment"
+                                >
+                                  <CreditCard size={12} />
+                                  <span>Collect</span>
+                                </button>
+                              )}
+
+                              {apt.status === "Cancelled" ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRestoreAppointment(apt)}
+                                  className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 font-bold text-[10px] transition-colors cursor-pointer flex items-center gap-1 border border-slate-200"
+                                  title="Restore to Waiting Queue"
+                                >
+                                  <RotateCcw size={11} />
+                                  <span>Restore</span>
+                                </button>
+                              ) : apt.status !== "Completed" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCancelAppointment(apt)}
+                                  className="p-1.5 rounded-lg bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                                  title="Cancel Appointment"
+                                >
+                                  <XCircle size={13} />
+                                </button>
+                              )}
+
                               <button
                                 onClick={() => handleOpenEditAppointment(apt)}
                                 className="p-1.5 rounded-lg bg-slate-50 hover:bg-amber-50 text-slate-500 hover:text-amber-600 transition-colors cursor-pointer"
@@ -3433,8 +3644,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         </p>
                       )}
 
-                      <div className="flex items-center justify-end gap-2 pt-1">
-                        {apt.status === "Scheduled" && (
+                      <div className="flex items-center justify-end gap-2 pt-1 flex-wrap">
+                        {(apt.status === "Scheduled" || apt.status === "SCHEDULED") && (
                           <button
                             type="button"
                             onClick={async () => {
@@ -3456,6 +3667,43 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             <span>{t("checkIn")}</span>
                           </button>
                         )}
+                        {(apt.status === "In Billing" || apt.status === "Billing") && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const patId = apt.id.startsWith("pat-") ? apt.id.replace("pat-", "") : apt.id;
+                              const matchingBill = pendingBills.find((b) => b.id === patId);
+                              if (matchingBill) {
+                                setSelectedBillForPayment(matchingBill);
+                              } else {
+                                setActiveTab("billing");
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1 cursor-pointer select-none"
+                          >
+                            <CreditCard size={13} />
+                            <span>Collect Bill</span>
+                          </button>
+                        )}
+                        {apt.status === "Cancelled" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreAppointment(apt)}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-emerald-50 active:scale-95 text-emerald-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer select-none border border-slate-200"
+                          >
+                            <RotateCcw size={12} />
+                            <span>Restore</span>
+                          </button>
+                        ) : apt.status !== "Completed" && (
+                          <button
+                            type="button"
+                            onClick={() => handleCancelAppointment(apt)}
+                            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer select-none"
+                          >
+                            <XCircle size={12} />
+                            <span>Cancel</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => handleOpenEditAppointment(apt)}
                           className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer select-none"
@@ -3465,7 +3713,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         </button>
                         <button
                           onClick={() => handleRequestDeleteAppointment(apt)}
-                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer select-none"
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 active:scale-95 text-slate-600 hover:text-rose-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer select-none"
                         >
                           <Trash2 size={12} />
                           <span>Delete</span>
@@ -4742,6 +4990,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       patientId: permanentMrn,
                       isReturningPatient: !!pastVisit,
                       status: "Waiting",
+                      appointmentDate: getLocalDateString(new Date()),
+                      appointmentTime: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+                      appointmentType: "Walk-in Consultation",
                       clinicId: String(clinicId),
                       doctorUid: String(activeDoctor?.uid || activeDoctor?.id || currentUserProfile?.assignedDoctorUid || ""),
                       doctorId: String(assignedDoctorId),

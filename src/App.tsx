@@ -1909,14 +1909,22 @@ export default function App() {
             if (pDocEmail && userEmail && pDocEmail === userEmail) return true;
             if (p.doctorId && currentUserProfile.doctorId && p.doctorId === currentUserProfile.doctorId) return true;
             if (p.doctorName && currentUserProfile.displayName) {
-              return p.doctorName.toLowerCase().includes(currentUserProfile.displayName.toLowerCase().replace("dr. ", ""));
+              const cleanP = p.doctorName.toLowerCase().replace("dr. ", "").replace("dr ", "").trim();
+              const cleanD = currentUserProfile.displayName.toLowerCase().replace("dr. ", "").replace("dr ", "").trim();
+              if (cleanP && cleanD && (cleanP.includes(cleanD) || cleanD.includes(cleanP))) return true;
+            }
+            if (p.clinicId && currentUserProfile?.clinicId && p.clinicId === currentUserProfile.clinicId) {
+              if (!p.doctorUid && !pDocEmail) return true;
             }
             if (!pDocEmail && !p.doctorName && !p.doctorUid) return true;
             return false;
           }
 
-          // 2. If Receptionist, match strictly to their assigned doctor
+          // 2. If Receptionist, match strictly to their assigned doctor or clinic
           if (isReceptionist) {
+            if (p.addedBy && user?.uid && p.addedBy === user.uid) return true;
+            if (p.receptionistEmail && userEmail && p.receptionistEmail === userEmail) return true;
+
             const assignedDocUid = currentUserProfile.assignedDoctorUid || "";
             const assignedDocEmail = (currentUserProfile.assignedDoctorEmail || "").toLowerCase().trim();
             const assignedDocId = currentUserProfile.assignedDoctorId || "";
@@ -1930,7 +1938,8 @@ export default function App() {
               const cleanT = assignedDocName.replace("dr. ", "").replace("dr ", "").trim();
               if (cleanP && cleanT && (cleanP.includes(cleanT) || cleanT.includes(cleanP))) return true;
             }
-            // If receptionist is not yet linked to any doctor, show clinic queue
+            // All patients within the receptionist's clinic are accessible at front desk
+            if (p.clinicId && currentUserProfile?.clinicId && p.clinicId === currentUserProfile.clinicId) return true;
             if (!assignedDocUid && !assignedDocEmail && !assignedDocId && !assignedDocName) return true;
             if (!pDocEmail && !p.doctorName && !p.doctorUid) return true;
             return false;
