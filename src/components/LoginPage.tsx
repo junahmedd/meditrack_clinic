@@ -550,7 +550,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
                     <div className="space-y-1">
                       <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                        Mobile (+91) *
+                        Mobile *
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
@@ -559,9 +559,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <input
                           type="tel"
                           required
-                          value={signupData.phone || "+91"}
+                          value={signupData.phone || ""}
                           onChange={(e) => setSignupData((prev: any) => ({ ...prev, phone: e.target.value }))}
-                          placeholder="+91 9876543210"
+                          placeholder="e.g. 9876543210"
                           className={inputCls + " pl-8 text-xs font-mono"}
                         />
                       </div>

@@ -2240,32 +2240,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 </div>
               </div>
 
-
-              {/* Pending Billing Alert Banner */}
-              {pendingBillingPatients.length > 0 && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black shrink-0">
-                      <Receipt size={20} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-extrabold text-amber-900 leading-tight">
-                        {pendingBillingPatients.length} Completed Consultation{pendingBillingPatients.length > 1 ? "s" : ""} Awaiting Payment
-                      </h4>
-                      <p className="text-xs text-amber-700 mt-0.5">
-                        Doctors completed consultations. Collect payment (UPI/Cash) and dispatch WhatsApp receipts.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab("billing")}
-                    className="w-full sm:w-auto px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer text-center justify-center shrink-0"
-                  >
-                    Open Billing Queue →
-                  </button>
-                </div>
-              )}
-
               {/* Middle Analytics Section (Charts) */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Stacked Bar Chart (7-Day Patients: New Patient vs Old Patient) */}
@@ -3395,9 +3369,11 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </div>
                           <div className="truncate">
                             <p className="text-xs font-bold text-slate-800 truncate">{p.name}</p>
-                            <p className="text-[10px] text-slate-400 font-medium">
-                              {p.phone} • Age: {p.age ? `${p.age} yrs` : "NA"} • Gender: {p.gender || "NA"}
-                            </p>
+                            {p.phone && (
+                              <p className="text-[10px] text-slate-400 font-medium font-mono">
+                                {p.phone}
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -3637,7 +3613,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </td>
                           <td className="py-2.5 px-3.5">
                             <span className="font-extrabold text-slate-900 block leading-tight">{apt.patientName}</span>
-                            <span className="text-[10px] text-slate-400 font-medium block">{t("age")}: {apt.age ? `${apt.age} ${t("yrs")}` : "NA"} • {t("gender")}: {apt.gender === "Male" ? t("male") : apt.gender === "Female" ? t("female") : apt.gender || "NA"}</span>
                           </td>
                           <td className="py-2.5 px-3.5 text-slate-500 font-mono text-[11px]">
                             {apt.phone}
@@ -3783,7 +3758,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       <div className="flex items-center justify-between">
                         <div>
                           <span className="font-extrabold text-slate-900 text-sm">{apt.patientName}</span>
-                          {apt.age && <span className="text-xs text-slate-400 font-medium ml-1">({apt.age} yrs)</span>}
                         </div>
                         <div>
                           {apt.status === "Completed" && (
