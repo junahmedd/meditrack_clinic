@@ -2881,9 +2881,8 @@ export default function App() {
         mediaBase64 = canvas.toDataURL("image/png");
       }
 
-      const clinicName = clinicInfo?.name || currentUserProfile?.clinicName || "Clinic";
       const invoiceUrl = `https://meditrack-d03cb.web.app/?invoice=${invoiceNumber}`;
-      const message = `🏥 ${clinicName}\n\nHello ${patient.name},\n\nYour payment of ₹${amount} has been received successfully. ✅\n🧾 Invoice: ${invoiceNumber}\n💳 Payment: ${paymentMethod}\n📌 Status: PAID\n📄 View & Download Invoice:\n${invoiceUrl}\n\nThank you for choosing ${clinicName}.`;
+      const message = `Hello ${patient.name} 👋\n\nThank you for visiting *MediTrack Health Center*.\n\n💰 Amount: ₹${amount}\n💳 Status: ${patient.billingStatus || "PAID"}\n\n📄 Download Invoice (PDF):\n${invoiceUrl}\n\nThank you for choosing MediTrack! 💙`;
 
       // Normalize phone number for direct WhatsApp link
       const rawDigits = patient.phone ? patient.phone.replace(/\D/g, "") : "";

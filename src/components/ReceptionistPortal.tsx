@@ -1773,8 +1773,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     const cleanPhone = formatWhatsAppNumber(patient.phone);
     const invNo = patient.invoiceNumber || `INV-${new Date().getFullYear()}-${patient.id.slice(-4).toUpperCase()}`;
     const amount = patient.consultationFee || 500;
-    const clinicName = clinicDetails.name || clinicInfo?.name || "Apollo Clinic";
-    const invoiceText = `*🏥 ${clinicName.toUpperCase()} - TAX INVOICE & RECEIPT*\n━━━━━━━━━━━━━━━━━━━━━\n*Patient Name:* ${patient.name}\n*Invoice No:* ${invNo}\n*Date:* ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}\n*Doctor:* Dr. Sharma (General Physician)\n*Consultation Fee:* ₹${amount}\n*Payment Mode:* ${patient.paymentMethod || "UPI"} (PAID)\n*Payment Status:* ✅ COMPLETED\n${patient.diagnosis ? `\n*Diagnosis:* ${patient.diagnosis}` : ""}${patient.prescription ? `\n*Prescription (Rx):* ${patient.prescription}` : ""}\n\nThank you for choosing ${clinicName}.\nFor any medical queries, contact clinic desk: ${clinicDetails.phone}\n━━━━━━━━━━━━━━━━━━━━━`;
+    const invoiceUrl = `https://meditrack-d03cb.web.app/?invoice=${invNo}`;
+    const invoiceText = `Hello ${patient.name} 👋\n\nThank you for visiting *MediTrack Health Center*.\n\n💰 Amount: ₹${amount}\n💳 Status: ${patient.billingStatus || "PAID"}\n\n📄 Download Invoice (PDF):\n${invoiceUrl}\n\nThank you for choosing MediTrack! 💙`;
 
     setIsSendingWhatsApp(true);
     try {
@@ -4825,7 +4825,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         const cleanPhone = rawDigits.length === 10 ? `91${rawDigits}` : rawDigits.length === 11 && rawDigits.startsWith("0") ? `91${rawDigits.slice(1)}` : rawDigits;
                         const pdfFileName = `MediTrack_${invoiceNo}_${pat.name.replace(/\s+/g, '-')}.pdf`;
                         const invoiceUrl = `https://meditrack-d03cb.web.app/?invoice=${invoiceNo}`;
-                        const waMsgText = `🏥 ${clinicDetails.name || clinicInfo?.name || "Clinic"}\n\nHello ${pat.name},\n\nYour payment of ₹${feeAmount} has been received successfully. ✅\n🧾 Invoice: ${invoiceNo}\n💳 Payment: ${selectedPaymentMode}\n📌 Status: PAID\n📄 View & Download Invoice:\n${invoiceUrl}\n\nThank you for choosing ${clinicDetails.name || clinicInfo?.name || "our clinic"}.`;
+                        const waMsgText = `Hello ${pat.name} 👋\n\nThank you for visiting *MediTrack Health Center*.\n\n💰 Amount: ₹${feeAmount}\n💳 Status: PAID\n\n📄 Download Invoice (PDF):\n${invoiceUrl}\n\nThank you for choosing MediTrack! 💙`;
 
                         try {
                           const waRes = await sendWhatsApp({
@@ -5045,7 +5045,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     const cleanPhone = formatWhatsAppNumber(activeReceiptData.phone);
                     const pdfName = `MediTrack_${activeReceiptData.invoiceNo}_${activeReceiptData.name.replace(/\s+/g, '-')}.pdf`;
                     const invoiceUrl = `https://meditrack-d03cb.web.app/?invoice=${activeReceiptData.invoiceNo}`;
-                    const waMsg = `🏥 ${clinicDetails.name || clinicInfo?.name || "Clinic"}\n\nHello ${activeReceiptData.name},\n\nYour payment of ₹${activeReceiptData.amount} has been received successfully. ✅\n🧾 Invoice: ${activeReceiptData.invoiceNo}\n💳 Payment: ${activeReceiptData.method}\n📌 Status: PAID\n📄 View & Download Invoice:\n${invoiceUrl}\n\nThank you for choosing ${clinicDetails.name || clinicInfo?.name || "our clinic"}.`;
+                    const waMsg = `Hello ${activeReceiptData.name} 👋\n\nThank you for visiting *MediTrack Health Center*.\n\n💰 Amount: ₹${activeReceiptData.amount}\n💳 Status: ${activeReceiptData.status || "PAID"}\n\n📄 Download Invoice (PDF):\n${invoiceUrl}\n\nThank you for choosing MediTrack! 💙`;
 
                     if (activeReceiptData?.pdfDataUri && cleanPhone) {
                       try {
@@ -5466,10 +5466,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           const rawDigits = (targetPat.phone || "").replace(/\D/g, "");
                           const cleanPhone = rawDigits.length === 10 ? `91${rawDigits}` : rawDigits.length === 11 && rawDigits.startsWith("0") ? `91${rawDigits.slice(1)}` : rawDigits;
 
+                          const invoiceUrl = `https://meditrack-d03cb.web.app/?invoice=${invoiceNo}`;
+                          const waResendMsg = `Hello ${targetPat.name} 👋\n\nThank you for visiting *MediTrack Health Center*.\n\n💰 Amount: ₹${fee}\n💳 Status: PAID\n\n📄 Download Invoice (PDF):\n${invoiceUrl}\n\nThank you for choosing MediTrack! 💙`;
                           try {
                             const waRes = await sendWhatsApp({
                               to: cleanPhone || targetPat.phone,
-                              message: `Hello ${targetPat.name},\n\nYour official PDF tax invoice (${invoiceNo}) from ${clinicDetails.name} is attached below. Thank you for your visit!`,
+                              message: waResendMsg,
                               mediaBase64: pdfDataUri,
                               filename: `Invoice_${invoiceNo}.pdf`,
                             });
