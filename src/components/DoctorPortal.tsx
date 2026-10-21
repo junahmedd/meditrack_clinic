@@ -3114,7 +3114,7 @@ export function DoctorPortal({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Form / Type <span className="text-rose-500">*</span>
+                        Form <span className="text-rose-500">*</span>
                       </label>
                       <select
                         required
