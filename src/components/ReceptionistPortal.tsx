@@ -237,11 +237,11 @@ export const formatWhatsAppNumber = (rawPhone?: string): string => {
   return digits;
 };
 
-export type PatientLifecycleStatus = "Scheduled" | "Waiting" | "Consulting" | "In Billing" | "Completed" | "Cancelled";
+export type PatientLifecycleStatus = "Scheduled" | "Waiting" | "Consulting" | "In Billing" | "Completed" | "Consulted" | "Cancelled";
 
 export const normalizePatientLifecycleStatus = (
   p: any
-): "Scheduled" | "Waiting" | "Consulting" | "In Billing" | "Completed" | "Cancelled" => {
+): PatientLifecycleStatus => {
   // 1. Cancelled
   if (p.status === "Cancelled" || p.status === "CANCELLED" || p.status === "No Show") {
     return "Cancelled";
@@ -259,10 +259,15 @@ export const normalizePatientLifecycleStatus = (
     p.billingStatus === "Paid" ||
     p.billingStatus === "PAID" ||
     p.status === "Completed" ||
+    p.status === "Consulted" ||
     p.status === "PAID";
 
   if (isMarkedPaid && hasPaymentProof) {
-    return "Completed";
+    return "Consulted";
+  }
+
+  if (p.status === "Completed" || p.status === "Consulted") {
+    return "Consulted";
   }
 
   // 3. In Billing: consultation done or marked as billing/unpaid
@@ -307,7 +312,7 @@ export interface QueueItem {
   doctor: string;
   specialty: string;
   time: string;
-  status: "Scheduled" | "Waiting" | "Consulting" | "In Consultation" | "In Billing" | "Billing" | "Completed" | "Cancelled";
+  status: "Scheduled" | "Waiting" | "Consulting" | "In Consultation" | "In Billing" | "Billing" | "Completed" | "Consulted" | "Cancelled";
   age?: string;
   gender?: string;
 }
@@ -1272,7 +1277,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           phone: editAptPhone,
           appointmentTime: editAptTime,
           appointmentType: editAptType,
-          status: editAptStatus,
           notes: editAptNotes,
         });
       } catch (e) {
@@ -3459,9 +3463,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             <span className="text-slate-600 font-medium">{apt.type}</span>
                           </td>
                           <td className="py-2.5 px-3.5">
-                            {apt.status === "Completed" && (
+                            {(apt.status === "Completed" || apt.status === "Consulted") && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                                {t("completed")}
+                                {t("consulted")}
                               </span>
                             )}
                             {apt.status === "Consulting" && (
@@ -3547,9 +3551,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           <span className="font-extrabold text-slate-900 text-sm">{apt.patientName}</span>
                         </div>
                         <div>
-                          {apt.status === "Completed" && (
+                          {(apt.status === "Completed" || apt.status === "Consulted") && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                              Completed
+                              {t("consulted")}
                             </span>
                           )}
                           {apt.status === "Consulting" && (
@@ -4197,35 +4201,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     </div>
                   </div>
 
-                  {/* Assigned Doctor (Greyed out: Dr. Doctor Name) */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Assigned Doctor
-                    </label>
-                    <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
-                      <Stethoscope size={14} className="text-slate-400 shrink-0" />
-                      <span className="truncate">{formattedDoctorDisplayName}</span>
-                    </div>
-                  </div>
 
-                  {/* Status */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                      Status *
-                    </label>
-                    <select
-                      value={editAptStatus}
-                      onChange={(e) => setEditAptStatus(e.target.value as any)}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium cursor-pointer transition-all"
-                    >
-                      <option value="Waiting">Waiting</option>
-                      <option value="Consulting">Consulting</option>
-                      <option value="Completed">Completed</option>
-                      <option value="In Billing">In Billing</option>
-                      <option value="Scheduled">Scheduled</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
-                  </div>
                 </div>
 
                 {/* Submit Actions */}
