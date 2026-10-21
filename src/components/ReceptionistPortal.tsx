@@ -4393,7 +4393,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       )}
                     </div>
                     <div>
-                      <p className="font-extrabold text-xs text-slate-900">{t("upiQrCode")}</p>
+                      <p className="font-extrabold text-xs text-slate-900">UPI</p>
                       <p className="text-[9px] text-slate-500 font-medium">{t("digitalPaymentSub")}</p>
                     </div>
                   </button>
@@ -4443,200 +4443,50 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
                 <button
                   type="button"
-                  disabled={isProcessingWhatsAppPdf}
                   onClick={async () => {
                     if (!selectedBillForPayment) return;
-                    setPaymentPdfError(null);
-                    setIsProcessingWhatsAppPdf(true);
-
                     try {
                       const pat = patients.find((p) => p.id === selectedBillForPayment.id);
                       if (!pat) throw new Error("Patient record not found.");
 
                       const invoiceNo = pat.invoiceNumber || `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-                      const dateTimeStr = new Date().toLocaleString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                        hour: "numeric",
-                        minute: "numeric",
-                        hour12: true,
-                      });
-
                       const feeAmount = selectedBillForPayment.fee || 500;
 
-                      // 1. Build Itemized Charges List
-                      const itemsList: InvoiceItem[] = [
-                        {
-                          description: `${selectedBillForPayment.specialty || "Outpatient"} Consultation Fee`,
-                          qty: 1,
-                          rate: feeAmount,
-                          amount: feeAmount,
-                        },
-                      ];
-
-                      if (pat.prescription) {
-                        try {
-                          const parsedMeds = JSON.parse(pat.prescription);
-                          if (Array.isArray(parsedMeds) && parsedMeds.length > 0) {
-                            parsedMeds.forEach((m: any) => {
-                              if (m.medicine) {
-                                itemsList.push({
-                                  description: `${m.medicine} — ${m.dosage || "1-0-1"}`,
-                                  qty: 1,
-                                  rate: 0,
-                                  amount: 0,
-                                });
-                              }
-                            });
-                          }
-                        } catch (e) {}
-                      }
-
-                      if (pat.dentalTreatment?.proceduresList && Array.isArray(pat.dentalTreatment.proceduresList)) {
-                        pat.dentalTreatment.proceduresList.forEach((proc: any) => {
-                          itemsList.push({
-                            description: `Dental Procedure: ${proc.name || proc}`,
-                            qty: 1,
-                            rate: proc.cost || 0,
-                            amount: proc.cost || 0,
-                          });
-                        });
-                      }
-
-                      const subtotal = itemsList.reduce((sum, item) => sum + item.amount, 0);
-
-                      let pdfDataUri: string | null = null;
-                      try {
-                        // 1. Generate Real PDF Invoice document using jsPDF
-                        const pdfObj = generateInvoicePDF({
-                          invoiceNumber: invoiceNo,
-                          dateTime: dateTimeStr,
-                          clinic: {
-                            name: clinicDetails.name || "MediTrack Family Clinic",
-                            address: clinicDetails.address,
-                            phone: clinicDetails.phone,
-                            gstNumber: clinicDetails.gstNumber,
-                          },
-                          patient: {
-                            name: pat.name,
-                            phone: pat.phone,
-                            age: pat.age,
-                            gender: pat.gender,
-                            mrn: selectedBillForPayment.mrn,
-                          },
-                          doctor: {
-                            name: selectedBillForPayment.doctor,
-                            specialty: selectedBillForPayment.specialty,
-                          },
-                          consultationDetails: {
-                            diagnosis: pat.diagnosis,
-                            notes: pat.notes,
-                          },
-                          items: itemsList,
-                          subtotal,
-                          grandTotal: subtotal,
-                          paymentStatus: "Paid",
-                          paymentMethod: selectedPaymentMode,
-                        });
-                        pdfDataUri = pdfObj.pdfDataUri;
-                      } catch (pdfErr) {
-                        console.warn("PDF Invoice Generation warning:", pdfErr);
-                      }
-
-                      // 2. Execute Firestore Payment Transaction FIRST (Guarantees PAID status)
+                      // 1. Execute Firestore Payment Transaction
                       if (onProcessPayment) {
-                        await onProcessPayment(pat, selectedPaymentMode, feeAmount, invoiceNo, pdfDataUri || undefined);
+                        await onProcessPayment(pat, selectedPaymentMode, feeAmount, invoiceNo);
                       } else {
                         await updateDoc(doc(db, "patients", pat.id), {
-                          status: "PAID",
+                          status: "Consulted",
                           billingStatus: "Paid",
+                          paymentStatus: "PAID",
                           paymentMethod: selectedPaymentMode,
                           paidAt: serverTimestamp(),
                           invoiceNumber: invoiceNo,
-                          invoicePdfData: pdfDataUri || null,
                         });
                       }
 
-                      // 3. Attempt WhatsApp API Transmission (failures won't break PAID status)
-                      let deliveryStatusToast = `✅ Payment of ₹${feeAmount} recorded! Status: PAID`;
-                      let finalWaStatus = pat.whatsappStatus || "NOT_SENT";
-                      let finalWaMsgId: string | undefined = pat.whatsappMessageId;
+                      // 2. Direct WhatsApp redirection without loading
+                      const rawDigits = (pat.phone || "").replace(/\D/g, "");
+                      const cleanPhone = rawDigits.length === 10 ? `91${rawDigits}` : rawDigits.length === 11 && rawDigits.startsWith("0") ? `91${rawDigits.slice(1)}` : rawDigits;
+                      const invoiceUrl = `https://meditrack-d03cb.web.app/?invoice=${invoiceNo}`;
+                      const waMsgText = `Hello ${pat.name} 👋\n\nThank you for visiting *MediTrack Health Center*.\n\n💰 Amount: ₹${feeAmount}\n💳 Status: PAID (${selectedPaymentMode})\n\n📄 Download Invoice (PDF):\n${invoiceUrl}\n\nThank you for choosing MediTrack! 💙`;
 
-                      if (pdfDataUri && pat.whatsappStatus !== "SENT") {
-                        try {
-                          await updateDoc(doc(db, "patients", pat.id), { whatsappStatus: "SENDING" });
-                        } catch (e) {}
-
-                        const rawDigits = (pat.phone || "").replace(/\D/g, "");
-                        const cleanPhone = rawDigits.length === 10 ? `91${rawDigits}` : rawDigits.length === 11 && rawDigits.startsWith("0") ? `91${rawDigits.slice(1)}` : rawDigits;
-                        const pdfFileName = `MediTrack_${invoiceNo}_${pat.name.replace(/\s+/g, '-')}.pdf`;
-                        const invoiceUrl = `https://meditrack-d03cb.web.app/?invoice=${invoiceNo}`;
-                        const waMsgText = `Hello ${pat.name} 👋\n\nThank you for visiting *MediTrack Health Center*.\n\n💰 Amount: ₹${feeAmount}\n💳 Status: PAID\n\n📄 Download Invoice (PDF):\n${invoiceUrl}\n\nThank you for choosing MediTrack! 💙`;
-
-                        try {
-                          const waRes = await sendWhatsApp({
-                            to: cleanPhone || pat.phone,
-                            message: waMsgText,
-                            mediaBase64: pdfDataUri,
-                            filename: pdfFileName,
-                          });
-                          finalWaStatus = "SENT";
-                          finalWaMsgId = waRes?.data?.id || `MSG-${Date.now()}`;
-                          deliveryStatusToast = `✅ Real PDF Invoice (${invoiceNo}) sent via WhatsApp to ${pat.name}! Status: PAID`;
-
-                          try {
-                            await updateDoc(doc(db, "patients", pat.id), {
-                              whatsappStatus: "SENT",
-                              whatsappSentAt: serverTimestamp(),
-                              whatsappMessageId: finalWaMsgId,
-                            });
-                          } catch (e) {}
-                        } catch (waErr: any) {
-                          console.warn("WhatsApp API dispatch failed, setting FAILED:", waErr);
-                          finalWaStatus = "FAILED";
-                          try {
-                            await updateDoc(doc(db, "patients", pat.id), { whatsappStatus: "FAILED" });
-                          } catch (e) {}
-                          deliveryStatusToast = `✅ Payment of ₹${feeAmount} recorded (PAID). WhatsApp status: FAILED (Retry available).`;
-                        }
+                      if (cleanPhone) {
+                        window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(waMsgText)}`, "_blank");
                       }
 
-                      const newInv: PaidInvoiceItem = {
-                        invoiceNo,
-                        name: pat.name,
-                        doctor: selectedBillForPayment.doctor,
-                        amount: feeAmount,
-                        method: selectedPaymentMode,
-                        dateTime: dateTimeStr,
-                        status: "Paid",
-                        phone: pat.phone,
-                        pdfDataUri: pdfDataUri || undefined,
-                      };
-
                       setSelectedBillForPayment(null);
-                      setActiveReceiptData(newInv);
-                      showToast(deliveryStatusToast);
+                      showToast(`✅ Payment of ₹${feeAmount} recorded! Opening WhatsApp...`);
                     } catch (err: any) {
-                      console.error("PDF Billing Error:", err);
-                      showToast(`❌ Billing issue: ${err.message || err}`);
-                    } finally {
-                      setIsProcessingWhatsAppPdf(false);
+                      console.error("Payment Error:", err);
+                      showToast(`❌ Error: ${err.message || err}`);
                     }
                   }}
-                  className="px-4 py-2 bg-[#064e3b] hover:bg-[#043d2e] disabled:bg-emerald-900/40 text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
                 >
-                  {isProcessingWhatsAppPdf ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>{t("sendingPdfViaWhatsApp")}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check size={14} />
-                      <span>{t("sendPdfViaWhatsApp")}</span>
-                    </>
-                  )}
+                  <Check size={15} />
+                  <span>Done</span>
                 </button>
               </div>
             </motion.div>
