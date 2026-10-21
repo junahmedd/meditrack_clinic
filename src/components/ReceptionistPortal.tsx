@@ -130,8 +130,14 @@ export interface Patient {
   appointmentTime?: string;
   appointmentType?: string;
   appointmentDate?: string;
+  appointmentId?: string;
   createdAt?: any;
+  updatedAt?: any;
   billingAmount?: number;
+  paymentId?: string;
+  invoiceId?: string;
+  receptionistId?: string;
+  paymentStatus?: string;
 }
 
 export interface InvoiceItem {
@@ -202,6 +208,8 @@ interface ReceptionistPortalProps {
 
 export interface AppointmentItem {
   id: string;
+  appointmentId?: string;
+  mrn?: string;
   queueNo: number;
   time: string;
   patientName: string;
@@ -229,19 +237,84 @@ export const formatWhatsAppNumber = (rawPhone?: string): string => {
   return digits;
 };
 
+export type PatientLifecycleStatus = "Scheduled" | "Waiting" | "Consulting" | "In Billing" | "Completed" | "Cancelled";
+
+export const normalizePatientLifecycleStatus = (
+  p: any
+): "Scheduled" | "Waiting" | "Consulting" | "In Billing" | "Completed" | "Cancelled" => {
+  // 1. Cancelled
+  if (p.status === "Cancelled" || p.status === "CANCELLED" || p.status === "No Show") {
+    return "Cancelled";
+  }
+
+  // 2. Completed: strictly validated by verified payment record
+  const hasPaymentProof =
+    Boolean(p.paidAt) ||
+    Boolean(p.paymentId) ||
+    Boolean(p.invoicePdfData) ||
+    p.paymentStatus === "PAID" ||
+    p.paymentStatus === "Paid";
+
+  const isMarkedPaid =
+    p.billingStatus === "Paid" ||
+    p.billingStatus === "PAID" ||
+    p.status === "Completed" ||
+    p.status === "PAID";
+
+  if (isMarkedPaid && hasPaymentProof) {
+    return "Completed";
+  }
+
+  // 3. In Billing: consultation done or marked as billing/unpaid
+  if (
+    p.status === "Billing" ||
+    p.status === "In Billing" ||
+    p.status === "BILLING" ||
+    p.status === "unpaid" ||
+    p.status === "UNPAID" ||
+    (p.consultationCompletedAt && p.billingStatus !== "Paid")
+  ) {
+    return "In Billing";
+  }
+
+  // 4. Consulting: called / in consultation with doctor
+  if (
+    p.status === "Called" ||
+    p.status === "Consulting" ||
+    p.status === "In Consultation" ||
+    p.status === "CONSULTING"
+  ) {
+    return "Consulting";
+  }
+
+  // 5. Waiting: checked in to clinic queue
+  if (p.status === "Waiting" || p.status === "WAITING") {
+    return "Waiting";
+  }
+
+  // 6. Scheduled: registered appointment awaiting check-in
+  if (p.status === "Scheduled" || p.status === "SCHEDULED") {
+    return "Scheduled";
+  }
+
+  return "Waiting";
+};
+
 // Queue Item Interface
 export interface QueueItem {
   id: string;
   queueNo: number;
   sequenceNumber?: string;
   mrn: string;
+  appointmentId?: string;
   name: string;
   phone: string;
   doctor: string;
   specialty: string;
   time: string;
-  status: "In Consultation" | "Consulting" | "Waiting";
+  status: "Scheduled" | "Waiting" | "Consulting" | "In Consultation" | "In Billing" | "Billing" | "Completed" | "Cancelled";
   age?: string;
+  gender?: string;
 }
 
 // Billing Item Interfaces
@@ -577,35 +650,27 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     return getLocalDateString(d) === todayStr;
   };
 
-  // Queue Suite State & Live Queue derived from scoped Firestore patients (Strictly Today's Active Live Queue)
+  // Queue Suite State & Live Queue derived from scoped Firestore patients (Full Lifecycle: Scheduled, Waiting, Consulting, In Billing, Completed)
   const queueItems = useMemo<QueueItem[]>(() => {
     return scopedPatients
       .filter((p) => {
-        // Live queue strictly includes active waiting & consulting patients from TODAY
+        // Live queue includes patients from TODAY
         if (!isTodayPatient(p)) return false;
-        return (
-          p.status === "Waiting" ||
-          p.status === "WAITING" ||
-          p.status === "Called" ||
-          p.status === "Consulting" ||
-          p.status === "In Consultation" ||
-          p.status === "CONSULTING"
-        );
+        // Exclude cancelled patients from the queue
+        if (p.status === "Cancelled" || p.status === "CANCELLED" || p.status === "No Show") return false;
+        return true;
       })
       .map((p) => {
         const medSeq = p.sequenceNumber || formatMedSequence(p.queueNumber || 1);
         const displayMrn = p.mrn || medSeq;
-        const isConsulting =
-          p.status === "Called" ||
-          p.status === "Consulting" ||
-          p.status === "In Consultation" ||
-          p.status === "CONSULTING";
+        const normStatus = normalizePatientLifecycleStatus(p);
 
         return {
           id: p.id,
           queueNo: p.queueNumber || 1,
           sequenceNumber: medSeq,
           mrn: displayMrn,
+          appointmentId: p.appointmentId || `APT-${displayMrn}`,
           name: p.name,
           phone: p.phone,
           doctor: p.doctorName || assignedDoctorName,
@@ -615,11 +680,43 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             : p.timestamp?.toDate
             ? new Date(p.timestamp.toDate()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
             : "Today",
-          status: isConsulting ? "Consulting" : "Waiting",
+          status: normStatus,
           age: p.age,
+          gender: p.gender || detectGenderFromName(p.name),
         };
+      })
+      .sort((a, b) => {
+        // Priority order: Consulting (1) -> Waiting (2) -> In Billing (3) -> Scheduled (4) -> Completed (5)
+        const order: Record<string, number> = {
+          "Consulting": 1,
+          "In Consultation": 1,
+          "Waiting": 2,
+          "In Billing": 3,
+          "Billing": 3,
+          "Scheduled": 4,
+          "Completed": 5,
+        };
+        const oA = order[a.status] || 99;
+        const oB = order[b.status] || 99;
+        if (oA !== oB) return oA - oB;
+        return a.queueNo - b.queueNo;
       });
   }, [scopedPatients, queuePrefix, assignedDoctorName, categoryLabel]);
+
+  // Queue Status Filter in Queue Tab
+  const [queueStatusFilter, setQueueStatusFilter] = useState<string>("All");
+  const filteredQueueItems = useMemo(() => {
+    if (queueStatusFilter === "All") return queueItems;
+    return queueItems.filter((q) => {
+      if (queueStatusFilter === "Consulting") {
+        return q.status === "Consulting" || q.status === "In Consultation";
+      }
+      if (queueStatusFilter === "In Billing") {
+        return q.status === "In Billing" || (q as any).status === "Billing";
+      }
+      return q.status === queueStatusFilter;
+    });
+  }, [queueItems, queueStatusFilter]);
 
   const [queuePage, setQueuePage] = useState<number>(1);
   const queuePageSize = 5;
@@ -734,23 +831,15 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     const todayStr = getLocalDateString(new Date());
     const fromPatients: AppointmentItem[] = scopedPatients.map((p) => {
       const pDate = p.appointmentDate || (p.timestamp?.toDate ? getLocalDateString(new Date(p.timestamp.toDate())) : todayStr);
-      let mappedStatus: AppointmentItem["status"] = "Waiting";
-      if (p.status === "Scheduled" || p.status === "SCHEDULED") {
-        mappedStatus = "Scheduled";
-      } else if (p.status === "Waiting" || p.status === "WAITING") {
-        mappedStatus = "Waiting";
-      } else if (p.status === "Called" || p.status === "Consulting" || p.status === "In Consultation" || p.status === "CONSULTING") {
-        mappedStatus = "Consulting";
-      } else if (p.status === "In Billing" || p.status === "Billing" || p.status === "BILLING" || p.status === "UNPAID") {
-        mappedStatus = "In Billing";
-      } else if (p.status === "Completed" || p.status === "PAID" || p.status === "Paid" || p.status === "Dispensed") {
-        mappedStatus = p.billingStatus === "Paid" || p.status === "PAID" ? "Completed" : "In Billing";
-      } else if (p.status === "Cancelled" || p.status === "CANCELLED" || p.status === "No Show") {
-        mappedStatus = "Cancelled";
-      }
+      const mappedStatus = normalizePatientLifecycleStatus(p);
+      const medSeq = p.sequenceNumber || formatMedSequence(p.queueNumber || 1);
+      const displayMrn = p.mrn || medSeq;
+      const aptId = p.appointmentId || `APT-${displayMrn}`;
 
       return {
         id: `pat-${p.id}`,
+        appointmentId: aptId,
+        mrn: displayMrn,
         queueNo: p.queueNumber || 1,
         time: p.appointmentTime
           ? p.appointmentTime
@@ -840,6 +929,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         aptSearch.trim() === "" ||
         apt.patientName.toLowerCase().includes(aptSearch.toLowerCase()) ||
         apt.phone.includes(aptSearch) ||
+        (apt.mrn && apt.mrn.toLowerCase().includes(aptSearch.toLowerCase())) ||
+        (apt.appointmentId && apt.appointmentId.toLowerCase().includes(aptSearch.toLowerCase())) ||
         apt.doctor.toLowerCase().includes(aptSearch.toLowerCase()) ||
         apt.type.toLowerCase().includes(aptSearch.toLowerCase());
 
@@ -848,7 +939,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
       let matchesStatus = true;
       if (aptStatusFilter === "All Status") {
-        matchesStatus = true;
+        matchesStatus = apt.status !== "Cancelled";
       } else if (aptStatusFilter === "Waiting") {
         matchesStatus =
           apt.status === "Waiting" ||
@@ -858,7 +949,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       } else if (aptStatusFilter === "Consulted") {
         matchesStatus =
           apt.status === "Consulting" ||
-          apt.status === "In Billing" ||
           apt.status === "Completed" ||
           apt.status === "PAID";
       } else if (aptStatusFilter === "In Billing") {
@@ -886,8 +976,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     });
 
     return {
-      // 1. Today's Appointments (Total scheduled/registered today)
-      total: todaysApts.length,
+      // 1. Today's Appointments (Total active scheduled/registered today)
+      total: todaysApts.filter((a) => a.status !== "Cancelled" && a.status !== "CANCELLED").length,
 
       // 2. Waiting (in queue or scheduled awaiting check-in)
       waiting: todaysApts.filter(
@@ -899,14 +989,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           a.status === "Called"
       ).length,
 
-      // 3. Consulted (consultation completed or in consultation today)
+      // 3. Consulted & Completed
       consulted: todaysApts.filter(
         (a) =>
           a.status === "Consulting" ||
-          a.status === "In Billing" ||
           a.status === "Completed" ||
-          a.status === "PAID" ||
-          a.status === "Dispensed"
+          a.status === "PAID"
       ).length,
 
       // 4. In Billing (pending payment)
@@ -1065,8 +1153,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         sequenceNumber: finalSequenceNumber,
         mrn: permanentMrn,
         patientId: permanentMrn,
+        appointmentId: `APT-${permanentMrn}`,
         isReturningPatient: !!pastVisit,
-        status: "SCHEDULED",
+        status: "Scheduled",
         appointmentType: newAptType,
         appointmentTime: liveCurrentTime,
         appointmentDate: todayDateStr,
@@ -2413,9 +2502,22 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </td>
                           <td className="py-2.5 px-4 text-slate-700 font-mono font-medium">{q.time}</td>
                           <td className="py-2.5 px-4">
-                            {(q.status === "Consulting" || q.status === "In Consultation") ? (
+                            {q.status === "Completed" ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                                <CheckCircle2 size={11} />
+                                <span>{t("completed")}</span>
+                              </span>
+                            ) : (q.status === "In Billing" || (q as any).status === "Billing") ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
+                                {t("inBilling")}
+                              </span>
+                            ) : (q.status === "Consulting" || q.status === "In Consultation") ? (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                                 {t("consulting")}
+                              </span>
+                            ) : q.status === "Scheduled" ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200/80">
+                                {t("scheduled")}
                               </span>
                             ) : (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
@@ -2425,7 +2527,48 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </td>
                           <td className="py-2.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              {q.status === "Consulting" || q.status === "In Consultation" ? (
+                              {q.status === "Completed" ? (
+                                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-lg select-none border border-emerald-200 flex items-center gap-1">
+                                  <CheckCircle2 size={12} />
+                                  <span>{t("completed")}</span>
+                                </span>
+                              ) : (q.status === "In Billing" || (q as any).status === "Billing") ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const matchingBill = pendingBills.find((b) => b.id === q.id);
+                                    if (matchingBill) {
+                                      setSelectedBillForPayment(matchingBill);
+                                    } else {
+                                      setActiveTab("billing");
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-extrabold text-xs rounded-lg shadow-xs transition-all cursor-pointer flex items-center gap-1 border border-cyan-200"
+                                >
+                                  <CreditCard size={12} />
+                                  <span>Collect</span>
+                                </button>
+                              ) : q.status === "Scheduled" ? (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      await updateDoc(doc(db, "patients", q.id), {
+                                        status: "Waiting",
+                                        checkedInAt: serverTimestamp(),
+                                      });
+                                      showToast(`Checked in ${q.name}! Entered Live Queue.`);
+                                    } catch (err: any) {
+                                      console.error("Check-in error:", err);
+                                      showToast(`Checked in ${q.name}!`);
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1 border border-emerald-200"
+                                >
+                                  <UserPlus size={12} />
+                                  <span>{t("checkIn")}</span>
+                                </button>
+                              ) : (q.status === "Consulting" || q.status === "In Consultation") ? (
                                 <span className="px-2.5 py-1 bg-slate-100 text-slate-500 font-bold text-xs rounded-lg cursor-not-allowed">
                                   {t("consulting")}
                                 </span>
@@ -2503,12 +2646,25 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </div>
                         </div>
                         <div>
-                          {(q.status === "Consulting" || q.status === "In Consultation") ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                          {q.status === "Completed" ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                              <CheckCircle2 size={11} />
+                              <span>{t("completed")}</span>
+                            </span>
+                          ) : (q.status === "In Billing" || (q as any).status === "Billing") ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
+                              {t("inBilling")}
+                            </span>
+                          ) : (q.status === "Consulting" || q.status === "In Consultation") ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                               {t("consulting")}
                             </span>
+                          ) : q.status === "Scheduled" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200/80">
+                              {t("scheduled")}
+                            </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
                               {t("waiting")}
                             </span>
                           )}
@@ -2521,7 +2677,48 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       </div>
 
                       <div className="flex items-center justify-between gap-2 pt-1">
-                        {q.status === "Consulting" || q.status === "In Consultation" ? (
+                        {q.status === "Completed" ? (
+                          <span className="flex-1 py-2 text-center bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs rounded-xl select-none flex items-center justify-center gap-1.5">
+                            <CheckCircle2 size={13} />
+                            <span>{t("completed")}</span>
+                          </span>
+                        ) : (q.status === "In Billing" || (q as any).status === "Billing") ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const matchingBill = pendingBills.find((b) => b.id === q.id);
+                              if (matchingBill) {
+                                setSelectedBillForPayment(matchingBill);
+                              } else {
+                                setActiveTab("billing");
+                              }
+                            }}
+                            className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <CreditCard size={13} />
+                            <span>Collect Bill</span>
+                          </button>
+                        ) : q.status === "Scheduled" ? (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await updateDoc(doc(db, "patients", q.id), {
+                                  status: "Waiting",
+                                  checkedInAt: serverTimestamp(),
+                                });
+                                showToast(`Checked in ${q.name}! Entered Live Queue.`);
+                              } catch (err: any) {
+                                console.error("Check-in error:", err);
+                                showToast(`Checked in ${q.name}!`);
+                              }
+                            }}
+                            className="flex-1 py-2 bg-[#064e3b] hover:bg-[#043d2e] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <UserPlus size={13} />
+                            <span>{t("checkIn")}</span>
+                          </button>
+                        ) : (q.status === "Consulting" || q.status === "In Consultation") ? (
                           <span className="flex-1 py-2 text-center bg-slate-100 text-slate-500 font-bold text-xs rounded-xl cursor-not-allowed">
                             {t("consulting")}
                           </span>
@@ -2792,69 +2989,156 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 </button>
               </div>
 
-              {/* 4 Top KPI Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {/* 1. Total in Queue */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                      <Users size={16} />
-                    </div>
-                    <div>
-                      <span className="text-2xl font-black text-slate-900 block leading-tight">{queueItems.length}</span>
-                      <p className="text-xs font-semibold text-slate-600">Total in Queue</p>
+              {/* 5 Top KPI Cards for Full Lifecycle */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                {/* 1. Scheduled */}
+                <button
+                  type="button"
+                  onClick={() => setQueueStatusFilter(prev => prev === "Scheduled" ? "All" : "Scheduled")}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none active:scale-[0.98] ${
+                    queueStatusFilter === "Scheduled"
+                      ? "bg-sky-50/70 border-sky-500 ring-2 ring-sky-500/30 shadow-xs"
+                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-xs"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl font-black text-sky-600">
+                      {queueItems.filter((q) => q.status === "Scheduled").length}
+                    </span>
+                    <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+                      <Calendar size={15} />
                     </div>
                   </div>
-                </div>
+                  <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("scheduled")}</p>
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">Awaiting Check-in</p>
+                </button>
 
-                {/* 2. In Consultation */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                      <UserIcon size={16} />
-                    </div>
-                    <div>
-                      <span className="text-2xl font-black text-slate-900 block leading-tight">
-                        {queueItems.filter((q) => q.status === "In Consultation" || (q as any).status === "Consulting").length}
-                      </span>
-                      <p className="text-xs font-semibold text-slate-600">In Consultation</p>
+                {/* 2. Waiting */}
+                <button
+                  type="button"
+                  onClick={() => setQueueStatusFilter(prev => prev === "Waiting" ? "All" : "Waiting")}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none active:scale-[0.98] ${
+                    queueStatusFilter === "Waiting"
+                      ? "bg-amber-50/70 border-amber-500 ring-2 ring-amber-500/30 shadow-xs"
+                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-xs"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl font-black text-amber-500">
+                      {queueItems.filter((q) => q.status === "Waiting").length}
+                    </span>
+                    <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                      <Clock size={15} />
                     </div>
                   </div>
-                </div>
+                  <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("waiting")}</p>
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">In Clinic Queue</p>
+                </button>
 
-                {/* 3. Waiting */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-                      <Clock size={16} />
-                    </div>
-                    <div>
-                      <span className="text-2xl font-black text-slate-900 block leading-tight">
-                        {queueItems.filter((q) => q.status === "Waiting").length}
-                      </span>
-                      <p className="text-xs font-semibold text-slate-600">Waiting</p>
+                {/* 3. In Consultation */}
+                <button
+                  type="button"
+                  onClick={() => setQueueStatusFilter(prev => prev === "Consulting" ? "All" : "Consulting")}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none active:scale-[0.98] ${
+                    queueStatusFilter === "Consulting"
+                      ? "bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/30 shadow-xs"
+                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-xs"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl font-black text-emerald-600">
+                      {queueItems.filter((q) => q.status === "Consulting" || q.status === "In Consultation").length}
+                    </span>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                      <UserIcon size={15} />
                     </div>
                   </div>
-                </div>
+                  <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("consulting")}</p>
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">With Doctor</p>
+                </button>
 
-                {/* 4. Completed Today */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-                      <CheckCircle2 size={16} />
-                    </div>
-                    <div>
-                      <span className="text-2xl font-black text-slate-900 block leading-tight">
-                        {scopedPatients.filter((p) => isTodayPatient(p) && (p.billingStatus === "Paid" || p.status === "Completed" || p.status === "PAID" || p.status === "Paid")).length}
-                      </span>
-                      <p className="text-xs font-semibold text-slate-600">Completed Today</p>
+                {/* 4. In Billing */}
+                <button
+                  type="button"
+                  onClick={() => setQueueStatusFilter(prev => prev === "In Billing" ? "All" : "In Billing")}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none active:scale-[0.98] ${
+                    queueStatusFilter === "In Billing"
+                      ? "bg-cyan-50/70 border-cyan-500 ring-2 ring-cyan-500/30 shadow-xs"
+                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-xs"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl font-black text-cyan-600">
+                      {queueItems.filter((q) => q.status === "In Billing" || (q as any).status === "Billing").length}
+                    </span>
+                    <div className="w-7 h-7 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center">
+                      <CreditCard size={15} />
                     </div>
                   </div>
-                </div>
+                  <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("inBilling")}</p>
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">Awaiting Payment</p>
+                </button>
+
+                {/* 5. Completed Today */}
+                <button
+                  type="button"
+                  onClick={() => setQueueStatusFilter(prev => prev === "Completed" ? "All" : "Completed")}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none active:scale-[0.98] col-span-2 md:col-span-1 ${
+                    queueStatusFilter === "Completed"
+                      ? "bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/30 shadow-xs"
+                      : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-xs"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl font-black text-slate-900">
+                      {queueItems.filter((q) => q.status === "Completed").length}
+                    </span>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                      <CheckCircle2 size={15} />
+                    </div>
+                  </div>
+                  <p className="text-xs font-semibold text-slate-600 mt-1.5">{t("completed")}</p>
+                  <p className="text-[11px] font-bold text-[#065f46] mt-0.5">Paid &amp; Finalized</p>
+                </button>
               </div>
 
               {/* Full Width Live Queue Table Card */}
               <div className="bg-white rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+                {/* Card Top Sub-header with Filter Pills */}
+                <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black text-slate-900 font-display">
+                      Patient Queue
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700">
+                      {filteredQueueItems.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {[
+                      { key: "All", label: "All" },
+                      { key: "Waiting", label: "Waiting" },
+                      { key: "Consulting", label: "Consulting" },
+                      { key: "In Billing", label: "In Billing" },
+                      { key: "Scheduled", label: "Scheduled" },
+                      { key: "Completed", label: "Completed" },
+                    ].map((pill) => (
+                      <button
+                        key={pill.key}
+                        type="button"
+                        onClick={() => setQueueStatusFilter(pill.key)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                          queueStatusFilter === pill.key
+                            ? "bg-[#064e3b] text-white shadow-xs"
+                            : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                        }`}
+                      >
+                        {pill.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Desktop Live Queue Table (>= 768px) */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
@@ -2870,7 +3154,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
-                      {queueItems.map((q) => (
+                      {filteredQueueItems.map((q) => (
                         <tr key={q.id} className="hover:bg-slate-50/60 transition-colors">
                           <td className="py-2.5 px-4 font-bold text-slate-400">{q.queueNo}</td>
                           <td className="py-2.5 px-4">
@@ -2884,9 +3168,22 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </td>
                           <td className="py-2.5 px-4 text-slate-700 font-mono font-medium">{q.time}</td>
                           <td className="py-2.5 px-4">
-                            {(q.status === "Consulting" || q.status === "In Consultation") ? (
+                            {q.status === "Completed" ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                                <CheckCircle2 size={11} />
+                                <span>{t("completed")}</span>
+                              </span>
+                            ) : (q.status === "In Billing" || (q as any).status === "Billing") ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
+                                {t("inBilling")}
+                              </span>
+                            ) : (q.status === "Consulting" || q.status === "In Consultation") ? (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                                 {t("consulting")}
+                              </span>
+                            ) : q.status === "Scheduled" ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200/80">
+                                {t("scheduled")}
                               </span>
                             ) : (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
@@ -2896,7 +3193,48 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </td>
                           <td className="py-2.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              {q.status === "Consulting" || q.status === "In Consultation" ? (
+                              {q.status === "Completed" ? (
+                                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-lg select-none border border-emerald-200 flex items-center gap-1">
+                                  <CheckCircle2 size={12} />
+                                  <span>{t("completed")}</span>
+                                </span>
+                              ) : (q.status === "In Billing" || (q as any).status === "Billing") ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const matchingBill = pendingBills.find((b) => b.id === q.id);
+                                    if (matchingBill) {
+                                      setSelectedBillForPayment(matchingBill);
+                                    } else {
+                                      setActiveTab("billing");
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-extrabold text-xs rounded-lg shadow-xs transition-all cursor-pointer flex items-center gap-1 border border-cyan-200"
+                                >
+                                  <CreditCard size={12} />
+                                  <span>Collect</span>
+                                </button>
+                              ) : q.status === "Scheduled" ? (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      await updateDoc(doc(db, "patients", q.id), {
+                                        status: "Waiting",
+                                        checkedInAt: serverTimestamp(),
+                                      });
+                                      showToast(`Checked in ${q.name}! Entered Live Queue.`);
+                                    } catch (err: any) {
+                                      console.error("Check-in error:", err);
+                                      showToast(`Checked in ${q.name}!`);
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1 border border-emerald-200"
+                                >
+                                  <UserPlus size={12} />
+                                  <span>{t("checkIn")}</span>
+                                </button>
+                              ) : (q.status === "Consulting" || q.status === "In Consultation") ? (
                                 <span className="px-2.5 py-1 bg-slate-100 text-slate-500 font-bold text-xs rounded-lg cursor-not-allowed">
                                   {t("consulting")}
                                 </span>
@@ -2950,10 +3288,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </td>
                         </tr>
                       ))}
-                      {queueItems.length === 0 && (
+                      {filteredQueueItems.length === 0 && (
                         <tr>
                           <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
-                            No patients in queue.
+                            No patients in queue for this status.
                           </td>
                         </tr>
                       )}
@@ -2963,7 +3301,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
                 {/* Mobile Responsive Live Queue Cards (< 768px) */}
                 <div className="md:hidden divide-y divide-slate-100">
-                  {queueItems.map((q) => (
+                  {filteredQueueItems.map((q) => (
                     <div key={q.id} className="p-4 space-y-3 bg-white">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2.5">
@@ -2976,9 +3314,22 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </div>
                         </div>
                         <div>
-                          {(q.status === "Consulting" || q.status === "In Consultation") ? (
+                          {q.status === "Completed" ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                              <CheckCircle2 size={11} />
+                              <span>{t("completed")}</span>
+                            </span>
+                          ) : (q.status === "In Billing" || (q as any).status === "Billing") ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
+                              {t("inBilling")}
+                            </span>
+                          ) : (q.status === "Consulting" || q.status === "In Consultation") ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                               {t("consulting")}
+                            </span>
+                          ) : q.status === "Scheduled" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200/80">
+                              {t("scheduled")}
                             </span>
                           ) : (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
@@ -2995,7 +3346,48 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
                       {/* Mobile Actions Row */}
                       <div className="flex items-center justify-between gap-2 pt-1">
-                        {q.status === "Consulting" || q.status === "In Consultation" ? (
+                        {q.status === "Completed" ? (
+                          <span className="flex-1 py-2 text-center bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs rounded-xl select-none flex items-center justify-center gap-1.5">
+                            <CheckCircle2 size={13} />
+                            <span>{t("completed")}</span>
+                          </span>
+                        ) : (q.status === "In Billing" || (q as any).status === "Billing") ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const matchingBill = pendingBills.find((b) => b.id === q.id);
+                              if (matchingBill) {
+                                setSelectedBillForPayment(matchingBill);
+                              } else {
+                                setActiveTab("billing");
+                              }
+                            }}
+                            className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <CreditCard size={13} />
+                            <span>Collect Bill</span>
+                          </button>
+                        ) : q.status === "Scheduled" ? (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await updateDoc(doc(db, "patients", q.id), {
+                                  status: "Waiting",
+                                  checkedInAt: serverTimestamp(),
+                                });
+                                showToast(`Checked in ${q.name}! Entered Live Queue.`);
+                              } catch (err: any) {
+                                console.error("Check-in error:", err);
+                                showToast(`Checked in ${q.name}!`);
+                              }
+                            }}
+                            className="flex-1 py-2 bg-[#064e3b] hover:bg-[#043d2e] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <UserPlus size={13} />
+                            <span>{t("checkIn")}</span>
+                          </button>
+                        ) : (q.status === "Consulting" || q.status === "In Consultation") ? (
                           <span className="flex-1 py-2 text-center bg-slate-100 text-slate-500 font-bold text-xs rounded-xl cursor-not-allowed">
                             {t("consulting")}
                           </span>
@@ -3050,9 +3442,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       </div>
                     </div>
                   ))}
-                  {queueItems.length === 0 && (
-                    <div className="py-8 text-center text-slate-400 text-xs font-medium">
-                      No patients in queue.
+                  {filteredQueueItems.length === 0 && (
+                    <div className="p-8 text-center text-slate-400 text-xs font-medium">
+                      No patients in queue for this status.
                     </div>
                   )}
                 </div>
