@@ -993,6 +993,7 @@ export function DoctorPortal({
   const [selectedCategory, setSelectedCategory] = useState<string>("All Categories");
   const [medicineSearchQuery, setMedicineSearchQuery] = useState<string>("");
   const [isAddMedicineModalOpen, setIsAddMedicineModalOpen] = useState(false);
+  const [isSavingMedicine, setIsSavingMedicine] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState<MedicineItem | null>(null);
   const [activeMedicineMenuId, setActiveMedicineMenuId] = useState<string | null>(null);
 
@@ -1146,33 +1147,34 @@ export function DoctorPortal({
       updatedAt: serverTimestamp(),
     };
 
-    const targetId = editingMedicine ? editingMedicine.id : "med_" + Date.now();
-    const newMedItem: MedicineItem = {
-      id: targetId,
-      ...docData,
-    };
+    if (isSavingMedicine) return;
+    setIsSavingMedicine(true);
 
-    // Optimistic UI state update
-    if (editingMedicine) {
-      setMedicines((prev) => prev.map((m) => (m.id === editingMedicine.id ? newMedItem : m)));
-    } else {
-      setMedicines((prev) => [newMedItem, ...prev]);
-    }
-    setIsAddMedicineModalOpen(false);
-    showToast(editingMedicine ? "Medicine updated successfully" : "Medicine added successfully");
-
-    // Asynchronous background sync to Firestore
     try {
       if (editingMedicine) {
         await updateDoc(doc(db, "medicines", editingMedicine.id), docData);
+        setMedicines((prev) =>
+          prev.map((m) => (m.id === editingMedicine.id ? ({ id: editingMedicine.id, ...docData } as MedicineItem) : m))
+        );
+        showToast("Medicine updated successfully");
       } else {
-        await addDoc(collection(db, "medicines"), {
+        const docRef = await addDoc(collection(db, "medicines"), {
           ...docData,
           createdAt: serverTimestamp(),
         });
+        const newMedItem: MedicineItem = {
+          id: docRef.id,
+          ...docData,
+        };
+        setMedicines((prev) => [newMedItem, ...prev]);
+        showToast("Medicine saved successfully");
       }
-    } catch (err) {
+      setIsAddMedicineModalOpen(false);
+    } catch (err: any) {
       console.error("Firestore sync error for medicine:", err);
+      showToast(`Error saving medicine: ${err.message || "Failed to save"}`);
+    } finally {
+      setIsSavingMedicine(false);
     }
   };
 
@@ -1848,9 +1850,11 @@ export function DoctorPortal({
                               <p className="font-extrabold text-xs text-slate-900 leading-tight">
                                 {item.name}
                               </p>
-                              <p className="text-[10px] font-mono text-slate-400 font-medium">
-                                {mrnStr}
-                              </p>
+                              {item.mrn && item.mrn.startsWith("MRN") && (
+                                <p className="text-[10px] font-mono text-slate-400 font-medium">
+                                  {item.mrn}
+                                </p>
+                              )}
                             </div>
                           </div>
 
@@ -2988,65 +2992,70 @@ export function DoctorPortal({
           </div>
         )}
 
-        {/* ADD / EDIT MEDICINE MODAL */}
+        {/* ADD / EDIT MEDICINE MODAL — CLEAN, MINIMAL & PROFESSIONAL */}
         <AnimatePresence>
           {isAddMedicineModalOpen && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end z-50"
-              onClick={() => setIsAddMedicineModalOpen(false)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50"
+              onClick={() => {
+                if (!isSavingMedicine) setIsAddMedicineModalOpen(false);
+              }}
             >
               <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
+                initial={{ scale: 0.96, opacity: 0, y: 8 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.96, opacity: 0, y: 8 }}
+                transition={{ duration: 0.18 }}
                 onClick={(e) => e.stopPropagation()}
-                style={{ maxWidth: "420px" }}
-                className="bg-white rounded-2xl shadow-2xl w-full p-5 space-y-4 border border-slate-100 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
+                className="bg-white rounded-2xl shadow-xl border border-slate-200/80 w-full max-w-md p-5 sm:p-6 space-y-4 mx-auto"
               >
-                <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
                 {/* Modal Header */}
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 className="text-lg font-bold text-slate-900">
-                    {editingMedicine ? t("edit") : t("addMedicine")}
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
+                    {editingMedicine ? "Edit Medicine" : "Add Medicine"}
                   </h3>
                   <button
                     type="button"
+                    disabled={isSavingMedicine}
                     onClick={() => setIsAddMedicineModalOpen(false)}
-                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50"
+                    aria-label="Close"
                   >
                     <X size={16} />
                   </button>
                 </div>
 
-                {/* Modal Form */}
+                {/* Simplified Modal Form */}
                 <form onSubmit={handleSaveMedicine} className="space-y-4">
+                  {/* Medicine Name */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {t("medicineName")} <span className="text-rose-500">*</span>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Medicine Name <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Paracetamol 650mg"
+                      placeholder="e.g. Paracetamol"
                       value={medicineFormData.name}
                       onChange={(e) => setMedicineFormData({ ...medicineFormData, name: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#064e3b] transition-all"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#064e3b] focus:ring-2 focus:ring-[#064e3b]/10 transition-all"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Category & Form / Type (2 columns on tablet/desktop, stacked on small screens) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        {t("category")} <span className="text-rose-500">*</span>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Category <span className="text-rose-500">*</span>
                       </label>
                       <select
                         required
                         value={medicineFormData.category}
                         onChange={(e) => setMedicineFormData({ ...medicineFormData, category: e.target.value })}
-                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] transition-all cursor-pointer"
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] focus:ring-2 focus:ring-[#064e3b]/10 transition-all cursor-pointer"
                       >
                         <option value="">Select Category</option>
                         <option value="Analgesic">Analgesic (Pain / Fever)</option>
@@ -3064,21 +3073,22 @@ export function DoctorPortal({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         Form / Type <span className="text-rose-500">*</span>
                       </label>
                       <select
                         required
                         value={medicineFormData.form}
                         onChange={(e) => setMedicineFormData({ ...medicineFormData, form: e.target.value, type: e.target.value })}
-                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] transition-all cursor-pointer"
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] focus:ring-2 focus:ring-[#064e3b]/10 transition-all cursor-pointer"
                       >
                         <option value="">Select Form</option>
                         <option value="Tablet">Tablet</option>
                         <option value="Capsule">Capsule</option>
                         <option value="Syrup">Syrup</option>
-                        <option value="Drops">Drops</option>
                         <option value="Injection">Injection</option>
+                        <option value="Cream">Cream</option>
+                        <option value="Drops">Drops</option>
                         <option value="Topical">Topical</option>
                         <option value="Inhaler">Inhaler</option>
                         <option value="Other">Other</option>
@@ -3086,9 +3096,10 @@ export function DoctorPortal({
                     </div>
                   </div>
 
+                  {/* Strength & Unit */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Strength &amp; Unit <span className="text-rose-500">*</span>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Strength <span className="text-rose-500">*</span>
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -3097,12 +3108,12 @@ export function DoctorPortal({
                         placeholder="e.g. 500"
                         value={medicineFormData.strength}
                         onChange={(e) => setMedicineFormData({ ...medicineFormData, strength: e.target.value })}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#064e3b] transition-all"
+                        className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#064e3b] focus:ring-2 focus:ring-[#064e3b]/10 transition-all"
                       />
                       <select
                         value={medicineFormData.unit}
                         onChange={(e) => setMedicineFormData({ ...medicineFormData, unit: e.target.value })}
-                        className="w-24 px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] transition-all cursor-pointer"
+                        className="w-24 px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] focus:ring-2 focus:ring-[#064e3b]/10 transition-all cursor-pointer"
                       >
                         <option value="mg">mg</option>
                         <option value="g">g</option>
@@ -3115,65 +3126,25 @@ export function DoctorPortal({
                     </div>
                   </div>
 
-                  {/* Default Dosage Frequency */}
-                  <div className="pt-2 border-t border-slate-100 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">
-                        Default Dosage Frequency
-                      </span>
-                      <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                        {medicineFormData.defaultDosage || "1-0-1"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                      {["1-0-1", "1-0-0", "0-0-1", "1-1-1", "SOS", "Once Weekly"].map((dose) => (
-                        <button
-                          key={dose}
-                          type="button"
-                          onClick={() => setMedicineFormData({ ...medicineFormData, defaultDosage: dose })}
-                          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer shrink-0 active:scale-95 select-none ${
-                            medicineFormData.defaultDosage === dose
-                              ? "bg-[#064e3b] text-white shadow-xs"
-                              : "bg-slate-100/80 text-slate-700 hover:bg-slate-200"
-                          }`}
-                        >
-                          {dose}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-1">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide shrink-0">Timing:</span>
-                      {["After food", "Before food"].map((inst) => (
-                        <button
-                          key={inst}
-                          type="button"
-                          onClick={() => setMedicineFormData({ ...medicineFormData, instructions: inst })}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer active:scale-95 select-none ${
-                            medicineFormData.instructions === inst
-                              ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                              : "bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100"
-                          }`}
-                        >
-                          {inst}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                  {/* Modal Actions */}
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
                     <button
                       type="button"
+                      disabled={isSavingMedicine}
                       onClick={() => setIsAddMedicineModalOpen(false)}
-                      className="px-5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl transition-all cursor-pointer"
+                      className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer disabled:opacity-50"
                     >
                       {t("cancel")}
                     </button>
                     <button
                       type="submit"
-                      className="px-6 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white font-semibold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
+                      disabled={isSavingMedicine}
+                      className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] disabled:opacity-60 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      {t("save")}
+                      {isSavingMedicine && (
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      )}
+                      <span>{isSavingMedicine ? "Saving..." : (editingMedicine ? "Save Changes" : "Save Medicine")}</span>
                     </button>
                   </div>
                 </form>

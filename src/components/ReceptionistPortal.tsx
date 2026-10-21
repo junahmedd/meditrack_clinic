@@ -3447,24 +3447,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             {apt.time}
                           </td>
                           <td className="py-2.5 px-3.5">
-                            <div className="flex items-center gap-2">
-                              <span className="font-extrabold text-slate-900 leading-tight">{apt.patientName}</span>
-                              {apt.status === "Waiting" && onCallPatient && (() => {
-                                const livePat = patients.find((p) => p.id === apt.id || p.id === apt.id.replace("pat-", ""));
-                                if (!livePat) return null;
-                                return (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); onCallPatient(livePat); }}
-                                    className="px-2 py-0.5 rounded-lg bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-[10px] flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
-                                    title="Send patient to doctor portal"
-                                  >
-                                    <Phone size={10} />
-                                    <span>Call</span>
-                                  </button>
-                                );
-                              })()}
-                            </div>
+                            <span className="font-extrabold text-slate-900 block leading-tight">{apt.patientName}</span>
                           </td>
                           <td className="py-2.5 px-3.5 text-slate-500 font-mono text-[11px]">
                             {apt.phone}
