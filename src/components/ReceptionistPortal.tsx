@@ -4110,7 +4110,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsNewAptModalOpen(false)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                    className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -4119,7 +4119,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-2 transition-all cursor-pointer"
                   >
                     <Check size={15} />
-                    <span>Confirm &amp; Schedule</span>
+                    <span>Confirm</span>
                   </button>
                 </div>
               </form>
@@ -4256,17 +4256,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       setEditingAppointment(null);
                       setShowEditAptAnalogClock(false);
                     }}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                    className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleSaveAppointmentEdits}
-                    className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <Check size={15} />
-                    <span>Save Changes</span>
+                    <span>Confirm</span>
                   </button>
                 </div>
               </div>
@@ -4318,7 +4318,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 <button
                   type="button"
                   onClick={() => setDeleteConfirmAppointment(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                  className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
