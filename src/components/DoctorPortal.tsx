@@ -1379,14 +1379,8 @@ export function DoctorPortal({
       setDiagnosis("");
       setPrescriptionItems([{ medicine: "", dosage: "1-0-1", duration: "5 Days", instructions: "After food" }]);
 
-      // Select next patient
-      const next = doctorQueue.find((p) => p.id !== activePatient.id && (p.status === "Waiting" || p.status === "WAITING"));
-      if (next) {
-        await onCallPatient(next);
-        setActivePatient(next);
-      } else {
-        setActivePatient(null);
-      }
+      // Patient returns to Waiting queue view. The doctor must explicitly click Call Patient for the next patient.
+      setActivePatient(null);
     } catch (e) {
       console.error(e);
       showToast("Consultation saved successfully.");
@@ -1813,20 +1807,66 @@ export function DoctorPortal({
 
                       const hasActiveConsultation = doctorQueue.some((p) => p.id !== item.id && (p.status === "Called" || p.status === "Consulting"));
 
-                      const handleCallPatientClick = (e: React.MouseEvent) => {
+                      const handleCallPatientClick = async (e: React.MouseEvent) => {
                         e.stopPropagation();
                         if (hasActiveConsultation) {
                           showToast("Consultation in progress. Complete current patient consultation first.");
                           return;
                         }
-                        if (onCallPatient) onCallPatient(item);
-                        setActivePatient(item);
+
+                        // 1. Verify authenticated doctor authorization
+                        const myDoctorId = currentUserProfile?.doctorId || user?.uid || "";
+                        const myEmail = (user?.email || currentUserProfile?.email || "").toLowerCase().trim();
+                        const patDoctorId = item.doctorId || item.doctorUid || "";
+                        const patDoctorEmail = (item.doctorEmail || "").toLowerCase().trim();
+
+                        if (!isAdmin && patDoctorId && patDoctorId !== myDoctorId && patDoctorId !== user?.uid) {
+                          if (!patDoctorEmail || patDoctorEmail !== myEmail) {
+                            showToast("You are not authorized to consult this patient.");
+                            return;
+                          }
+                        }
+
+                        // 2. Verify patient current status is Waiting
+                        const curStatus = (item.status || "").toLowerCase();
+                        if (curStatus !== "waiting" && curStatus !== "scheduled") {
+                          showToast("Patient is not in Waiting status.");
+                          return;
+                        }
+
+                        // 3. Update live status in Firebase to Consulting & open consultation
+                        try {
+                          if (onCallPatient) {
+                            await onCallPatient(item);
+                          } else {
+                            await updateDoc(doc(db, "patients", item.id), {
+                              status: "Consulting",
+                              calledAt: serverTimestamp(),
+                              consultationStartedAt: serverTimestamp(),
+                            });
+                          }
+
+                          // 4. Open consultation page for this specific patient
+                          const consultingPatient: Patient = {
+                            ...item,
+                            status: "Consulting",
+                          };
+                          setActivePatient(consultingPatient);
+                          showToast(`Now consulting ${item.name}`);
+                        } catch (err: any) {
+                          console.error("Error calling patient:", err);
+                          showToast(`Failed to call patient: ${err.message || err}`);
+                        }
                       };
 
                       return (
                         <div
                           key={item.id}
-                          onClick={() => setActivePatient(item)}
+                          onClick={() => {
+                            if (isConsulting) {
+                              setActivePatient(item);
+                            }
+                          }}
                           className={`p-2.5 rounded-xl flex items-center justify-between border transition-all cursor-pointer ${
                             isSelected
                               ? "bg-emerald-50/70 border-emerald-300 shadow-xs"

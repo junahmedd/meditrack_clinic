@@ -2183,6 +2183,15 @@ export default function App() {
 
       validateDoctorReceptionistMapping(clinicId, docId, recId);
 
+      // Instant optimistic update across all portals
+      setPatients((prev) =>
+        prev.map((p) =>
+          p.id === patient.id
+            ? { ...p, status: "Consulting", calledAt: new Date(), consultationStartedAt: new Date() }
+            : p
+        )
+      );
+
       await updateDoc(doc(db, "patients", patient.id), {
         status: "Consulting",
         calledAt: serverTimestamp(),
