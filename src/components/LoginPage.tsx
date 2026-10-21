@@ -388,7 +388,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     {authLoading ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                      <span>Sign in &rarr;</span>
+                      <span>Log In &rarr;</span>
                     )}
                   </button>
                 </form>
@@ -432,8 +432,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                         {signupData.role === "receptionist" ? (
                           <Users size={16} />
-                        ) : signupData.role === "admin" ? (
-                          <ShieldCheck size={16} />
                         ) : (
                           <Stethoscope size={16} />
                         )}
@@ -445,7 +443,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       >
                         <option value="doctor">Doctor</option>
                         <option value="receptionist">Receptionist</option>
-                        <option value="admin">Admin</option>
                       </select>
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                         <ChevronDown size={16} />

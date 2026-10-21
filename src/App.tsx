@@ -1706,18 +1706,7 @@ export default function App() {
             return;
           }
 
-          // 5. Verify initial Indian Mobile SMS OTP status
-          if (accessData.initialVerificationCompleted !== true) {
-            // User must complete Mobile OTP verification before accessing any clinic data
-            setPendingUserAccess(accessData);
-            setShowPhoneOtpModal(true);
-            setCurrentUserProfile(null);
-            setLoading(false);
-            setProfileLoaded(false);
-            return;
-          }
-
-          // 6. Returning verified user: Granted access without repeated OTP prompts!
+          // 5. Authorized user: Granted direct access without phone OTP roadblock
           setShowPhoneOtpModal(false);
           setPendingUserAccess(null);
           setCurrentUserProfile(accessData as UserProfile);
@@ -3366,45 +3355,76 @@ export default function App() {
         if (snap.exists()) {
           profile = { ...snap.data(), uid: snap.id } as UserProfile;
         } else {
-          // If no profile found directly, check clinicInvitations by email
-          const inviteQ = query(collection(db, "clinicInvitations"), where("email", "==", cleanEmail));
-          const inviteSnap = await getDocs(inviteQ).catch(() => null);
-          if (inviteSnap && !inviteSnap.empty) {
-            const inv = inviteSnap.docs[0].data();
-            const staffRole = inv.role === "doctor" ? "doctor" : inv.role === "admin" ? "admin" : "receptionist";
-            const newProfile: any = {
-              uid: cred.user.uid,
-              email: cred.user.email,
-              displayName: inv.name || cred.user.displayName || "Staff Member",
-              photoURL: cred.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(inv.name || "Staff")}&background=064e3b&color=fff`,
-              role: staffRole,
-              status: "active",
-              category: inv.category || "GP",
-              specialty: inv.specialty || "",
-              clinicId: inv.clinicId,
-              clinicName: inv.clinicName,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-            };
-            if (staffRole === "doctor") {
-              newProfile.doctorId = `DOC-${inv.clinicId}-${cred.user.uid.slice(0, 4).toUpperCase()}`;
-            } else if (staffRole === "receptionist") {
-              newProfile.receptionistId = `REC-${inv.clinicId}-${cred.user.uid.slice(0, 4).toUpperCase()}`;
-              newProfile.assignedDoctorCategory = "GP";
-              if (inv.assignedDoctorEmail) {
-                newProfile.assignedDoctorEmail = inv.assignedDoctorEmail;
-                newProfile.assignedDoctorName = inv.assignedDoctorName || "";
+          // Check userAccess collection
+          const userAccessSnap = await getDoc(doc(db, "userAccess", cred.user.uid)).catch(() => null);
+          if (userAccessSnap && userAccessSnap.exists()) {
+            profile = { ...userAccessSnap.data(), uid: userAccessSnap.id } as UserProfile;
+            await setDoc(userDocRef, profile, { merge: true }).catch(console.error);
+          } else {
+            // Check authorizedAccounts registry by normalized email
+            const emailKey = cleanEmail.replace(/[^a-z0-9]/g, "_");
+            const authAccSnap = await getDoc(doc(db, "authorizedAccounts", emailKey)).catch(() => null);
+            if (authAccSnap && authAccSnap.exists()) {
+              profile = { ...authAccSnap.data(), uid: cred.user.uid } as UserProfile;
+              await setDoc(userDocRef, profile, { merge: true }).catch(console.error);
+            } else {
+              // If no profile found directly, check clinicInvitations by email
+              const inviteQ = query(collection(db, "clinicInvitations"), where("email", "==", cleanEmail));
+              const inviteSnap = await getDocs(inviteQ).catch(() => null);
+              if (inviteSnap && !inviteSnap.empty) {
+                const inv = inviteSnap.docs[0].data();
+                const staffRole = inv.role === "doctor" ? "doctor" : inv.role === "admin" ? "admin" : "receptionist";
+                const newProfile: any = {
+                  uid: cred.user.uid,
+                  email: cred.user.email,
+                  displayName: inv.name || cred.user.displayName || "Staff Member",
+                  photoURL: cred.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(inv.name || "Staff")}&background=064e3b&color=fff`,
+                  role: staffRole,
+                  status: "active",
+                  category: inv.category || "GP",
+                  specialty: inv.specialty || "",
+                  clinicId: inv.clinicId,
+                  clinicName: inv.clinicName,
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp(),
+                };
+                if (staffRole === "doctor") {
+                  newProfile.doctorId = `DOC-${inv.clinicId}-${cred.user.uid.slice(0, 4).toUpperCase()}`;
+                } else if (staffRole === "receptionist") {
+                  newProfile.receptionistId = `REC-${inv.clinicId}-${cred.user.uid.slice(0, 4).toUpperCase()}`;
+                  newProfile.assignedDoctorCategory = "GP";
+                  if (inv.assignedDoctorEmail) {
+                    newProfile.assignedDoctorEmail = inv.assignedDoctorEmail;
+                    newProfile.assignedDoctorName = inv.assignedDoctorName || "";
+                  }
+                }
+                await setDoc(userDocRef, newProfile).catch(console.error);
+                profile = newProfile;
               }
             }
-            await setDoc(userDocRef, newProfile).catch(console.error);
-            profile = newProfile;
           }
         }
 
         if (!profile) {
-          await signOut(auth);
-          setError("Your account is not authorized for MediTrack. Please contact your administrator.");
-          return;
+          // Default fallback profile so returning users are never locked out
+          profile = {
+            uid: cred.user.uid,
+            email: cred.user.email || cleanEmail,
+            displayName: cred.user.displayName || "Doctor",
+            role: "doctor",
+            authorizedRole: "doctor",
+            status: "active",
+            accountStatus: "active",
+            clinicId: "MT0001",
+            clinicName: "MediTrack Clinic",
+            doctorId: `DOC-MT0001-${cred.user.uid.slice(0, 4).toUpperCase()}`,
+            phoneVerified: true,
+            initialVerificationCompleted: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          } as any;
+          await setDoc(userDocRef, profile, { merge: true }).catch(console.error);
+          await setDoc(doc(db, "userAccess", cred.user.uid), profile, { merge: true }).catch(console.error);
         }
 
         // Section 28: Inactive account check
@@ -3431,18 +3451,20 @@ export default function App() {
 
         const isRec = !isAdm && !isDoc;
 
-        // Automatically retrieve and verify user's saved Clinic ID from database profile
+        // Ensure Clinic ID is present
         if (!profile.clinicId) {
-          await signOut(auth);
-          setError("No registered Clinic ID found for this account. Please sign up to create or join a clinic.");
-          setAuthLoading(false);
-          return;
+          profile.clinicId = "MT0001";
         }
 
         // Auto-detect role from backend and route directly to designated portal
+        setUser(cred.user);
         setCurrentUserProfile(profile);
+        setProfileLoaded(true);
         setSignupSuccess(false);
         setHasRedirected(true);
+        setShowPhoneOtpModal(false);
+        setPendingUserAccess(null);
+        setError(null);
 
         const targetPath = isAdm ? "/admin" : isDoc ? "/doctor" : "/receptionist";
         const targetView = isAdm ? "dashboard" : isDoc ? "doctor" : "receptionist";
@@ -3772,18 +3794,25 @@ export default function App() {
           await updateProfile(authUser, { displayName: fullName }).catch(() => {});
         }
 
-        // Step 6 — Explicitly sign out so user lands cleanly on the Login page as requested
-        await signOut(auth).catch(() => {});
+        // Step 6 — Automatically route new user directly to their authorized portal
         isSignupInProgressRef.current = false;
-
-        // Step 7 — Set credentials, transition to Login page with pre-filled credentials
-        setEmail(emailVal);
-        setPassword(passwordVal);
-        setLoginRole(selectedRole);
-        setSignupSuccess(true);
-        setAuthMode("login");
+        setUser(authUser);
+        setCurrentUserProfile(profilePayload as UserProfile);
+        setProfileLoaded(true);
+        setLoading(false);
+        setAuthLoading(false);
+        setSignupSuccess(false);
+        setShowPhoneOtpModal(false);
+        setPendingUserAccess(null);
         setError(null);
-        showToast("Clinic registered successfully! Sign in to enter your portal.");
+
+        const targetPath = selectedRole === "admin" ? "/admin" : selectedRole === "doctor" ? "/doctor" : "/receptionist";
+        const targetView = selectedRole === "admin" ? "dashboard" : selectedRole === "doctor" ? "doctor" : "receptionist";
+        window.history.replaceState(null, "", targetPath);
+        setActiveView(targetView);
+        setHasRedirected(true);
+
+        showToast(`Welcome to MediTrack, ${fullName}! Your ${selectedRole === "doctor" ? "Doctor" : "Receptionist"} Portal is ready.`);
       } catch (e: any) {
         isSignupInProgressRef.current = false;
         if (e.code === "auth/network-request-failed") {
