@@ -105,6 +105,8 @@ export interface Patient {
   notes?: string;
   diagnosis?: string;
   consultationFee?: number;
+  consultationCompletedAt?: any;
+  billedAt?: any;
   billingStatus?: "Pending" | "Paid" | string;
   paymentMethod?: "UPI" | "Cash" | string;
   paidAt?: any;
@@ -247,42 +249,30 @@ export const normalizePatientLifecycleStatus = (
     return "Cancelled";
   }
 
-  // 2. Completed: strictly validated by verified payment record
-  const hasPaymentProof =
-    Boolean(p.paidAt) ||
-    Boolean(p.paymentId) ||
-    Boolean(p.invoicePdfData) ||
-    p.paymentStatus === "PAID" ||
-    p.paymentStatus === "Paid";
-
-  const isMarkedPaid =
+  // 2. Consulted: consultation completed AND payment settled (or marked Paid)
+  const isPaid =
     p.billingStatus === "Paid" ||
     p.billingStatus === "PAID" ||
-    p.status === "Completed" ||
-    p.status === "Consulted" ||
-    p.status === "PAID";
+    p.status === "PAID" ||
+    Boolean(p.paidAt);
 
-  if (isMarkedPaid && hasPaymentProof) {
+  if (isPaid) {
     return "Consulted";
   }
 
-  if (p.status === "Completed" || p.status === "Consulted") {
-    return "Consulted";
-  }
-
-  // 3. In Billing: consultation done or marked as billing/unpaid
+  // 3. In Billing: consultation completed or in billing, but payment is pending
   if (
     p.status === "Billing" ||
     p.status === "In Billing" ||
     p.status === "BILLING" ||
     p.status === "unpaid" ||
     p.status === "UNPAID" ||
-    (p.consultationCompletedAt && p.billingStatus !== "Paid")
+    Boolean(p.consultationCompletedAt)
   ) {
     return "In Billing";
   }
 
-  // 4. Consulting: called / in consultation with doctor
+  // 4. Consulting: actively with doctor
   if (
     p.status === "Called" ||
     p.status === "Consulting" ||
@@ -292,9 +282,13 @@ export const normalizePatientLifecycleStatus = (
     return "Consulting";
   }
 
-  // 5. Waiting: newly booked appointment or live queue waiting
-  if (p.status === "Waiting" || p.status === "WAITING" || p.status === "Scheduled" || p.status === "SCHEDULED") {
+  // 5. Waiting / Scheduled
+  if (p.status === "Waiting" || p.status === "WAITING") {
     return "Waiting";
+  }
+
+  if (p.status === "Scheduled" || p.status === "SCHEDULED") {
+    return "Scheduled";
   }
 
   return "Waiting";
@@ -599,44 +593,35 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     return getLocalDateString(d) === todayStr;
   };
 
-  // Live Pending Bills derived from scoped Firestore patients (Today only)
-  const pendingBills = useMemo<BillingPendingItem[]>(() => {
-    return scopedPatients
-      .filter(
-        (p) =>
-          isTodayPatient(p) &&
-          (p.status === "In Billing" ||
-            p.status === "Billing" ||
-            p.status === "BILLING" ||
-            p.status === "UNPAID" ||
-            p.status === "Completed" ||
-            p.status === "Dispensed") &&
-          p.billingStatus !== "Paid"
-      )
-      .map((p) => {
-        const medSeq = p.sequenceNumber || formatMedSequence(p.queueNumber || 1);
-        const displayMrn = p.mrn || medSeq;
-        return {
-          id: p.id,
-          sequenceNumber: medSeq,
-          mrn: displayMrn,
-          name: p.name,
-          phone: p.phone,
-          doctor: p.doctorName || assignedDoctorName,
-          specialty: categoryLabel,
-          dateTime: p.timestamp?.toDate
-            ? new Date(p.timestamp.toDate()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
-            : "Today",
-          fee: p.consultationFee || 500,
-          status: "Pending" as const,
-        };
-      });
-  }, [scopedPatients, assignedDoctorName, categoryLabel, currentLocalDate]);
+  // 1. Unpaid Invoices: Bills already generated but payment is pending (no overlap with Patients to Bill)
+  const unpaidInvoicesList = useMemo(() => {
+    return scopedPatients.filter((p) => {
+      if (p.status === "Cancelled" || p.status === "CANCELLED" || p.status === "No Show") return false;
+      const isPaid = p.billingStatus === "Paid" || p.billingStatus === "PAID" || p.status === "PAID" || Boolean(p.paidAt);
+      if (isPaid) return false;
+      return Boolean(p.invoiceNumber && p.invoiceNumber.trim() !== "");
+    });
+  }, [scopedPatients]);
 
-  // Live Paid Invoices derived from scoped Firestore patients (Today only)
+  // 2. Patients to Bill: Consultations completed but invoices not yet generated
+  const patientsToBillList = useMemo(() => {
+    return scopedPatients.filter((p) => {
+      if (p.status === "Cancelled" || p.status === "CANCELLED" || p.status === "No Show") return false;
+      const isPaid = p.billingStatus === "Paid" || p.billingStatus === "PAID" || p.status === "PAID" || Boolean(p.paidAt);
+      if (isPaid) return false;
+      const hasInvoice = Boolean(p.invoiceNumber && p.invoiceNumber.trim() !== "");
+      if (hasInvoice) return false;
+      return p.status === "In Billing" || p.status === "Billing" || p.status === "BILLING" || Boolean(p.consultationCompletedAt);
+    });
+  }, [scopedPatients]);
+
+  // 3. Paid Invoices: Number of invoices successfully paid (without Today restriction)
   const paidInvoicesList = useMemo<PaidInvoiceItem[]>(() => {
     return scopedPatients
-      .filter((p) => isTodayPatient(p) && (p.billingStatus === "Paid" || p.status === "PAID"))
+      .filter((p) => {
+        if (p.status === "Cancelled" || p.status === "CANCELLED" || p.status === "No Show") return false;
+        return p.billingStatus === "Paid" || p.billingStatus === "PAID" || p.status === "PAID" || Boolean(p.paidAt);
+      })
       .map((p) => ({
         invoiceNo: p.invoiceNumber || `INV-${new Date().getFullYear()}-${p.id.slice(-4).toUpperCase()}`,
         name: p.name,
@@ -653,7 +638,35 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         whatsappMessageId: p.whatsappMessageId,
         patientId: p.id,
       }));
-  }, [scopedPatients, assignedDoctorName, currentLocalDate]);
+  }, [scopedPatients, assignedDoctorName]);
+
+  // 4. Total Revenue: Total payments successfully received, without the Today restriction
+  const totalRevenueAmount = useMemo(() => {
+    return paidInvoicesList.reduce((acc, inv) => acc + (Number(inv.amount) || 0), 0);
+  }, [paidInvoicesList]);
+
+  // Unified pending checkout list for Billing Table (combines unbilled patients & unpaid invoices)
+  const pendingBills = useMemo<BillingPendingItem[]>(() => {
+    const list = [...unpaidInvoicesList, ...patientsToBillList];
+    return list.map((p) => {
+      const medSeq = p.sequenceNumber || formatMedSequence(p.queueNumber || 1);
+      const displayMrn = p.mrn || medSeq;
+      return {
+        id: p.id,
+        sequenceNumber: medSeq,
+        mrn: displayMrn,
+        name: p.name,
+        phone: p.phone,
+        doctor: p.doctorName || assignedDoctorName,
+        specialty: categoryLabel,
+        dateTime: p.timestamp?.toDate
+          ? new Date(p.timestamp.toDate()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+          : "Today",
+        fee: p.consultationFee || 500,
+        status: "Pending" as const,
+      };
+    });
+  }, [unpaidInvoicesList, patientsToBillList, assignedDoctorName, categoryLabel]);
 
   // Queue Suite State & Live Queue derived from scoped Firestore patients (Full Lifecycle: Scheduled, Waiting, Consulting, In Billing, Completed)
   const queueItems = useMemo<QueueItem[]>(() => {
@@ -994,10 +1007,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           a.status === "Called"
       ).length,
 
-      // 3. Consulted & Completed (only after doctor clicks Complete Consultation)
+      // 3. Consulted & Completed (only after payment settlement)
       consulted: todaysApts.filter(
         (a) =>
-          a.status === "Completed"
+          a.status === "Completed" || a.status === "Consulted"
       ).length,
 
       // 4. In Billing (pending payment)
@@ -2475,21 +2488,21 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
               {/* 4 Top KPI Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {/* 1. Pending Collections */}
+                {/* 1. Unpaid Invoices */}
                 <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
                       <FileText size={16} />
                     </div>
                     <div>
-                      <span className="text-2xl font-black text-slate-900 block leading-tight">{pendingBills.length}</span>
+                      <span className="text-2xl font-black text-slate-900 block leading-tight">{unpaidInvoicesList.length}</span>
                       <p className="text-xs font-semibold text-slate-600">{t("pendingCollections")}</p>
-                      <p className="text-xs font-extrabold text-amber-600 mt-0.5">₹{pendingBills.reduce((acc, b) => acc + (Number(b.fee) || 0), 0).toLocaleString()}</p>
+                      <p className="text-[11px] font-bold text-amber-600 mt-0.5">Awaiting payment</p>
                     </div>
                   </div>
                 </div>
 
-                {/* 2. Paid Invoices Today */}
+                {/* 2. Paid Invoices */}
                 <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -2498,7 +2511,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <div>
                       <span className="text-2xl font-black text-slate-900 block leading-tight">{paidInvoicesList.length}</span>
                       <p className="text-xs font-semibold text-slate-600">{t("paidInvoicesToday")}</p>
-                      <p className="text-xs font-extrabold text-emerald-600 mt-0.5">₹{paidInvoicesList.reduce((acc, b) => acc + (Number(b.amount) || 0), 0).toLocaleString()}</p>
+                      <p className="text-[11px] font-bold text-emerald-600 mt-0.5">Successfully collected</p>
                     </div>
                   </div>
                 </div>
@@ -2510,28 +2523,28 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       <Users size={16} />
                     </div>
                     <div>
-                      <span className="text-2xl font-black text-slate-900 block leading-tight">{pendingBills.length}</span>
+                      <span className="text-2xl font-black text-slate-900 block leading-tight">{patientsToBillList.length}</span>
                       <p className="text-xs font-semibold text-slate-600">{t("patientsToBill")}</p>
                       <p className="text-[11px] font-bold text-slate-400 mt-0.5">{t("awaitingCheckout")}</p>
                     </div>
                   </div>
                 </div>
 
-                  {/* 4. Total Revenue */}
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-                        <IndianRupee size={16} />
-                      </div>
-                      <div>
-                        <span className="text-2xl font-black text-slate-900 block leading-tight">
-                          ₹{revenueStats.total.toLocaleString()}
-                        </span>
-                        <p className="text-xs font-semibold text-slate-600">{t("totalRevenueToday")}</p>
-                        <p className="text-[11px] font-bold text-emerald-600 mt-0.5">{t("liveCollection")}</p>
-                      </div>
+                {/* 4. Total Revenue */}
+                <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                      <IndianRupee size={16} />
+                    </div>
+                    <div>
+                      <span className="text-2xl font-black text-slate-900 block leading-tight">
+                        ₹{totalRevenueAmount.toLocaleString()}
+                      </span>
+                      <p className="text-xs font-semibold text-slate-600">{t("totalRevenueToday")}</p>
+                      <p className="text-[11px] font-bold text-emerald-600 mt-0.5">{t("liveCollection")}</p>
                     </div>
                   </div>
+                </div>
               </div>
 
               {/* Full Width Billing Table Card */}

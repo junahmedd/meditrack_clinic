@@ -137,12 +137,12 @@ export const translations: Record<Language, TranslationDictionary> = {
     noAppointmentsScheduled: "No appointments scheduled.",
 
     // Billing Page
-    pendingCollections: "Pending Collections",
+    pendingCollections: "Unpaid Invoices",
     paidInvoices: "Paid Invoices",
-    paidInvoicesToday: "Paid Invoices (Today)",
+    paidInvoicesToday: "Paid Invoices",
     patientsToBill: "Patients to Bill",
     awaitingCheckout: "Awaiting checkout",
-    totalRevenueToday: "Total Revenue (Today)",
+    totalRevenueToday: "Total Revenue",
     liveCollection: "Live collection",
     consultationDateTime: "Consultation Date & Time",
     billNow: "Bill Now",
@@ -406,12 +406,12 @@ export const translations: Record<Language, TranslationDictionary> = {
     noAppointmentsScheduled: "لا توجد مواعيد مجدولة.",
 
     // Billing Page
-    pendingCollections: "تحصيلات معلقة",
+    pendingCollections: "فواتير غير مدفوعة",
     paidInvoices: "فواتير مسددة",
-    paidInvoicesToday: "فواتير مسددة (اليوم)",
+    paidInvoicesToday: "فواتير مسددة",
     patientsToBill: "مرضى بانتظار الفاتورة",
     awaitingCheckout: "بانتظار التحصيل",
-    totalRevenueToday: "إجمالي الإيرادات (اليوم)",
+    totalRevenueToday: "إجمالي الإيرادات",
     liveCollection: "تحصيل فوري",
     consultationDateTime: "تاريخ ووقت الكشف",
     billNow: "إصدار الفاتورة",

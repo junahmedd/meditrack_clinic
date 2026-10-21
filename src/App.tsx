@@ -2665,12 +2665,12 @@ export default function App() {
       // Update patient status in queue
       const patientRef = doc(db, "patients", patient.id);
       const updateData: any = {
-        status: "Billing",
+        status: "In Billing",
         billingStatus: "unpaid",
         consultationCompletedAt: serverTimestamp(),
         billedAt: serverTimestamp(),
         consultationFee: consultationFee || 500,
-        invoiceNumber: invoiceNumber || "",
+        invoiceNumber: patient.invoiceNumber || "",
         notes: notes || "",
         diagnosis: diagnosisStr || "",
         prescription: JSON.stringify(prescriptionList || []),
@@ -2689,6 +2689,23 @@ export default function App() {
       if (specialtyData && (specialtyData.procedure || specialtyData.toothArea || specialtyData.complaint)) {
         updateData.dentalTreatment = specialtyData;
       }
+
+      // Optimistic update so Receptionist immediately sees "In Billing"
+      setPatients((prev) =>
+        prev.map((p) =>
+          p.id === patient.id
+            ? {
+                ...p,
+                status: "In Billing",
+                billingStatus: "unpaid",
+                consultationCompletedAt: new Date(),
+                consultationFee: consultationFee || 500,
+                notes,
+                diagnosis: diagnosisStr,
+              }
+            : p
+        )
+      );
 
       batch.update(patientRef, updateData);
 
@@ -2782,9 +2799,26 @@ export default function App() {
 
       const batch = writeBatch(db);
 
-      // 1. Patient / Appointment document -> status = "Completed", billingStatus = "Paid"
+      // Optimistic update so both portals immediately reflect "Consulted"
+      setPatients((prev) =>
+        prev.map((p) =>
+          p.id === patient.id
+            ? {
+                ...p,
+                status: "Consulted",
+                billingStatus: "Paid",
+                paymentStatus: "PAID",
+                paymentMethod: paymentMethod || "Cash",
+                paidAt: new Date(),
+                invoiceNumber,
+              }
+            : p
+        )
+      );
+
+      // 1. Patient / Appointment document -> status = "Consulted", billingStatus = "Paid"
       batch.update(patientRef, {
-        status: "Completed",
+        status: "Consulted",
         billingStatus: "Paid",
         paymentMethod: paymentMethod || "Cash",
         consultationFee: amount || 0,
