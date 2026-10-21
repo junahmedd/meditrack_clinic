@@ -2048,7 +2048,11 @@ export default function App() {
     setIsProcessing(true);
     try {
       const now = new Date();
+      const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const liveCurrentTime = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+
       const todayPatients = patients.filter((p: any) => {
+        if (p.appointmentDate && p.appointmentDate === todayDateStr) return true;
         const ts = p.paidAt || p.consultationCompletedAt || p.calledAt || p.timestamp || p.createdAt;
         if (!ts) return false;
         let d: Date | null = null;
@@ -2130,6 +2134,10 @@ export default function App() {
         sequenceNumber: finalSequenceNumber, // Daily sequence e.g. MED001
         mrn: permanentMrn, // Permanent or daily sequence identifier
         patientId: permanentMrn,
+        appointmentId: `APT-${permanentMrn}`,
+        appointmentDate: todayDateStr,
+        appointmentTime: liveCurrentTime,
+        appointmentType: "Walk-in Consultation",
         isReturningPatient: !!pastVisit,
         previousVisitCount: pastVisit ? (pastVisit.previousVisitCount ? pastVisit.previousVisitCount + 1 : 1) : 0,
         status: "Waiting",

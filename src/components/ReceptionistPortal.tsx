@@ -568,11 +568,43 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     });
   }, [patients, assignedDoctorEmail, assignedDoctorName, assignedDoctorId, currentUserProfile?.assignedDoctorUid, currentUserProfile?.clinicId, clinicInfo?.id, isAdmin, user]);
 
-  // Live Pending Bills derived from scoped Firestore patients
+  // Helper to extract patient timestamp as JS Date
+  const getPatientDate = (p: any): Date | null => {
+    const ts = p.paidAt || p.consultationCompletedAt || p.billedAt || p.calledAt || p.timestamp || p.createdAt;
+    if (!ts) return null;
+    if (ts.toDate && typeof ts.toDate === "function") return ts.toDate();
+    if (ts.seconds) return new Date(ts.seconds * 1000);
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Helper to get local date string YYYY-MM-DD
+  const getLocalDateString = (d: Date = new Date()): string => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const [currentLocalDate, setCurrentLocalDate] = useState(() => getLocalDateString(new Date()));
+
+  // Check if patient was registered/active TODAY (Strict New-Day Basis)
+  const isTodayPatient = (p: any): boolean => {
+    const todayStr = currentLocalDate;
+    if (p.appointmentDate) {
+      return p.appointmentDate === todayStr;
+    }
+    const d = getPatientDate(p);
+    if (!d) return true;
+    return getLocalDateString(d) === todayStr;
+  };
+
+  // Live Pending Bills derived from scoped Firestore patients (Today only)
   const pendingBills = useMemo<BillingPendingItem[]>(() => {
     return scopedPatients
       .filter(
         (p) =>
+          isTodayPatient(p) &&
           (p.status === "In Billing" ||
             p.status === "Billing" ||
             p.status === "BILLING" ||
@@ -599,12 +631,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           status: "Pending" as const,
         };
       });
-  }, [scopedPatients, assignedDoctorName, categoryLabel]);
+  }, [scopedPatients, assignedDoctorName, categoryLabel, currentLocalDate]);
 
-  // Live Paid Invoices derived from scoped Firestore patients
+  // Live Paid Invoices derived from scoped Firestore patients (Today only)
   const paidInvoicesList = useMemo<PaidInvoiceItem[]>(() => {
     return scopedPatients
-      .filter((p) => p.billingStatus === "Paid" || p.status === "PAID")
+      .filter((p) => isTodayPatient(p) && (p.billingStatus === "Paid" || p.status === "PAID"))
       .map((p) => ({
         invoiceNo: p.invoiceNumber || `INV-${new Date().getFullYear()}-${p.id.slice(-4).toUpperCase()}`,
         name: p.name,
@@ -621,34 +653,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         whatsappMessageId: p.whatsappMessageId,
         patientId: p.id,
       }));
-  }, [scopedPatients, assignedDoctorName]);
-
-  // Helper to extract patient timestamp as JS Date
-  const getPatientDate = (p: any): Date | null => {
-    const ts = p.paidAt || p.consultationCompletedAt || p.billedAt || p.calledAt || p.timestamp || p.createdAt;
-    if (!ts) return null;
-    if (ts.toDate && typeof ts.toDate === "function") return ts.toDate();
-    if (ts.seconds) return new Date(ts.seconds * 1000);
-    const d = new Date(ts);
-    return isNaN(d.getTime()) ? null : d;
-  };
-
-  // Helper to get local date string YYYY-MM-DD
-  const getLocalDateString = (d: Date = new Date()): string => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  // Check if patient was registered/active TODAY (Strict New-Day Basis)
-  const isTodayPatient = (p: any): boolean => {
-    const todayStr = getLocalDateString(new Date());
-    if (p.appointmentDate && p.appointmentDate === todayStr) return true;
-    const d = getPatientDate(p);
-    if (!d) return true;
-    return getLocalDateString(d) === todayStr;
-  };
+  }, [scopedPatients, assignedDoctorName, currentLocalDate]);
 
   // Queue Suite State & Live Queue derived from scoped Firestore patients (Full Lifecycle: Scheduled, Waiting, Consulting, In Billing, Completed)
   const queueItems = useMemo<QueueItem[]>(() => {
@@ -701,7 +706,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         if (oA !== oB) return oA - oB;
         return a.queueNo - b.queueNo;
       });
-  }, [scopedPatients, queuePrefix, assignedDoctorName, categoryLabel]);
+  }, [scopedPatients, queuePrefix, assignedDoctorName, categoryLabel, currentLocalDate]);
 
   // Queue Status Filter in Queue Tab
   const [queueStatusFilter, setQueueStatusFilter] = useState<string>("All");
@@ -828,7 +833,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   // Appointments Suite State - live synchronized from scoped Firestore patients
   const [customAppointments, setCustomAppointments] = useState<AppointmentItem[]>([]);
   const appointments = useMemo<AppointmentItem[]>(() => {
-    const todayStr = getLocalDateString(new Date());
+    const todayStr = currentLocalDate;
     const fromPatients: AppointmentItem[] = scopedPatients.map((p) => {
       const pDate = p.appointmentDate || (p.timestamp?.toDate ? getLocalDateString(new Date(p.timestamp.toDate())) : todayStr);
       const mappedStatus = normalizePatientLifecycleStatus(p);
@@ -858,7 +863,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       };
     });
     return [...fromPatients, ...customAppointments];
-  }, [scopedPatients, customAppointments, assignedDoctorName]);
+  }, [scopedPatients, customAppointments, assignedDoctorName, currentLocalDate]);
 
   const [aptDoctorFilter, setAptDoctorFilter] = useState<string>("All Doctors");
   const [aptStatusFilter, setAptStatusFilter] = useState<string>("All Status");
@@ -965,7 +970,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
   // KPI summary metrics (Accurately computed live across the entire patient lifecycle)
   const aptKpis = useMemo(() => {
-    const todayDate = getLocalDateString(new Date());
+    const todayDate = currentLocalDate;
 
     // Appointments scheduled/booked/active today
     const todaysApts = appointments.filter((a) => {
@@ -1007,7 +1012,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         (a) => a.status === "Cancelled" || a.status === "CANCELLED" || a.status === "No Show"
       ).length,
     };
-  }, [appointments]);
+  }, [appointments, currentLocalDate]);
 
   // Paginated Appointments (5 per page to fit on screen without scrolling)
   const pageSize = 5;
@@ -1450,6 +1455,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         hour12: true,
       });
       setCurrentTimeStr(`${dateStr} | ${timeStr}`);
+      const today = getLocalDateString(now);
+      setCurrentLocalDate((prev) => (prev !== today ? today : prev));
     };
     updateTime();
     const interval = setInterval(updateTime, 30000);
@@ -1461,21 +1468,22 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Waiting Patients List (Live from Scoped Patients)
+  // Waiting Patients List (Live from Scoped Patients - Today only)
   const waitingPatients = useMemo(
-    () => scopedPatients.filter((p) => p.status === "Waiting" || p.status === "WAITING" || p.status === "Called" || p.status === "Consulting" || p.status === "CONSULTING"),
-    [scopedPatients]
+    () => scopedPatients.filter((p) => isTodayPatient(p) && (p.status === "Waiting" || p.status === "WAITING" || p.status === "Called" || p.status === "Consulting" || p.status === "CONSULTING")),
+    [scopedPatients, currentLocalDate]
   );
 
-  // Completed Consultations Pending Billing (Live from Scoped Patients)
+  // Completed Consultations Pending Billing (Live from Scoped Patients - Today only)
   const pendingBillingPatients = useMemo(
     () =>
       scopedPatients.filter(
         (p) =>
+          isTodayPatient(p) &&
           (p.status === "In Billing" || p.status === "Billing" || p.status === "BILLING" || p.status === "UNPAID" || p.status === "Completed" || p.status === "Dispensed") &&
           p.billingStatus !== "Paid"
       ),
-    [scopedPatients]
+    [scopedPatients, currentLocalDate]
   );
 
   // All Paid Patients (for 7-day trend chart)

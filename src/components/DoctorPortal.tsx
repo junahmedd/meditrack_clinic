@@ -767,6 +767,16 @@ export function DoctorPortal({
   };
 
   // Live Time Clock
+  // Helper to get local date string YYYY-MM-DD in clinic's local timezone
+  const getLocalDateString = (d: Date = new Date()): string => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const [currentLocalDate, setCurrentLocalDate] = useState(() => getLocalDateString(new Date()));
+
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -775,6 +785,8 @@ export function DoctorPortal({
           " " +
           now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
       );
+      const today = getLocalDateString(now);
+      setCurrentLocalDate((prev) => (prev !== today ? today : prev));
     };
     updateTime();
     const interval = setInterval(updateTime, 30000);
@@ -793,14 +805,13 @@ export function DoctorPortal({
 
   // Check if patient was registered/active TODAY (Strict New-Day Basis)
   const isTodayPatient = (p: any): boolean => {
+    const todayStr = currentLocalDate;
+    if (p.appointmentDate) {
+      return p.appointmentDate === todayStr;
+    }
     const d = getPatientDate(p);
     if (!d) return true;
-    const now = new Date();
-    return (
-      d.getDate() === now.getDate() &&
-      d.getMonth() === now.getMonth() &&
-      d.getFullYear() === now.getFullYear()
-    );
+    return getLocalDateString(d) === todayStr;
   };
 
   // Filter Doctor Queue strictly for this authenticated doctor & strictly for TODAY's live queue
@@ -837,7 +848,7 @@ export function DoctorPortal({
       if (p.doctorName && doctorDisplayName) return p.doctorName.toLowerCase().includes(doctorDisplayName.toLowerCase().replace("dr. ", ""));
       return true;
     });
-  }, [patients, currentUserProfile, user, doctorDisplayName, isAdmin]);
+  }, [patients, currentUserProfile, user, doctorDisplayName, isAdmin, currentLocalDate]);
 
   // Doctor Patient History List (All-time historical patients for this doctor)
   const doctorPatientsList = useMemo(() => {
@@ -862,16 +873,18 @@ export function DoctorPortal({
   // Check if patient belongs to given period
   const matchesPeriod = (p: any, period: "today" | "month" | "year" | "all"): boolean => {
     if (period === "all") return true;
-    const d = getPatientDate(p);
-    if (!d) return period === "today";
-    const now = new Date();
+    const todayStr = currentLocalDate;
     if (period === "today") {
-      return (
-        d.getDate() === now.getDate() &&
-        d.getMonth() === now.getMonth() &&
-        d.getFullYear() === now.getFullYear()
-      );
+      if (p.appointmentDate) {
+        return p.appointmentDate === todayStr;
+      }
+      const d = getPatientDate(p);
+      if (!d) return true;
+      return getLocalDateString(d) === todayStr;
     }
+    const d = getPatientDate(p);
+    if (!d) return false;
+    const now = new Date();
     if (period === "month") {
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }
@@ -939,7 +952,7 @@ export function DoctorPortal({
       chartSlices,
       legendSlices,
     };
-  }, [doctorPatientsList, consultationFee, selectedPeriod]);
+  }, [doctorPatientsList, consultationFee, selectedPeriod, currentLocalDate]);
 
   // Backward-compatible alias for existing chart references
   const revenueData = analyticsData;
