@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { generateInvoicePDF } from "../utils/pdfGenerator";
 import { sendWhatsApp } from "../utils/whatsappService";
 import { getNextPatientSequence, formatMedSequence } from "../utils/patientSequence";
@@ -1474,9 +1474,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const showToast = (msg: string) => {
+    if (!msg) return;
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 2500);
   };
 
   // Waiting Patients List (Live from Scoped Patients - Today only)
@@ -4113,10 +4116,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-2 transition-all cursor-pointer"
+                    className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center justify-center transition-all cursor-pointer"
                   >
-                    <Check size={15} />
-                    <span>Confirm</span>
+                    Confirm
                   </button>
                 </div>
               </form>
@@ -4232,10 +4234,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   <button
                     type="button"
                     onClick={handleSaveAppointmentEdits}
-                    className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center justify-center transition-all cursor-pointer"
                   >
-                    <Check size={15} />
-                    <span>Confirm</span>
+                    Confirm
                   </button>
                 </div>
               </div>

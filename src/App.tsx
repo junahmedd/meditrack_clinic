@@ -1365,11 +1365,6 @@ export default function App() {
     const isReceptionistPath = normalizedPath === "/receptionist" || normalizedPath.startsWith("/receptionist/");
 
     if (isAdminPath && !isAdm) {
-      const authorizedPortalName = isDoc ? "Doctor Portal" : "Receptionist Portal";
-      setToast({
-        message: `ACCESS DENIED: You are not authorized to access the Admin Portal. Redirecting to your ${authorizedPortalName}...`,
-        visible: true,
-      });
       window.history.replaceState(null, "", canonicalPath);
       setActiveView(canonicalPortal);
       setHasRedirected(true);
@@ -1377,11 +1372,6 @@ export default function App() {
     }
 
     if (isDoctorPath && !isDoc) {
-      const authorizedPortalName = isAdm ? "Admin Portal" : "Receptionist Portal";
-      setToast({
-        message: `ACCESS DENIED: You are not authorized to access the Doctor Portal. Redirecting to your ${authorizedPortalName}...`,
-        visible: true,
-      });
       window.history.replaceState(null, "", canonicalPath);
       setActiveView(canonicalPortal);
       setHasRedirected(true);
@@ -1389,11 +1379,6 @@ export default function App() {
     }
 
     if (isReceptionistPath && !isRec) {
-      const authorizedPortalName = isAdm ? "Admin Portal" : "Doctor Portal";
-      setToast({
-        message: `ACCESS DENIED: You are not authorized to access the Receptionist Portal. Redirecting to your ${authorizedPortalName}...`,
-        visible: true,
-      });
       window.history.replaceState(null, "", canonicalPath);
       setActiveView(canonicalPortal);
       setHasRedirected(true);
@@ -1436,11 +1421,9 @@ export default function App() {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      showToast("Network connection restored. Back online.");
     };
     const handleOffline = () => {
       setIsOnline(false);
-      showToast("Network connection lost. Offline mode active.");
     };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -1592,9 +1575,12 @@ export default function App() {
     }
   };
 
+  const appToastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const showToast = (message: string) => {
+    if (!message) return;
+    if (appToastTimerRef.current) clearTimeout(appToastTimerRef.current);
     setToast({ message, visible: true });
-    setTimeout(() => setToast((prev) => ({ ...prev, visible: false })), 3000);
+    appToastTimerRef.current = setTimeout(() => setToast((prev) => ({ ...prev, visible: false })), 2500);
   };
 
   useEffect(() => {
@@ -1892,20 +1878,19 @@ export default function App() {
           const userEmail = (user?.email || "").toLowerCase().trim();
           const pDocEmail = (p.doctorEmail || "").toLowerCase().trim();
 
-          // 1. If current user is a Doctor, match their UID, Email, or DoctorID
+          // 1. If current user is a Doctor, match their UID, Email, DoctorID, or clinic patients
           if (isDoctor) {
-            if (p.doctorUid && p.doctorUid === user.uid) return true;
+            if (p.doctorUid && user?.uid && p.doctorUid === user.uid) return true;
             if (pDocEmail && userEmail && pDocEmail === userEmail) return true;
-            if (p.doctorId && currentUserProfile.doctorId && p.doctorId === currentUserProfile.doctorId) return true;
-            if (p.doctorName && currentUserProfile.displayName) {
+            if (p.doctorId && currentUserProfile?.doctorId && p.doctorId === currentUserProfile.doctorId) return true;
+            if (p.doctorName && currentUserProfile?.displayName) {
               const cleanP = p.doctorName.toLowerCase().replace("dr. ", "").replace("dr ", "").trim();
               const cleanD = currentUserProfile.displayName.toLowerCase().replace("dr. ", "").replace("dr ", "").trim();
               if (cleanP && cleanD && (cleanP.includes(cleanD) || cleanD.includes(cleanP))) return true;
             }
             if (p.clinicId && currentUserProfile?.clinicId && p.clinicId === currentUserProfile.clinicId) {
-              if (!p.doctorUid && !pDocEmail) return true;
+              return true;
             }
-            if (!pDocEmail && !p.doctorName && !p.doctorUid) return true;
             return false;
           }
 
@@ -2988,12 +2973,7 @@ export default function App() {
             await batch.commit();
           }
 
-          setCustomModal({
-            title: "Success",
-            message: "Current queue has been cleared successfully.",
-            confirmText: "OK",
-            onConfirm: () => {}
-          });
+          showToast("Current queue has been cleared successfully.");
         } catch (err: any) {
           try {
             handleFirestoreError(err, OperationType.DELETE, "patients");

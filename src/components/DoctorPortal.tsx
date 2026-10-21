@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { MediTrackLogo } from "./MediTrackLogo";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { NetworkStatusBanner } from "./NetworkStatusBanner";
@@ -816,37 +816,31 @@ export function DoctorPortal({
 
   // Filter Doctor Queue strictly for this authenticated doctor & strictly for TODAY's live queue
   const doctorQueue = useMemo(() => {
-    const docId = currentUserProfile?.doctorId || user?.uid || "";
     return patients.filter((p) => {
       // Must be an active patient for today
       if (!isTodayPatient(p)) return false;
+      const st = (p.status || "").toLowerCase();
       if (
-        p.status === "Completed" ||
-        p.status === "COMPLETED" ||
-        p.status === "Dispensed" ||
-        p.status === "Cancelled" ||
-        p.status === "In Billing" ||
-        p.status === "Billing" ||
-        p.status === "BILLING" ||
-        p.status === "Paid" ||
-        p.status === "PAID"
+        st === "completed" ||
+        st === "dispensed" ||
+        st === "cancelled" ||
+        st === "in billing" ||
+        st === "billing" ||
+        st === "paid"
       ) return false;
+
       if (isAdmin) return true;
       if (p.doctorUid && user?.uid && p.doctorUid === user.uid) return true;
       const myEmail = (user?.email || currentUserProfile?.email || "").toLowerCase().trim();
       const patDocEmail = (p.doctorEmail || "").toLowerCase().trim();
-      if (myEmail && patDocEmail) {
-        return patDocEmail === myEmail;
+      if (myEmail && patDocEmail && myEmail === patDocEmail) return true;
+      // All patients registered in this doctor's clinic belong to this clinic's queue
+      if (p.clinicId && currentUserProfile?.clinicId && p.clinicId === currentUserProfile.clinicId) {
+        return true;
       }
-      if (p.doctorId && docId) {
-        const cleanDocId = String(docId).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-        const cleanPatDocId = String(p.doctorId).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-        if (cleanPatDocId === cleanDocId) return true;
-      }
-      if (p.doctorName && doctorDisplayName) return p.doctorName.toLowerCase().includes(doctorDisplayName.toLowerCase().replace("dr. ", ""));
       return true;
     });
-  }, [patients, currentUserProfile, user, doctorDisplayName, isAdmin, currentLocalDate]);
+  }, [patients, currentUserProfile, user, isAdmin, currentLocalDate]);
 
   // Doctor Patient History List (All-time historical patients for this doctor)
   const doctorPatientsList = useMemo(() => {
@@ -1281,9 +1275,12 @@ export function DoctorPortal({
     }
   }, [activePatient, onFetchHistory]);
 
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const showToast = (msg: string) => {
+    if (!msg) return;
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 2500);
   };
 
   const handleAddMedicine = () => {
@@ -1820,7 +1817,8 @@ export function DoctorPortal({
                         const patDoctorId = item.doctorId || item.doctorUid || "";
                         const patDoctorEmail = (item.doctorEmail || "").toLowerCase().trim();
 
-                        if (!isAdmin && patDoctorId && patDoctorId !== myDoctorId && patDoctorId !== user?.uid) {
+                        const isSameClinic = item.clinicId && currentUserProfile?.clinicId && item.clinicId === currentUserProfile.clinicId;
+                        if (!isAdmin && !isSameClinic && patDoctorId && patDoctorId !== myDoctorId && patDoctorId !== user?.uid) {
                           if (!patDoctorEmail || patDoctorEmail !== myEmail) {
                             showToast("You are not authorized to consult this patient.");
                             return;
