@@ -829,9 +829,7 @@ export function DoctorPortal({
         p.status === "Billing" ||
         p.status === "BILLING" ||
         p.status === "Paid" ||
-        p.status === "PAID" ||
-        p.status === "SCHEDULED" ||
-        p.status === "Scheduled"
+        p.status === "PAID"
       ) return false;
       if (isAdmin) return true;
       if (p.doctorUid && user?.uid && p.doctorUid === user.uid) return true;
@@ -1808,12 +1806,8 @@ export function DoctorPortal({
                       const isSelected = activePatient?.id === item.id || item.status === "Called";
                       const medSeq = item.sequenceNumber || formatMedSequence(item.queueNumber || 1);
                       const mrnStr = item.mrn || medSeq;
-                      const statusStr =
-                        item.status === "Called"
-                          ? "Consulting"
-                          : item.status === "Waiting"
-                          ? "Waiting"
-                          : "Scheduled";
+                      const isConsulting = item.status === "Called" || item.status === "Consulting" || item.status === "In Consultation" || item.status === "CONSULTING";
+                      const statusStr = isConsulting ? "Consulting" : "Waiting";
 
                       const hasActiveConsultation = doctorQueue.some((p) => p.id !== item.id && (p.status === "Called" || p.status === "Consulting"));
 
@@ -1862,7 +1856,7 @@ export function DoctorPortal({
 
                           {/* Right Call Patient Action Button or Status Badge */}
                           <div className="flex items-center gap-2">
-                            {item.status === "Waiting" || item.status === "WAITING" ? (
+                            {!isConsulting ? (
                               <button
                                 type="button"
                                 onClick={handleCallPatientClick}
@@ -1878,13 +1872,9 @@ export function DoctorPortal({
                               </button>
                             ) : (
                               <span
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                                  statusStr === "Consulting"
-                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
-                                    : "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
-                                }`}
+                                className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80"
                               >
-                                {statusStr === "Consulting" ? t("consulting") : statusStr === "Waiting" ? t("waiting") : t("scheduled")}
+                                {t("consulting")}
                               </span>
                             )}
                           </div>

@@ -287,14 +287,9 @@ export const normalizePatientLifecycleStatus = (
     return "Consulting";
   }
 
-  // 5. Waiting: checked in to clinic queue
-  if (p.status === "Waiting" || p.status === "WAITING") {
+  // 5. Waiting: newly booked appointment or live queue waiting
+  if (p.status === "Waiting" || p.status === "WAITING" || p.status === "Scheduled" || p.status === "SCHEDULED") {
     return "Waiting";
-  }
-
-  // 6. Scheduled: registered appointment awaiting check-in
-  if (p.status === "Scheduled" || p.status === "SCHEDULED") {
-    return "Scheduled";
   }
 
   return "Waiting";
@@ -1160,7 +1155,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         patientId: permanentMrn,
         appointmentId: `APT-${permanentMrn}`,
         isReturningPatient: !!pastVisit,
-        status: "Scheduled",
+        status: "Waiting",
+        checkedInAt: serverTimestamp(),
         appointmentType: newAptType,
         appointmentTime: liveCurrentTime,
         appointmentDate: todayDateStr,
@@ -1177,7 +1173,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         createdAt: serverTimestamp(),
         consultationFee: docCategory === "DENTIST" ? 700 : docCategory === "PEDIATRICIAN" ? 600 : 500,
         billingStatus: "Pending",
-        notes: newAptNotes.trim() || "Scheduled appointment added by front desk",
+        notes: newAptNotes.trim() || "Appointment added by front desk",
       };
 
       await addDoc(collection(db, "patients"), patientData);
@@ -1187,7 +1183,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       setNewAptAge("");
       setNewAptNotes("");
       setShowNewAptAnalogClock(false);
-      showToast(`Appointment scheduled for ${cleanName} (#${finalSequenceNumber}) at ${liveCurrentTime}!${pastVisit ? " (Past History Linked)" : ""}`);
+      showToast(`Appointment registered for ${cleanName} (#${finalSequenceNumber}) at ${liveCurrentTime}! Placed in Waiting queue.${pastVisit ? " (Past History Linked)" : ""}`);
     } catch (err: any) {
       console.error("Schedule error:", err);
       showToast("Appointment created successfully!");
@@ -3498,29 +3494,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           </td>
                           <td className="py-2.5 px-3.5 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              {(apt.status === "Scheduled" || apt.status === "SCHEDULED") && (
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    const patId = apt.id.startsWith("pat-") ? apt.id.replace("pat-", "") : apt.id;
-                                    try {
-                                      await updateDoc(doc(db, "patients", patId), {
-                                        status: "Waiting",
-                                        checkedInAt: serverTimestamp(),
-                                      });
-                                      showToast(`Checked in ${apt.patientName}! Entered Live Queue (Waiting).`);
-                                    } catch (err: any) {
-                                      console.error("Check-in error:", err);
-                                      showToast(`Checked in ${apt.patientName}!`);
-                                    }
-                                  }}
-                                  className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-[10px] transition-colors cursor-pointer flex items-center gap-1 shadow-sm border border-emerald-200"
-                                  title="Check In Patient to Live Queue"
-                                >
-                                  <UserPlus size={12} />
-                                  <span>{t("checkIn")}</span>
-                                </button>
-                              )}
 
                               {(apt.status === "In Billing" || apt.status === "Billing") && (
                                 <button
@@ -3570,14 +3543,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                               >
                                 <Pencil size={13} />
                               </button>
-                              <button
-                                onClick={() => handleRequestDeleteAppointment(apt)}
-                                className="p-1.5 rounded-lg bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
-                                title="Delete Appointment"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
+                              </div>
                           </td>
                         </tr>
                       ))}
@@ -3660,28 +3626,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       )}
 
                       <div className="flex items-center justify-end gap-2 pt-1 flex-wrap">
-                        {(apt.status === "Scheduled" || apt.status === "SCHEDULED") && (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              const patId = apt.id.startsWith("pat-") ? apt.id.replace("pat-", "") : apt.id;
-                              try {
-                                await updateDoc(doc(db, "patients", patId), {
-                                  status: "Waiting",
-                                  checkedInAt: serverTimestamp(),
-                                });
-                                showToast(`Checked in ${apt.patientName}! Entered Live Queue.`);
-                              } catch (err: any) {
-                                console.error("Check-in error:", err);
-                                showToast(`Checked in ${apt.patientName}!`);
-                              }
-                            }}
-                            className="px-3 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1 cursor-pointer select-none"
-                          >
-                            <UserPlus size={13} />
-                            <span>{t("checkIn")}</span>
-                          </button>
-                        )}
                         {(apt.status === "In Billing" || apt.status === "Billing") && (
                           <button
                             type="button"
@@ -3726,14 +3670,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                           <Pencil size={12} />
                           <span>Edit</span>
                         </button>
-                        <button
-                          onClick={() => handleRequestDeleteAppointment(apt)}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 active:scale-95 text-slate-600 hover:text-rose-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer select-none"
-                        >
-                          <Trash2 size={12} />
-                          <span>Delete</span>
-                        </button>
-                      </div>
+                        </div>
                     </div>
                   ))}
                   {filteredAppointments.length === 0 && (
@@ -5567,18 +5504,6 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
               {/* Action Buttons */}
               <div className="pt-3 flex items-center justify-between gap-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleRequestDeleteAppointment(viewAptDetail);
-                    setViewAptDetail(null);
-                  }}
-                  className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Trash2 size={13} />
-                  <span>Delete</span>
-                </button>
-
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
