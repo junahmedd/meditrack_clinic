@@ -16,10 +16,7 @@ export function getClinicDateKey(date: Date = new Date()): string {
  * MED001, MED002, ..., MED999, MED1000, MED1001, ... to infinite.
  */
 export function formatMedSequence(num: number): string {
-  if (num < 1000) {
-    return `MED${String(num).padStart(3, "0")}`;
-  }
-  return `MED${num}`;
+  return String(num);
 }
 
 export interface NextSequenceResult {

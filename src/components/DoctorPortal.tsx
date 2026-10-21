@@ -2988,7 +2988,7 @@ export function DoctorPortal({
           </div>
         )}
 
-        {/* ADD / EDIT MEDICINE MOBILE-PERFECT BOTTOM SHEET */}
+        {/* ADD / EDIT MEDICINE MODAL */}
         <AnimatePresence>
           {isAddMedicineModalOpen && (
             <motion.div
@@ -2999,249 +2999,181 @@ export function DoctorPortal({
               onClick={() => setIsAddMedicineModalOpen(false)}
             >
               <motion.div
-                initial={{ opacity: 0, y: 30, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 30, scale: 0.98 }}
-                transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                style={{ maxWidth: "480px" }}
-                className="bg-white rounded-3xl max-sm:rounded-b-none max-sm:rounded-t-[28px] shadow-2xl w-full mx-auto flex flex-col max-h-[92dvh] sm:max-h-[85vh] border border-slate-100 overflow-hidden relative"
+                style={{ maxWidth: "420px" }}
+                className="bg-white rounded-2xl shadow-2xl w-full p-5 space-y-4 border border-slate-100 mx-auto max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:fixed max-sm:bottom-0 max-sm:inset-x-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[85vh] max-sm:w-full max-sm:max-w-full"
               >
-                {/* Mobile Drag Handle */}
-                <div className="sm:hidden w-12 h-1.5 rounded-full bg-slate-300 mx-auto mt-2.5 mb-1 shrink-0 cursor-grab active:cursor-grabbing" />
-
-                {/* Header */}
-                <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-b border-slate-100 shrink-0 bg-white">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-100/80">
-                      <Pill size={18} className="text-[#065f46]" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-extrabold text-slate-900 font-display tracking-tight leading-tight">
-                        {editingMedicine ? t("edit") : "+ Add Medicine"}
-                      </h3>
-                      <p className="text-[11px] text-slate-400 font-medium">
-                        {editingMedicine ? "Update medication in catalog" : "Add medication to clinic pharmacy catalog"}
-                      </p>
-                    </div>
-                  </div>
+                <div className="sm:hidden w-9 h-1 rounded-full bg-slate-300 mx-auto mb-2 shrink-0" />
+                {/* Modal Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {editingMedicine ? t("edit") : t("addMedicine")}
+                  </h3>
                   <button
                     type="button"
                     onClick={() => setIsAddMedicineModalOpen(false)}
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100/80 hover:bg-slate-200 active:scale-90 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-all cursor-pointer"
-                    aria-label="Close modal"
+                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
                   >
                     <X size={16} />
                   </button>
                 </div>
 
-                {/* Modal Form with Scrollable Body & Sticky Footer */}
-                <form onSubmit={handleSaveMedicine} className="flex-1 flex flex-col overflow-hidden">
-                  <div className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-4 space-y-4 no-scrollbar">
-                    {/* Medicine Name */}
+                {/* Modal Form */}
+                <form onSubmit={handleSaveMedicine} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {t("medicineName")} <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Paracetamol 650mg"
+                      value={medicineFormData.name}
+                      onChange={(e) => setMedicineFormData({ ...medicineFormData, name: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#064e3b] transition-all"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-bold text-slate-700">
-                          {t("medicineName")} <span className="text-rose-500 font-black">*</span>
-                        </label>
-                        <span className="text-[10px] text-slate-400 font-medium">Generic / Brand</span>
-                      </div>
-                      <input
-                        type="text"
-                        required
-                        autoComplete="off"
-                        placeholder="e.g. Paracetamol 650mg"
-                        value={medicineFormData.name}
-                        onChange={(e) => setMedicineFormData({ ...medicineFormData, name: e.target.value })}
-                        className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-[13px] font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#064e3b] focus:ring-2 focus:ring-[#064e3b]/15 transition-all outline-none"
-                      />
-
-                      {/* Quick Name Auto-Fill Chips (Single-Tap on Mobile) */}
-                      {!editingMedicine && !medicineFormData.name && (
-                        <div className="flex items-center gap-1.5 pt-2 overflow-x-auto no-scrollbar">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Quick:</span>
-                          {[
-                            { name: "Paracetamol 650mg", cat: "Analgesic", form: "Tablet", str: "650", unit: "mg" },
-                            { name: "Amoxicillin 500mg", cat: "Antibiotic", form: "Capsule", str: "500", unit: "mg" },
-                            { name: "Cetirizine 10mg", cat: "Antihistamine", form: "Tablet", str: "10", unit: "mg" },
-                            { name: "Pantoprazole 40mg", cat: "Antacid", form: "Tablet", str: "40", unit: "mg" },
-                          ].map((chip) => (
-                            <button
-                              key={chip.name}
-                              type="button"
-                              onClick={() => {
-                                setMedicineFormData({
-                                  ...medicineFormData,
-                                  name: chip.name,
-                                  category: chip.cat,
-                                  form: chip.form,
-                                  type: chip.form,
-                                  strength: chip.str,
-                                  unit: chip.unit,
-                                });
-                              }}
-                              className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-800 text-[10px] font-bold transition-all cursor-pointer shrink-0 border border-emerald-100"
-                            >
-                              + {chip.name.split(" ")[0]}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Category & Form Side by Side */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                          {t("category")} <span className="text-rose-500 font-black">*</span>
-                        </label>
-                        <div className="relative">
-                          <select
-                            required
-                            value={medicineFormData.category}
-                            onChange={(e) => setMedicineFormData({ ...medicineFormData, category: e.target.value })}
-                            className="w-full h-11 pl-3.5 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-[13px] font-semibold text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] focus:ring-2 focus:ring-[#064e3b]/15 transition-all cursor-pointer appearance-none truncate"
-                          >
-                            <option value="">Select Category</option>
-                            <option value="Analgesic">Analgesic (Pain / Fever)</option>
-                            <option value="Antibiotic">Antibiotic (Infection)</option>
-                            <option value="Antihistamine">Antihistamine (Allergy)</option>
-                            <option value="Antacid">Antacid (Gastric / PPI)</option>
-                            <option value="Antidiabetic">Antidiabetic (Sugar)</option>
-                            <option value="Lipid Lowering">Lipid Lowering (Cholesterol)</option>
-                            <option value="Supplement">Supplement / Vitamin</option>
-                            <option value="Cardiovascular">Cardiovascular (BP / Heart)</option>
-                            <option value="Respiratory">Respiratory (Cough / Asthma)</option>
-                            <option value="Dental">Dental Care</option>
-                            <option value="Other">Other</option>
-                          </select>
-                          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                          Form / Type <span className="text-rose-500 font-black">*</span>
-                        </label>
-                        <div className="relative">
-                          <select
-                            required
-                            value={medicineFormData.form}
-                            onChange={(e) => setMedicineFormData({ ...medicineFormData, form: e.target.value, type: e.target.value })}
-                            className="w-full h-11 pl-3.5 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-[13px] font-semibold text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] focus:ring-2 focus:ring-[#064e3b]/15 transition-all cursor-pointer appearance-none truncate"
-                          >
-                            <option value="">Select Form</option>
-                            <option value="Tablet">Tablet</option>
-                            <option value="Capsule">Capsule</option>
-                            <option value="Syrup">Syrup / Suspension</option>
-                            <option value="Drops">Drops</option>
-                            <option value="Injection">Injection</option>
-                            <option value="Topical">Topical / Ointment</option>
-                            <option value="Inhaler">Inhaler / Respules</option>
-                            <option value="Mouthwash">Mouthwash</option>
-                            <option value="Gel">Dental Gel</option>
-                            <option value="Other">Other</option>
-                          </select>
-                          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Strength & Unit */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Strength & Unit <span className="text-rose-500 font-black">*</span>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        {t("category")} <span className="text-rose-500">*</span>
                       </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          required
-                          placeholder="e.g. 500"
-                          value={medicineFormData.strength}
-                          onChange={(e) => setMedicineFormData({ ...medicineFormData, strength: e.target.value })}
-                          className="flex-1 h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-[13px] font-semibold font-mono text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#064e3b] focus:ring-2 focus:ring-[#064e3b]/15 transition-all"
-                        />
-                        <div className="relative w-28 shrink-0">
-                          <select
-                            value={medicineFormData.unit}
-                            onChange={(e) => setMedicineFormData({ ...medicineFormData, unit: e.target.value })}
-                            className="w-full h-11 pl-3 pr-7 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] focus:ring-2 focus:ring-[#064e3b]/15 transition-all cursor-pointer appearance-none"
-                          >
-                            <option value="mg">mg</option>
-                            <option value="g">g</option>
-                            <option value="ml">ml</option>
-                            <option value="mcg">mcg</option>
-                            <option value="IU">IU</option>
-                            <option value="drops">drops</option>
-                            <option value="%">%</option>
-                          </select>
-                          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
-                        </div>
-                      </div>
+                      <select
+                        required
+                        value={medicineFormData.category}
+                        onChange={(e) => setMedicineFormData({ ...medicineFormData, category: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] transition-all cursor-pointer"
+                      >
+                        <option value="">Select Category</option>
+                        <option value="Analgesic">Analgesic (Pain / Fever)</option>
+                        <option value="Antibiotic">Antibiotic</option>
+                        <option value="Antihistamine">Antihistamine</option>
+                        <option value="Antacid">Antacid</option>
+                        <option value="Antidiabetic">Antidiabetic</option>
+                        <option value="Lipid Lowering">Lipid Lowering</option>
+                        <option value="Supplement">Supplement</option>
+                        <option value="Cardiovascular">Cardiovascular</option>
+                        <option value="Respiratory">Respiratory</option>
+                        <option value="Dental">Dental Care</option>
+                        <option value="Other">Other</option>
+                      </select>
                     </div>
 
-                    {/* Presets: Default Dosage & When (Optional & Compact) */}
-                    <div className="pt-2 border-t border-slate-100 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">
-                          Default Dosage Frequency
-                        </span>
-                        <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                          {medicineFormData.defaultDosage || "1-0-1"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                        {["1-0-1", "1-0-0", "0-0-1", "1-1-1", "SOS", "Once Weekly"].map((dose) => (
-                          <button
-                            key={dose}
-                            type="button"
-                            onClick={() => setMedicineFormData({ ...medicineFormData, defaultDosage: dose })}
-                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer shrink-0 active:scale-95 select-none ${
-                              medicineFormData.defaultDosage === dose
-                                ? "bg-[#064e3b] text-white shadow-xs"
-                                : "bg-slate-100/80 text-slate-700 hover:bg-slate-200"
-                            }`}
-                          >
-                            {dose}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="flex items-center gap-2 pt-1">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide shrink-0">Timing:</span>
-                        {["After food", "Before food"].map((inst) => (
-                          <button
-                            key={inst}
-                            type="button"
-                            onClick={() => setMedicineFormData({ ...medicineFormData, instructions: inst })}
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer active:scale-95 select-none ${
-                              medicineFormData.instructions === inst
-                                ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                : "bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100"
-                            }`}
-                          >
-                            {inst}
-                          </button>
-                        ))}
-                      </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Form / Type <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        required
+                        value={medicineFormData.form}
+                        onChange={(e) => setMedicineFormData({ ...medicineFormData, form: e.target.value, type: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] transition-all cursor-pointer"
+                      >
+                        <option value="">Select Form</option>
+                        <option value="Tablet">Tablet</option>
+                        <option value="Capsule">Capsule</option>
+                        <option value="Syrup">Syrup</option>
+                        <option value="Drops">Drops</option>
+                        <option value="Injection">Injection</option>
+                        <option value="Topical">Topical</option>
+                        <option value="Inhaler">Inhaler</option>
+                        <option value="Other">Other</option>
+                      </select>
                     </div>
                   </div>
 
-                  {/* Bottom Action Footer (Sticky & Safe Area Aware) */}
-                  <div className="flex items-center justify-end gap-3 px-5 sm:px-6 py-3 border-t border-slate-100 bg-white shrink-0 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] sm:pb-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Strength &amp; Unit <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. 500"
+                        value={medicineFormData.strength}
+                        onChange={(e) => setMedicineFormData({ ...medicineFormData, strength: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#064e3b] transition-all"
+                      />
+                      <select
+                        value={medicineFormData.unit}
+                        onChange={(e) => setMedicineFormData({ ...medicineFormData, unit: e.target.value })}
+                        className="w-24 px-2.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-[#064e3b] transition-all cursor-pointer"
+                      >
+                        <option value="mg">mg</option>
+                        <option value="g">g</option>
+                        <option value="ml">ml</option>
+                        <option value="mcg">mcg</option>
+                        <option value="IU">IU</option>
+                        <option value="drops">drops</option>
+                        <option value="%">%</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Default Dosage Frequency */}
+                  <div className="pt-2 border-t border-slate-100 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">
+                        Default Dosage Frequency
+                      </span>
+                      <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        {medicineFormData.defaultDosage || "1-0-1"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                      {["1-0-1", "1-0-0", "0-0-1", "1-1-1", "SOS", "Once Weekly"].map((dose) => (
+                        <button
+                          key={dose}
+                          type="button"
+                          onClick={() => setMedicineFormData({ ...medicineFormData, defaultDosage: dose })}
+                          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer shrink-0 active:scale-95 select-none ${
+                            medicineFormData.defaultDosage === dose
+                              ? "bg-[#064e3b] text-white shadow-xs"
+                              : "bg-slate-100/80 text-slate-700 hover:bg-slate-200"
+                          }`}
+                        >
+                          {dose}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide shrink-0">Timing:</span>
+                      {["After food", "Before food"].map((inst) => (
+                        <button
+                          key={inst}
+                          type="button"
+                          onClick={() => setMedicineFormData({ ...medicineFormData, instructions: inst })}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer active:scale-95 select-none ${
+                            medicineFormData.instructions === inst
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                              : "bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          {inst}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => setIsAddMedicineModalOpen(false)}
-                      className="flex-1 sm:flex-initial h-11 px-5 border border-slate-200/90 bg-white hover:bg-slate-50 active:scale-95 text-slate-700 font-extrabold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center select-none"
+                      className="px-5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl transition-all cursor-pointer"
                     >
                       {t("cancel")}
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 sm:flex-initial h-11 px-6 bg-[#064e3b] hover:bg-[#043d2e] active:scale-95 text-white font-black text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-950/20 transition-all cursor-pointer flex items-center justify-center gap-1.5 select-none"
+                      className="px-6 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white font-semibold text-xs rounded-xl shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
                     >
-                      <span>{t("save")}</span>
+                      {t("save")}
                     </button>
                   </div>
                 </form>
@@ -3285,7 +3217,7 @@ export function DoctorPortal({
         {activeTab === "prescriptions" && (
           <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-5 sm:space-y-6">
             <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm space-y-4">
-              <h3 className="text-base font-extrabold text-slate-900">Issued Prescriptions (Rx)</h3>
+              <h3 className="text-base font-extrabold text-slate-900">Issued Prescriptions</h3>
               <div className="divide-y divide-slate-100">
                 {doctorPatientsList
                   .filter((p) => p.prescription)
