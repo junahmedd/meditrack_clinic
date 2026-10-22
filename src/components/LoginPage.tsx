@@ -418,7 +418,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     Create an account
                   </h2>
                   <p className="text-slate-500 text-xs font-medium mt-0.5">
-                    Register your medical clinic and team in 60 seconds.
+                    Register your medical clinic and team.
                   </p>
                 </div>
 
