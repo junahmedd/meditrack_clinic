@@ -285,8 +285,12 @@ export interface Patient {
   doctorFee?: number;
   treatmentCharges?: number;
   billingStatus?: "Pending" | "Paid" | string;
+  paymentStatus?: string;
   paymentMethod?: "UPI" | "Cash" | string;
   paidAt?: any;
+  consultationCompletedAt?: any;
+  consultationStartedAt?: any;
+  billedAt?: any;
   invoiceNumber?: string;
   doctorId?: string;
   doctorUid?: string;
@@ -427,32 +431,6 @@ export interface MedicineItem {
   instructions?: string;
   createdAt?: any;
 }
-
-const DEFAULT_MEDICINES: Omit<MedicineItem, "id">[] = [
-  { name: "Paracetamol", category: "Analgesic", type: "Tablet", strength: "500", unit: "mg", form: "Tablet", defaultDosage: "1-0-1", duration: "5 Days", instructions: "After food" },
-  { name: "Amoxicillin", category: "Antibiotic", type: "Capsule", strength: "500", unit: "mg", form: "Capsule", defaultDosage: "1-0-1", duration: "5 Days", instructions: "After food" },
-  { name: "Cetirizine", category: "Antihistamine", type: "Tablet", strength: "10", unit: "mg", form: "Tablet", defaultDosage: "0-0-1", duration: "5 Days", instructions: "After food" },
-  { name: "Pantoprazole", category: "Antacid", type: "Tablet", strength: "40", unit: "mg", form: "Tablet", defaultDosage: "1-0-0", duration: "7 Days", instructions: "Before food" },
-  { name: "Ibuprofen", category: "Analgesic", type: "Tablet", strength: "400", unit: "mg", form: "Tablet", defaultDosage: "1-0-1", duration: "3 Days", instructions: "After food" },
-  { name: "Metformin", category: "Antidiabetic", type: "Tablet", strength: "500", unit: "mg", form: "Tablet", defaultDosage: "1-0-1", duration: "30 Days", instructions: "After food" },
-  { name: "Atorvastatin", category: "Lipid Lowering", type: "Tablet", strength: "10", unit: "mg", form: "Tablet", defaultDosage: "0-0-1", duration: "30 Days", instructions: "After food" },
-  { name: "Vitamin D3", category: "Supplement", type: "Capsule", strength: "60,000", unit: "IU", form: "Capsule", defaultDosage: "Once weekly", duration: "8 Weeks", instructions: "After food" },
-];
-
-const MEDICINE_CATALOG = [
-  { name: "Paracetamol 650mg", defaultDosage: "1-0-1", duration: "5 Days", instructions: "After food" },
-  { name: "Amoxicillin + Clavulanic Acid 625mg", defaultDosage: "1-0-1", duration: "5 Days", instructions: "After food" },
-  { name: "Azithromycin 500mg", defaultDosage: "1-0-0", duration: "3 Days", instructions: "Before food" },
-  { name: "Pantoprazole 40mg", defaultDosage: "1-0-0", duration: "7 Days", instructions: "Before food" },
-  { name: "Cetirizine 10mg", defaultDosage: "0-0-1", duration: "5 Days", instructions: "After food" },
-  { name: "Ibuprofen 400mg", defaultDosage: "1-0-1", duration: "3 Days", instructions: "After food" },
-  { name: "Paracetamol Drops (100mg/ml)", defaultDosage: "1.5ml TDS", duration: "3 Days", instructions: "After food" },
-  { name: "Amoxicillin Oral Suspension 125mg/5ml", defaultDosage: "5ml BD", duration: "5 Days", instructions: "After food" },
-  { name: "Cough Syrup (Ascoril-LS Junior)", defaultDosage: "2.5ml BD", duration: "5 Days", instructions: "After food" },
-  { name: "Metronidazole 400mg", defaultDosage: "1-0-1", duration: "5 Days", instructions: "After food" },
-  { name: "Chlorhexidine Mouthwash 0.2%", defaultDosage: "10ml BD", duration: "7 Days", instructions: "After food" },
-  { name: "Ketorolac-DT 10mg", defaultDosage: "1-0-1", duration: "3 Days", instructions: "After food" },
-];
 
 const getIconStyle = (type?: string, category?: string) => {
   const lowerCat = (category || "").toLowerCase();
@@ -702,7 +680,7 @@ export function DoctorPortal({
 
   // Prescription Items (Default single empty row)
   const [prescriptionItems, setPrescriptionItems] = useState<PrescriptionItem[]>([
-    { medicine: "", dosage: "1-0-1", duration: "5 Days", instructions: "After food" },
+    { medicine: "", dosage: "", duration: "", instructions: "After food" },
   ]);
   const [activeMedicineSearchIdx, setActiveMedicineSearchIdx] = useState<number | null>(null);
   const [sendWhatsApp, setSendWhatsApp] = useState<boolean>(true);
@@ -819,15 +797,39 @@ export function DoctorPortal({
     return patients.filter((p) => {
       // Must be an active patient for today
       if (!isTodayPatient(p)) return false;
-      const st = (p.status || "").toLowerCase();
+
+      // Completed or consulted patients must NEVER appear in the doctor's waiting queue
+      if (p.consultationCompletedAt) return false;
       if (
-        st === "completed" ||
-        st === "dispensed" ||
-        st === "cancelled" ||
+        p.billingStatus === "Paid" ||
+        p.billingStatus === "paid" ||
+        p.paymentStatus === "PAID" ||
+        p.paymentStatus === "paid"
+      ) return false;
+
+      const st = (p.status || "").toLowerCase().trim();
+      if (
+        st === "consulted" ||
         st === "in billing" ||
         st === "billing" ||
-        st === "paid"
-      ) return false;
+        st === "completed" ||
+        st === "paid" ||
+        st === "dispensed" ||
+        st === "cancelled"
+      ) {
+        return false;
+      }
+
+      // Only allow active waiting / consulting queue states
+      const isEligibleQueueStatus =
+        st === "waiting" ||
+        st === "called" ||
+        st === "consulting" ||
+        st === "in consultation" ||
+        st === "in queue" ||
+        st === "scheduled";
+
+      if (!isEligibleQueueStatus) return false;
 
       if (isAdmin) return true;
       if (p.doctorUid && user?.uid && p.doctorUid === user.uid) return true;
@@ -891,7 +893,15 @@ export function DoctorPortal({
     const computeForPeriod = (period: "today" | "month" | "year" | "all") => {
       const periodList = doctorPatientsList.filter((p) => matchesPeriod(p, period));
       const completedList = periodList.filter(
-        (p) => p.status === "Completed" || p.status === "COMPLETED" || p.status === "PAID" || p.status === "Paid" || p.billingStatus === "Paid"
+        (p) =>
+          p.status === "Completed" ||
+          p.status === "COMPLETED" ||
+          p.status === "PAID" ||
+          p.status === "Paid" ||
+          p.status === "Consulted" ||
+          p.status === "In Billing" ||
+          p.billingStatus === "Paid" ||
+          Boolean(p.consultationCompletedAt)
       );
       // Revenue is counted strictly from patients whose billing is completed/paid
       const billedList = periodList.filter(
@@ -1002,7 +1012,7 @@ export function DoctorPortal({
     instructions: "After food",
   });
 
-  // Real-time Firestore sync for clinic medicines
+  // Real-time Firestore sync for clinic medicines (Firebase-only, no hardcoded auto-seeding)
   useEffect(() => {
     const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "";
     const medRef = collection(db, "medicines");
@@ -1010,25 +1020,18 @@ export function DoctorPortal({
     const unsubscribe = onSnapshot(
       medRef,
       (snapshot) => {
-        if (snapshot.empty) {
-          if (clinicId) {
-            DEFAULT_MEDICINES.forEach((med) => {
-              addDoc(medRef, {
-                ...med,
-                clinicId,
-                createdAt: serverTimestamp(),
-              }).catch(console.error);
-            });
-          }
-        } else {
-          const items: MedicineItem[] = snapshot.docs
-            .map((docSnap) => ({
-              id: docSnap.id,
-              ...(docSnap.data() as Omit<MedicineItem, "id">),
-            }))
-            .filter((m) => !m.clinicId || (clinicId && m.clinicId === clinicId));
-          setMedicines(items);
-        }
+        const items: MedicineItem[] = snapshot.docs
+          .map((docSnap) => ({
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<MedicineItem, "id">),
+          }))
+          .filter((m) => {
+            if (clinicId) {
+              return m.clinicId === clinicId;
+            }
+            return !m.clinicId;
+          });
+        setMedicines(items);
       },
       (err) => {
         console.error("Error subscribing to medicines:", err);
@@ -1056,18 +1059,10 @@ export function DoctorPortal({
   }, [medicines, selectedCategory, medicineSearchQuery]);
 
   const combinedMedicineOptions = useMemo(() => {
-    if (medicines.length > 0) {
-      return medicines.map((m) => ({
-        name: `${m.name}${m.strength ? ` ${m.strength}${m.unit}` : ""}`,
-        defaultDosage: m.defaultDosage || "1-0-1",
-        duration: m.duration || "5 Days",
-        instructions: m.instructions || "After food",
-      }));
-    }
-    return DEFAULT_MEDICINES.map((m) => ({
-      name: `${m.name}${m.strength ? ` ${m.strength}${m.unit}` : ""}`,
-      defaultDosage: m.defaultDosage || "1-0-1",
-      duration: m.duration || "5 Days",
+    return medicines.map((m) => ({
+      name: `${m.name}${m.strength ? ` ${m.strength}${m.unit || "mg"}` : ""}`,
+      defaultDosage: m.defaultDosage || "",
+      duration: m.duration || "",
       instructions: m.instructions || "After food",
     }));
   }, [medicines]);
@@ -1195,15 +1190,21 @@ export function DoctorPortal({
               >
                 <Pill size={13} className="text-[#065f46] shrink-0" />
                 <span className="text-emerald-950 font-black">{item.medicine}</span>
-                <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-md font-mono font-bold">
-                  {item.dosage || "1-0-1"}
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">
-                  ({item.duration || "5 Days"})
-                </span>
-                <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
-                  {item.instructions || "After food"}
-                </span>
+                {item.dosage && (
+                  <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-md font-mono font-bold">
+                    {item.dosage}
+                  </span>
+                )}
+                {item.duration && (
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    ({item.duration})
+                  </span>
+                )}
+                {item.instructions && (
+                  <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
+                    {item.instructions}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -1258,20 +1259,20 @@ export function DoctorPortal({
           if (Array.isArray(parsed) && parsed.length > 0) {
             setPrescriptionItems(parsed);
           } else {
-            setPrescriptionItems([{ medicine: "", dosage: "1-0-1", duration: "5 Days", instructions: "After food" }]);
+            setPrescriptionItems([{ medicine: "", dosage: "", duration: "", instructions: "After food" }]);
           }
         } catch {
-          setPrescriptionItems([{ medicine: "", dosage: "1-0-1", duration: "5 Days", instructions: "After food" }]);
+          setPrescriptionItems([{ medicine: "", dosage: "", duration: "", instructions: "After food" }]);
         }
       } else {
-        setPrescriptionItems([{ medicine: "", dosage: "1-0-1", duration: "5 Days", instructions: "After food" }]);
+        setPrescriptionItems([{ medicine: "", dosage: "", duration: "", instructions: "After food" }]);
       }
     } else {
       setDoctorInputAge("");
       setConsultationNotes("");
       setDiagnosis("");
       setVitals({ bp: "", temperature: "", pulse: "", spo2: "", weight: "", height: "", bmi: "" });
-      setPrescriptionItems([{ medicine: "", dosage: "1-0-1", duration: "5 Days", instructions: "After food" }]);
+      setPrescriptionItems([{ medicine: "", dosage: "", duration: "", instructions: "After food" }]);
     }
   }, [activePatient, onFetchHistory]);
 
@@ -1286,13 +1287,13 @@ export function DoctorPortal({
   const handleAddMedicine = () => {
     setPrescriptionItems([
       ...prescriptionItems,
-      { medicine: "", dosage: "1-0-1", duration: "5 Days", instructions: "After food" },
+      { medicine: "", dosage: "", duration: "", instructions: "After food" },
     ]);
   };
 
   const handleRemoveMedicine = (idx: number) => {
     if (prescriptionItems.length === 1) {
-      setPrescriptionItems([{ medicine: "", dosage: "0-0-0", duration: "", instructions: "e.g. After food" }]);
+      setPrescriptionItems([{ medicine: "", dosage: "", duration: "", instructions: "After food" }]);
       return;
     }
     setPrescriptionItems(prescriptionItems.filter((_, i) => i !== idx));
@@ -1304,13 +1305,16 @@ export function DoctorPortal({
     setPrescriptionItems(up);
   };
 
-  const handleSelectCatalogMedicine = (idx: number, item: (typeof MEDICINE_CATALOG)[0]) => {
+  const handleSelectCatalogMedicine = (
+    idx: number,
+    item: { name: string; defaultDosage?: string; duration?: string; instructions?: string }
+  ) => {
     const up = [...prescriptionItems];
     up[idx] = {
       medicine: item.name,
-      dosage: item.defaultDosage,
-      duration: item.duration,
-      instructions: item.instructions,
+      dosage: item.defaultDosage || "",
+      duration: item.duration || "",
+      instructions: item.instructions || "After food",
     };
     setPrescriptionItems(up);
     setActiveMedicineSearchIdx(null);
@@ -1374,7 +1378,7 @@ export function DoctorPortal({
       showToast(`Consultation completed for ${activePatient.name}! Transferred to Receptionist.`);
       setConsultationNotes("");
       setDiagnosis("");
-      setPrescriptionItems([{ medicine: "", dosage: "1-0-1", duration: "5 Days", instructions: "After food" }]);
+      setPrescriptionItems([{ medicine: "", dosage: "", duration: "", instructions: "After food" }]);
 
       // Patient returns to Waiting queue view. The doctor must explicitly click Call Patient for the next patient.
       setActivePatient(null);
@@ -2431,33 +2435,58 @@ export function DoctorPortal({
                                   />
                                 </div>
                                 {activeMedicineSearchIdx === idx && (
-                                  <div className="absolute left-0 top-full mt-1 w-full min-w-[240px] bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 z-50 max-h-52 overflow-y-auto">
-                                    {combinedMedicineOptions.filter((m) =>
-                                      m.name.toLowerCase().includes((item.medicine || "").toLowerCase())
-                                    ).length > 0 ? (
-                                      combinedMedicineOptions
-                                        .filter((m) =>
-                                          m.name.toLowerCase().includes((item.medicine || "").toLowerCase())
-                                        )
-                                        .map((catItem, cIdx) => (
+                                  <>
+                                    <div
+                                      className="fixed inset-0 z-40"
+                                      onClick={() => setActiveMedicineSearchIdx(null)}
+                                    />
+                                    <div className="absolute left-0 top-full mt-1 w-full min-w-[280px] bg-white rounded-xl shadow-2xl border border-slate-200 p-2 z-50 max-h-56 overflow-y-auto">
+                                      {combinedMedicineOptions.length === 0 ? (
+                                        <div className="p-3 text-center space-y-2">
+                                          <p className="text-slate-500 font-medium text-xs leading-relaxed">
+                                            No medicines available. Add medicines in the Medicine Portal first.
+                                          </p>
                                           <button
-                                            key={cIdx}
                                             type="button"
-                                            onClick={() => handleSelectCatalogMedicine(idx, catItem)}
-                                            className="w-full text-left p-2 hover:bg-emerald-50 rounded-lg text-xs font-bold text-slate-800 transition-colors flex items-center justify-between cursor-pointer"
+                                            onClick={() => {
+                                              setActiveMedicineSearchIdx(null);
+                                              setActiveTab("medicine");
+                                            }}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white text-[11px] font-bold rounded-lg shadow-xs transition-colors cursor-pointer mx-auto"
                                           >
-                                            <span className="truncate pr-2">{catItem.name}</span>
-                                            <span className="text-[10px] text-[#065f46] bg-emerald-50 px-1.5 py-0.5 rounded font-extrabold shrink-0">
-                                              {catItem.defaultDosage}
-                                            </span>
+                                            <Plus size={13} />
+                                            <span>Go to Medicine Portal</span>
                                           </button>
-                                        ))
-                                    ) : (
-                                      <div className="p-2.5 text-center text-slate-400 font-medium text-[11px]">
-                                        No matching medicines in Medicine Tab
-                                      </div>
-                                    )}
-                                  </div>
+                                        </div>
+                                      ) : combinedMedicineOptions.filter((m) =>
+                                          m.name.toLowerCase().includes((item.medicine || "").toLowerCase())
+                                        ).length > 0 ? (
+                                        combinedMedicineOptions
+                                          .filter((m) =>
+                                            m.name.toLowerCase().includes((item.medicine || "").toLowerCase())
+                                          )
+                                          .map((catItem, cIdx) => (
+                                            <button
+                                              key={cIdx}
+                                              type="button"
+                                              onClick={() => handleSelectCatalogMedicine(idx, catItem)}
+                                              className="w-full text-left p-2 hover:bg-emerald-50 rounded-lg text-xs font-bold text-slate-800 transition-colors flex items-center justify-between cursor-pointer"
+                                            >
+                                              <span className="truncate pr-2">{catItem.name}</span>
+                                              {catItem.defaultDosage && (
+                                                <span className="text-[10px] text-[#065f46] bg-emerald-50 px-1.5 py-0.5 rounded font-extrabold shrink-0">
+                                                  {catItem.defaultDosage}
+                                                </span>
+                                              )}
+                                            </button>
+                                          ))
+                                      ) : (
+                                        <div className="p-2.5 text-center text-slate-400 font-medium text-[11px]">
+                                          No matching medicines found
+                                        </div>
+                                      )}
+                                    </div>
+                                  </>
                                 )}
                               </div>
 
@@ -2541,33 +2570,58 @@ export function DoctorPortal({
                                 />
                               </div>
                               {activeMedicineSearchIdx === idx && (
-                                <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 z-50 max-h-48 overflow-y-auto">
-                                  {combinedMedicineOptions.filter((m) =>
-                                    m.name.toLowerCase().includes((item.medicine || "").toLowerCase())
-                                  ).length > 0 ? (
-                                    combinedMedicineOptions
-                                      .filter((m) =>
-                                        m.name.toLowerCase().includes((item.medicine || "").toLowerCase())
-                                      )
-                                      .map((catItem, cIdx) => (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setActiveMedicineSearchIdx(null)}
+                                  />
+                                  <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-slate-200 p-2 z-50 max-h-48 overflow-y-auto">
+                                    {combinedMedicineOptions.length === 0 ? (
+                                      <div className="p-3 text-center space-y-2">
+                                        <p className="text-slate-500 font-medium text-xs leading-relaxed">
+                                          No medicines available. Add medicines in the Medicine Portal first.
+                                        </p>
                                         <button
-                                          key={cIdx}
                                           type="button"
-                                          onClick={() => handleSelectCatalogMedicine(idx, catItem)}
-                                          className="w-full text-left p-2 hover:bg-emerald-50 rounded-lg text-xs font-bold text-slate-800 transition-colors flex items-center justify-between cursor-pointer"
+                                          onClick={() => {
+                                            setActiveMedicineSearchIdx(null);
+                                            setActiveTab("medicine");
+                                          }}
+                                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white text-[11px] font-bold rounded-lg shadow-xs transition-colors cursor-pointer mx-auto"
                                         >
-                                          <span className="truncate pr-2">{catItem.name}</span>
-                                          <span className="text-[10px] text-[#065f46] bg-emerald-50 px-1.5 py-0.5 rounded font-extrabold shrink-0">
-                                            {catItem.defaultDosage}
-                                          </span>
+                                          <Plus size={13} />
+                                          <span>Go to Medicine Portal</span>
                                         </button>
-                                      ))
-                                  ) : (
-                                    <div className="p-2.5 text-center text-slate-400 font-medium text-[11px]">
-                                      No matching medicines
-                                    </div>
-                                  )}
-                                </div>
+                                      </div>
+                                    ) : combinedMedicineOptions.filter((m) =>
+                                        m.name.toLowerCase().includes((item.medicine || "").toLowerCase())
+                                      ).length > 0 ? (
+                                      combinedMedicineOptions
+                                        .filter((m) =>
+                                          m.name.toLowerCase().includes((item.medicine || "").toLowerCase())
+                                        )
+                                        .map((catItem, cIdx) => (
+                                          <button
+                                            key={cIdx}
+                                            type="button"
+                                            onClick={() => handleSelectCatalogMedicine(idx, catItem)}
+                                            className="w-full text-left p-2 hover:bg-emerald-50 rounded-lg text-xs font-bold text-slate-800 transition-colors flex items-center justify-between cursor-pointer"
+                                          >
+                                            <span className="truncate pr-2">{catItem.name}</span>
+                                            {catItem.defaultDosage && (
+                                              <span className="text-[10px] text-[#065f46] bg-emerald-50 px-1.5 py-0.5 rounded font-extrabold shrink-0">
+                                                {catItem.defaultDosage}
+                                              </span>
+                                            )}
+                                          </button>
+                                        ))
+                                    ) : (
+                                      <div className="p-2.5 text-center text-slate-400 font-medium text-[11px]">
+                                        No matching medicines found
+                                      </div>
+                                    )}
+                                  </div>
+                                </>
                               )}
                             </div>
 
@@ -3599,7 +3653,7 @@ export function DoctorPortal({
                           <div className="flex flex-wrap gap-1">
                             {meds.map((m: any, j: number) => m.medicine && (
                               <span key={j} className="text-[10px] font-medium text-slate-700 bg-white border border-slate-200/80 rounded px-1.5 py-0.5">
-                                {m.medicine} — {m.dosage || "1-0-1"}
+                                {m.medicine}{m.dosage ? ` — ${m.dosage}` : ""}
                               </span>
                             ))}
                           </div>

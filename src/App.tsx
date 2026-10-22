@@ -2721,6 +2721,7 @@ export default function App() {
       );
 
       showToast(`Consultation for ${patient.name} completed → Forwarded to Billing.`);
+      setActiveDoctorPatient(null);
       setError(null);
     } catch (err: any) {
       try {
