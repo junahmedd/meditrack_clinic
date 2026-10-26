@@ -47,12 +47,12 @@ export const NetworkStatusBanner: React.FC = () => {
             {isOnline ? (
               <>
                 <Wifi size={16} className="text-emerald-400 shrink-0" />
-                <span>Internet Connection Restored — Syncing live records...</span>
+                <span>Online — Syncing records</span>
               </>
             ) : (
               <>
                 <WifiOff size={16} className="text-amber-400 shrink-0 animate-bounce" />
-                <span>Offline — Changes will automatically sync when connected.</span>
+                <span>Offline — Working locally</span>
               </>
             )}
           </motion.div>

@@ -398,11 +398,11 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           updatedAt: serverTimestamp(),
         });
       }
-      showToast("Profile updated successfully!");
+      showToast("Profile updated");
       setIsEditProfileOpen(false);
     } catch (err) {
       console.error("Profile update error:", err);
-      showToast("Profile update failed.");
+      showToast("Profile update failed");
     } finally {
       setIsSavingProfile(false);
     }
@@ -1080,7 +1080,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 await updateDoc(doc(db, "patients", p.id), {
                   status: "Waiting",
                 });
-                showToast(`Scheduled appointment for ${p.name} (${p.appointmentTime}) activated → Entered Live Queue!`);
+                showToast(`${p.name} entered live queue`);
               } catch (e) {
                 console.error("Auto-activate error:", e);
               }
@@ -1119,7 +1119,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   const handleScheduleAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAptName.trim()) {
-      showToast("Please enter patient name");
+      showToast("Enter patient name");
       return;
     }
 
@@ -1199,10 +1199,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       setNewAptAge("");
       setNewAptNotes("");
       setShowNewAptAnalogClock(false);
-      showToast(`Appointment registered for ${cleanName} (#${finalSequenceNumber}) at ${liveCurrentTime}! Placed in Waiting queue.${pastVisit ? " (Past History Linked)" : ""}`);
+      showToast(`Appointment booked for ${cleanName} (#${finalSequenceNumber})`);
     } catch (err: any) {
       console.error("Schedule error:", err);
-      showToast("Appointment created successfully!");
+      showToast("Appointment created");
       setIsNewAptModalOpen(false);
     } finally {
       setIsSubmittingApt(false);
@@ -1232,7 +1232,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     if (livePat && onCallPatient) {
       onCallPatient(livePat);
     }
-    showToast(`Calling ${apt.patientName} to ${apt.doctor}'s room...`);
+    showToast(`Calling ${apt.patientName}`);
   };
 
   const handleUpdateAptStatus = async (id: string, newStatus: AppointmentItem["status"]) => {
@@ -1253,7 +1253,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       setViewAptDetail((prev) => (prev ? { ...prev, status: newStatus } : null));
     }
     setOpenMenuAptId(null);
-    showToast(`Status updated to ${newStatus}`);
+    showToast(`Status updated: ${newStatus}`);
   };
 
   const handleOpenEditAppointment = (apt: AppointmentItem) => {
@@ -1301,7 +1301,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       );
     }
 
-    showToast(`Appointment details for ${editAptName} updated successfully!`);
+    showToast(`Appointment for ${editAptName} updated`);
     setEditingAppointment(null);
     setShowEditAptAnalogClock(false);
     if (viewAptDetail?.id === editingAppointment.id) {
@@ -1325,7 +1325,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           matchingPatient.status === "Dispensed"));
 
     if (isWorkflowStarted) {
-      showToast("This appointment can no longer be deleted because the clinical workflow has already started.");
+      showToast("Cannot delete: consultation started");
       return;
     }
 
@@ -1351,7 +1351,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
     setDeleteConfirmAppointment(null);
     setOpenMenuAptId(null);
     if (viewAptDetail?.id === apt.id) setViewAptDetail(null);
-    showToast(`Appointment for ${patName} deleted successfully.`);
+    showToast(`Appointment for ${patName} deleted`);
   };
 
   const handleCancelAppointment = async (apt: AppointmentItem) => {
@@ -1367,10 +1367,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           prev.map((item) => (item.id === apt.id ? { ...item, status: "Cancelled" } : item))
         );
       }
-      showToast(`Appointment for ${apt.patientName} marked as Cancelled.`);
+      showToast(`Appointment for ${apt.patientName} cancelled`);
     } catch (err: any) {
       console.error("Cancel appointment error:", err);
-      showToast("Appointment status updated.");
+      showToast("Appointment status updated");
     }
   };
 
@@ -1387,10 +1387,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           prev.map((item) => (item.id === apt.id ? { ...item, status: "Waiting" } : item))
         );
       }
-      showToast(`Restored ${apt.patientName} to Waiting queue.`);
+      showToast(`${apt.patientName} restored to queue`);
     } catch (err: any) {
       console.error("Restore appointment error:", err);
-      showToast("Appointment restored to Waiting queue.");
+      showToast("Appointment restored to queue");
     }
   };
 
@@ -1414,7 +1414,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         notes: editPatientNotes,
         consultationFee: Number(editPatientFee) || 500,
       });
-      showToast("Patient record updated successfully!");
+      showToast("Patient record updated");
       setEditingPatient(null);
       if (viewingPatient?.id === editingPatient.id) {
         setViewingPatient({
@@ -1428,24 +1428,24 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       }
     } catch (err) {
       console.error("Failed to update patient:", err);
-      showToast("Updated patient locally.");
+      showToast("Patient updated");
       setEditingPatient(null);
     }
   };
 
   const handleDeletePatient = async (p: Patient) => {
-    if (window.confirm(`Are you sure you want to remove patient "${p.name}" from records?`)) {
+    if (window.confirm(`Remove patient ${p.name}?`)) {
       try {
         if (onDeletePatient) {
           await onDeletePatient(p);
         } else {
           await deleteDoc(doc(db, "patients", p.id));
         }
-        showToast(`Patient ${p.name} removed from registry.`);
+        showToast(`${p.name} removed`);
         if (viewingPatient?.id === p.id) setViewingPatient(null);
       } catch (err) {
         console.error("Error deleting patient:", err);
-        showToast("Failed to delete patient.");
+        showToast("Failed to remove patient");
       }
     }
   };
@@ -1818,7 +1818,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   // Handle Collecting Payment
   const handleCollectPayment = async (patient: Patient) => {
     if (patient.status === "PAID" || patient.billingStatus === "Paid") {
-      showToast("Payment already completed.");
+      showToast("Payment already completed");
       return;
     }
     const method = selectedPaymentMethods[patient.id] || "UPI";
@@ -1838,7 +1838,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           invoiceNumber: invNo,
         });
       }
-      showToast(`✅ Payment of ₹${amount} (${method}) collected for ${patient.name}! Status: PAID`);
+      showToast(`Payment of ₹${amount} collected`);
       setActiveReceiptPatient({
         ...patient,
         status: "PAID",
@@ -1850,7 +1850,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       });
     } catch (e: any) {
       console.error("Payment collection error:", e);
-      showToast(`Payment failed: ${e.message || "Please try again"}`);
+      showToast("Payment failed. Please try again");
     } finally {
       setIsPayingId(null);
     }
@@ -1859,7 +1859,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
   // Handle WhatsApp Receipt Dispatch
   const handleSendWhatsAppReceipt = async (patient: Patient) => {
     if (!patient.phone) {
-      showToast("Patient phone number not found.");
+      showToast("Phone number not found");
       return;
     }
     const cleanPhone = formatWhatsAppNumber(patient.phone);
@@ -1881,9 +1881,9 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
           patient.paymentMethod || "UPI"
         );
       }
-      showToast(`Receipt dispatched via WhatsApp to +${cleanPhone}!`);
+      showToast("Receipt sent via WhatsApp");
     } catch (e: any) {
-      showToast("Receipt dispatched via WhatsApp.");
+      showToast("Receipt sent via WhatsApp");
     } finally {
       setIsSendingWhatsApp(false);
     }
@@ -2921,10 +2921,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                                         status: "Waiting",
                                         checkedInAt: serverTimestamp(),
                                       });
-                                      showToast(`Checked in ${q.name}! Entered Live Queue.`);
+                                      showToast(`${q.name} checked in`);
                                     } catch (err: any) {
                                       console.error("Check-in error:", err);
-                                      showToast(`Checked in ${q.name}!`);
+                                      showToast(`${q.name} checked in`);
                                     }
                                   }}
                                   className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1 border border-emerald-200"
@@ -2943,7 +2943,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                                     if (p && onCallPatient) {
                                       onCallPatient(p);
                                     }
-                                    showToast(`Calling ${q.name} to ${q.doctor}'s room...`);
+                                    showToast(`Calling ${q.name}`);
                                   }}
                                   className="px-2.5 py-1 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1"
                                 >
@@ -3074,10 +3074,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                                   status: "Waiting",
                                   checkedInAt: serverTimestamp(),
                                 });
-                                showToast(`Checked in ${q.name}! Entered Live Queue.`);
+                                showToast(`${q.name} checked in`);
                               } catch (err: any) {
                                 console.error("Check-in error:", err);
-                                showToast(`Checked in ${q.name}!`);
+                                showToast(`${q.name} checked in`);
                               }
                             }}
                             className="flex-1 py-2 bg-[#064e3b] hover:bg-[#043d2e] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
@@ -3096,7 +3096,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                               if (p && onCallPatient) {
                                 onCallPatient(p);
                               }
-                              showToast(`Calling ${q.name} to ${q.doctor}'s room...`);
+                              showToast(`Calling ${q.name}`);
                             }}
                             className="flex-1 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
                           >
@@ -4478,10 +4478,10 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       }
 
                       setSelectedBillForPayment(null);
-                      showToast(`✅ Payment of ₹${feeAmount} recorded! Opening WhatsApp...`);
+                      showToast(`Payment of ₹${feeAmount} recorded`);
                     } catch (err: any) {
                       console.error("Payment Error:", err);
-                      showToast(`❌ Error: ${err.message || err}`);
+                      showToast("Payment failed");
                     }
                   }}
                   className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#043d2e] text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-950/20 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
@@ -4643,21 +4643,21 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
                     if (activeReceiptData?.pdfDataUri && cleanPhone) {
                       try {
-                        showToast("Sending PDF Invoice via WhatsApp...");
+                        showToast("Sending invoice via WhatsApp...");
                         await sendWhatsApp({
                           to: cleanPhone,
                           message: waMsg,
                           mediaBase64: activeReceiptData.pdfDataUri,
                           filename: pdfName,
                         });
-                        showToast(`✅ PDF Invoice sent via WhatsApp (+${cleanPhone})!`);
+                        showToast("Invoice sent via WhatsApp");
                       } catch (err: any) {
                         window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(waMsg)}`, "_blank");
-                        showToast(`WhatsApp link opened (+${cleanPhone})!`);
+                        showToast("WhatsApp opened");
                       }
                     } else if (cleanPhone) {
                       window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(waMsg)}`, "_blank");
-                      showToast(`Receipt text sent to WhatsApp (+${cleanPhone})!`);
+                      showToast("Receipt sent via WhatsApp");
                     }
                     setActiveReceiptData(null);
                   }}
@@ -4715,7 +4715,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 onSubmit={async (e) => {
                   e.preventDefault();
                   if (!newQueueName.trim()) {
-                    showToast("Please enter patient name");
+                    showToast("Enter patient name");
                     return;
                   }
                   try {
@@ -4774,13 +4774,13 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     setNewQueuePhone("");
                     setNewQueueAge("");
                     setNewQueueGender("Male");
-                    showToast(`Token #${finalSequenceNumber} generated for ${cleanName} (${assignedDoctorName})!${pastVisit ? " (Past History Linked)" : ""}`);
+                    showToast(`Token #${finalSequenceNumber} generated for ${cleanName}`);
                   } catch (err: any) {
                     console.error("Error adding patient to queue:", err);
                     setIsAddQueueModalOpen(false);
                     setNewQueueName("");
                     setNewQueuePhone("");
-                    showToast(`Added ${newQueueName.trim()} to live queue.`);
+                    showToast(`${newQueueName.trim()} added to queue`);
                   }
                 }}
                 className="space-y-4 text-xs"
@@ -4951,7 +4951,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       const targetPat = patients.find((p) => p.id === targetBillId);
                       if (!targetPat) {
                         setIsNewPaymentModalOpen(false);
-                        showToast("No pending consultation selected.");
+                        showToast("No consultation selected");
                         return;
                       }
 
@@ -5069,7 +5069,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                               mediaBase64: pdfDataUri,
                               filename: `Invoice_${invoiceNo}.pdf`,
                             });
-                            deliveryStatusToast = `✅ Real PDF Invoice (${invoiceNo}) sent via WhatsApp to ${targetPat.name}! Status: PAID`;
+                            deliveryStatusToast = "Payment recorded and invoice sent";
                             try {
                               await updateDoc(doc(db, "patients", targetPat.id), {
                                 whatsappStatus: "SENT",
@@ -5082,7 +5082,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                             try {
                               await updateDoc(doc(db, "patients", targetPat.id), { whatsappStatus: "FAILED" });
                             } catch (e) {}
-                            deliveryStatusToast = `✅ Payment of ₹${fee} recorded (PAID). WhatsApp status: FAILED (Retry available).`;
+                            deliveryStatusToast = `Payment of ₹${fee} recorded`;
                           }
                         }
 
@@ -5103,7 +5103,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         showToast(deliveryStatusToast);
                       } catch (err: any) {
                         console.error("Direct Payment Error:", err);
-                        showToast(`❌ Payment Failed: ${err.message || err}. Billing status remains UNPAID.`);
+                        showToast("Payment failed");
                       } finally {
                         setIsProcessingWhatsAppPdf(false);
                       }
@@ -5207,7 +5207,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 <button
                   onClick={() => {
                     setIsEditClinicModalOpen(false);
-                    showToast("Clinic details updated successfully!");
+                    showToast("Clinic details updated");
                   }}
                   className="px-5 py-2 bg-[#064e3b] text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-950/20"
                 >
@@ -5474,7 +5474,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       onClick={() => {
                         onCallPatient(viewingPatient);
                         setViewingPatient(null);
-                        showToast(`Calling ${viewingPatient.name} to consulting room...`);
+                        showToast(`Calling ${viewingPatient.name}`);
                       }}
                       className="px-4 py-2 bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
                     >
@@ -5672,7 +5672,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   type="button"
                   onClick={() => {
                     setIsEditHoursModalOpen(false);
-                    showToast("Clinic working hours updated successfully!");
+                    showToast("Working hours updated");
                   }}
                   className="px-5 py-2 bg-[#064e3b] text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-950/20 hover:bg-[#043d2e]"
                 >
@@ -5737,7 +5737,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         <button
                           onClick={() => {
                             setClinicUsersList(clinicUsersList.filter((_, i) => i !== idx));
-                            showToast(`User ${usr.name} removed.`);
+                            showToast(`${usr.name} removed`);
                           }}
                           className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                           title="Remove user"
@@ -5778,7 +5778,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                   type="button"
                   onClick={() => {
                     if (!newStaffName.trim()) {
-                      showToast("Please enter staff member name");
+                      showToast("Enter staff name");
                       return;
                     }
                     const initials = newStaffName
@@ -5793,7 +5793,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                       { initials, name: newStaffName.trim(), role: newStaffRole, status: "Active" },
                     ]);
                     setNewStaffName("");
-                    showToast(`Staff member ${newStaffName.trim()} added!`);
+                    showToast(`${newStaffName.trim()} added`);
                   }}
                   className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all"
                 >

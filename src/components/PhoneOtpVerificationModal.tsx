@@ -120,7 +120,7 @@ export const PhoneOtpVerificationModal: React.FC<PhoneOtpVerificationModalProps>
         // reCAPTCHA solved
       },
       "expired-callback": () => {
-        setError("Security check expired. Please try sending OTP again.");
+        setError("Security check expired. Please try again.");
       },
     });
     recaptchaVerifierRef.current = verifier;
@@ -149,14 +149,14 @@ export const PhoneOtpVerificationModal: React.FC<PhoneOtpVerificationModalProps>
     // Validate Indian phone format (+91 followed by 10 digits)
     const indianPhoneRegex = /^\+91[6-9]\d{9}$/;
     if (!indianPhoneRegex.test(normalizedEntered)) {
-      setError("Please enter a valid 10-digit Indian mobile number starting with +91.");
+      setError("Enter a valid 10-digit mobile number (+91).");
       return;
     }
 
     // Verify entered phone matches pre-authorized phone in backend mapping
     if (normalizedEntered !== normalizedRegistered) {
       setError(
-        `This mobile number does not match the registered number (${maskedRegisteredPhone}) for your account. Only your pre-authorized Indian mobile number can be verified.`
+        `Number does not match registered phone (${maskedRegisteredPhone}).`
       );
       return;
     }
@@ -194,13 +194,13 @@ export const PhoneOtpVerificationModal: React.FC<PhoneOtpVerificationModalProps>
     } catch (err: any) {
       console.error("SMS OTP send error:", err);
       if (err.code === "auth/too-many-requests") {
-        setError("Too many OTP requests. Please wait a few minutes before trying again.");
+        setError("Too many requests. Please wait a few minutes.");
       } else if (err.code === "auth/invalid-phone-number") {
-        setError("Invalid phone number format. Please ensure your number includes +91.");
+        setError("Invalid phone number format (+91).");
       } else if (err.code === "auth/quota-exceeded") {
-        setError("Daily SMS limit exceeded. Please contact your administrator.");
+        setError("Daily SMS limit reached. Contact administrator.");
       } else {
-        setError(err.message || "Failed to send SMS OTP. Please check your connection and try again.");
+        setError("Failed to send OTP. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -211,23 +211,23 @@ export const PhoneOtpVerificationModal: React.FC<PhoneOtpVerificationModalProps>
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!confirmationResult) {
-      setError("Session expired. Please request a new OTP.");
+      setError("Session expired. Request a new OTP.");
       return;
     }
 
     const cleanOtp = otpCode.trim();
     if (cleanOtp.length !== 6) {
-      setError("Please enter the 6-digit OTP code sent to your phone.");
+      setError("Enter the 6-digit OTP code.");
       return;
     }
 
     if (expiresIn <= 0) {
-      setError("This OTP code has expired. Please request a new code.");
+      setError("OTP expired. Request a new code.");
       return;
     }
 
     if (attemptsLeft <= 0) {
-      setError("Maximum verification attempts exceeded. Please request a new OTP code.");
+      setError("Max attempts reached. Request a new code.");
       return;
     }
 
@@ -266,11 +266,11 @@ export const PhoneOtpVerificationModal: React.FC<PhoneOtpVerificationModalProps>
       setAttemptsLeft(remaining);
 
       if (err.code === "auth/invalid-verification-code") {
-        setError(`Incorrect OTP code. ${remaining} attempt(s) remaining.`);
+        setError(`Incorrect OTP (${remaining} attempts left).`);
       } else if (err.code === "auth/code-expired") {
-        setError("This OTP has expired. Please request a new code.");
+        setError("OTP expired. Request a new code.");
       } else {
-        setError(err.message || "Verification failed. Please try again.");
+        setError("Verification failed. Please try again.");
       }
     } finally {
       setLoading(false);

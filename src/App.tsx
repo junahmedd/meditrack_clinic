@@ -546,7 +546,7 @@ const AdminUsersPanel: React.FC<AdminUsersPanelProps> = ({ clinicId, clinicName,
         }, { merge: true }).catch(() => {});
       }
 
-      showToast(`Updated ${editingStaff.displayName || editingStaff.email} to ${roleCapitalized}!`);
+      showToast(`Role updated to ${roleCapitalized}`);
       setEditingStaff(null);
     } catch (err: any) {
       console.error("Failed to update staff role:", err);
@@ -662,7 +662,7 @@ const AdminUsersPanel: React.FC<AdminUsersPanelProps> = ({ clinicId, clinicName,
         createdAt: serverTimestamp(),
       }, { merge: true });
 
-      showToast(`✅ Added ${cleanName} as ${roleCapitalized}!`);
+      showToast(`Added ${cleanName} as ${roleCapitalized}`);
       setAddName("");
       setAddEmail("");
       setAddPassword("");
@@ -687,9 +687,9 @@ const AdminUsersPanel: React.FC<AdminUsersPanelProps> = ({ clinicId, clinicName,
         role: null,
         updatedAt: serverTimestamp(),
       });
-      showToast(`${userName} removed from clinic.`);
+      showToast(`${userName} removed`);
     } catch (err: any) {
-      showToast("Failed to remove user.");
+      showToast("Failed to remove user");
     }
   };
 
@@ -702,10 +702,10 @@ const AdminUsersPanel: React.FC<AdminUsersPanelProps> = ({ clinicId, clinicName,
         status: nextDeactivated ? "inactive" : "active",
         updatedAt: serverTimestamp(),
       });
-      showToast(`${staff.displayName || staff.email} is now ${nextDeactivated ? "Inactive (Access Blocked)" : "Active"}!`);
+      showToast(`Staff marked as ${nextDeactivated ? "Inactive" : "Active"}`);
     } catch (err: any) {
       console.error("Status update error:", err);
-      showToast("Failed to update user status.");
+      showToast("Failed to update status");
     }
   };
 
@@ -1673,7 +1673,7 @@ export default function App() {
             setCurrentUserProfile(null);
             setShowPhoneOtpModal(false);
             setPendingUserAccess(null);
-            setError("Your MediTrack account is not authorized. Please contact your clinic administrator.");
+            setError("Account not authorized. Contact administrator.");
             setLoading(false);
             setProfileLoaded(false);
             return;
@@ -1686,7 +1686,7 @@ export default function App() {
             setCurrentUserProfile(null);
             setShowPhoneOtpModal(false);
             setPendingUserAccess(null);
-            setError("Your MediTrack account is disabled or inactive. Please contact your administrator.");
+            setError("Account inactive. Contact administrator.");
             setLoading(false);
             setProfileLoaded(false);
             return;
@@ -1709,7 +1709,7 @@ export default function App() {
           setLoading(false);
         } catch (err: any) {
           console.error("[Auth Guard Error]:", err);
-          setError("Failed to verify clinic account authorization: " + (err.message || String(err)));
+          setError("Authorization check failed. Please retry.");
           setLoading(false);
           setProfileLoaded(true);
         }
@@ -2015,7 +2015,7 @@ export default function App() {
   const handleRegisterPatient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !currentUserProfile?.clinicId) {
-      setError("Session expired or Clinic ID missing. Please log in again.");
+      setError("Session expired. Please log in again.");
       return;
     }
 
@@ -2135,7 +2135,7 @@ export default function App() {
       setRegPatientPhone("+91");
       setRegPatientAge("");
       setError(null);
-      showToast(`Token #${finalSequenceNumber} registered for ${cleanName}!${pastVisit ? " (Returning Patient — Past History Linked)" : ""}`);
+      showToast(`Token #${finalSequenceNumber} registered for ${cleanName}`);
     } catch (err: any) {
       try {
         handleFirestoreError(err, OperationType.CREATE, "patients");
@@ -2547,11 +2547,11 @@ export default function App() {
         filename: `Precription_${patientName.replace(/\s+/g, "_")}.png`,
       });
 
-      showToast("Prescription sent successfully via WhatsApp.");
+      showToast("Prescription sent via WhatsApp");
       console.log("WhatsApp sent successfully with prescription image");
     } catch (err: any) {
       console.error("WhatsApp Error:", err);
-      setError(`WhatsApp Issue: ${err.message}`);
+      setError("Failed to send WhatsApp prescription");
     }
   };
 
@@ -2720,7 +2720,7 @@ export default function App() {
         { patientId: patient.id, patientName: patient.name, fee: consultationFee || 500 }
       );
 
-      showToast(`Consultation for ${patient.name} completed → Forwarded to Billing.`);
+      showToast(`Consultation completed for ${patient.name}`);
       setActiveDoctorPatient(null);
       setError(null);
     } catch (err: any) {
@@ -2746,7 +2746,7 @@ export default function App() {
     // Idempotency check: prevent duplicate payments
     if (patient.status === "PAID" || patient.billingStatus === "Paid") {
       console.log("[PAYMENT] Aborting: Payment already completed for patientId:", patient.id);
-      showToast("Payment already completed.");
+      showToast("Payment already completed");
       return;
     }
 
@@ -2879,7 +2879,7 @@ export default function App() {
         osc.stop(audioCtx.currentTime + 0.3);
       } catch (e) {}
 
-      showToast(`✅ Payment of ₹${amount} recorded via ${paymentMethod} (Inv: ${invoiceNumber})`);
+      showToast(`Payment of ₹${amount} recorded`);
     } catch (err: any) {
       try {
         handleFirestoreError(err, OperationType.UPDATE, `patients/${patient.id}`);
@@ -2929,10 +2929,10 @@ export default function App() {
         // Backend webhook optional
       }
 
-      showToast(`Receipt and invoice sent to patient via WhatsApp (+${cleanPhone})!`);
+      showToast("Receipt sent via WhatsApp");
     } catch (err: any) {
       console.error("WhatsApp Receipt dispatch error:", err);
-      showToast("Receipt dispatched.");
+      showToast("Receipt dispatched");
     }
   };
 
@@ -2974,7 +2974,7 @@ export default function App() {
             await batch.commit();
           }
 
-          showToast("Current queue has been cleared successfully.");
+          showToast("Queue cleared");
         } catch (err: any) {
           try {
             handleFirestoreError(err, OperationType.DELETE, "patients");
@@ -3003,14 +3003,14 @@ export default function App() {
   const handleDeletePatient = async (patient: Patient) => {
     setCustomModal({
       title: "Remove Patient",
-      message: `Are you sure you want to remove ${patient.name} from the queue?`,
+      message: `Remove ${patient.name} from queue?`,
       confirmText: "Remove",
       cancelText: "Cancel",
       isDanger: true,
       onConfirm: async () => {
         try {
           await deleteDoc(doc(db, "patients", patient.id));
-          showToast("Patient removed from queue");
+          showToast("Patient removed");
         } catch (err: any) {
           try {
             handleFirestoreError(
@@ -3033,7 +3033,7 @@ export default function App() {
         addedBy: patient.addedBy,
         clinicId: patient.clinicId,
       });
-      showToast(`Patient ${patient.name} completed successfully.`);
+      showToast(`${patient.name} completed`);
     } catch (err: any) {
       try {
         handleFirestoreError(
@@ -3323,7 +3323,7 @@ export default function App() {
       try {
         const cleanEmail = email.trim().toLowerCase();
         if (!cleanEmail || !password) {
-          setError("Please enter your email and password.");
+          setError("Enter email and password");
           setAuthLoading(false);
           return;
         }
@@ -3411,7 +3411,7 @@ export default function App() {
         // Section 28: Inactive account check
         if (profile.status === "inactive" || (profile as any).isDeactivated === true || (profile as any).accountStatus === "disabled") {
           await signOut(auth);
-          setError("Your account is currently inactive. Please contact your administrator.");
+          setError("Account inactive. Contact administrator.");
           return;
         }
 
@@ -3453,16 +3453,16 @@ export default function App() {
         setActiveView(targetView);
       } catch (e: any) {
         if (e.code === "auth/network-request-failed") {
-          setError("Network connection to Firebase failed. Please check your connection and try again.");
+          setError("Connection failed. Check network.");
         } else if (
           e.code === "auth/invalid-credential" ||
           e.code === "auth/user-not-found" ||
           e.code === "auth/wrong-password" ||
           e.code === "auth/invalid-email"
         ) {
-          setError("Invalid email or password.");
+          setError("Invalid email or password");
         } else {
-          setError(e.message || "Invalid email or password.");
+          setError(e.message || "Invalid email or password");
         }
       } finally {
         setAuthLoading(false);
@@ -3503,13 +3503,13 @@ export default function App() {
         }
       } catch (e: any) {
         if (e.code === "auth/popup-closed-by-user") {
-          setError("Google sign-in popup was closed or blocked. Because the app is running in an embedded preview frame, please click the top-right 'Open in new tab' button, or check your browser's pop-up blocker.");
+          setError("Google sign-in was closed or blocked.");
         } else if (e.code === "auth/cancelled-popup-request") {
-          setError("Sign-in popup request was cancelled. Please try again.");
+          setError("Sign-in cancelled.");
         } else if (e.code === "auth/network-request-failed") {
-          setError("Network connection to Firebase failed. Since this app runs inside an embedded preview frame, this is usually caused by: 1) An ad-blocker or Brave Shields blocking Google's Identity Toolkit, or 2) Disabled third-party cookies. Please click the top-right 'Open in new tab' button, or temporarily disable your ad-blocker/shields for this site.");
+          setError("Connection failed. Check network.");
         } else {
-          setError(e.message);
+          setError(e.message || "Sign-in failed.");
         }
       } finally {
         setAuthLoading(false);
@@ -3793,15 +3793,15 @@ export default function App() {
         setActiveView(targetView);
         setHasRedirected(true);
 
-        showToast(`Welcome to MediTrack, ${fullName}! Your ${selectedRole === "doctor" ? "Doctor" : "Receptionist"} Portal is ready.`);
+        showToast(`Welcome, ${fullName}!`);
       } catch (e: any) {
         isSignupInProgressRef.current = false;
         if (e.code === "auth/network-request-failed") {
-          setError("Network connection to Firebase failed. Please check your connection and try again.");
+          setError("Connection failed. Check network.");
         } else if (e.code === "auth/weak-password") {
-          setError("Password must be at least 6 characters.");
+          setError("Password must be at least 6 characters");
         } else {
-          setError(e.message || "An error occurred during account creation.");
+          setError(e.message || "Account creation failed.");
         }
       } finally {
         setAuthLoading(false);
@@ -4444,8 +4444,8 @@ export default function App() {
                                     updatedAt: serverTimestamp(),
                                   }).then(() => {
                                     setCurrentUserProfile((p) => p ? { ...p, displayName: newName.trim() } : p);
-                                    showToast("Profile name updated!");
-                                  }).catch(() => showToast("Failed to update name."));
+                                    showToast("Name updated");
+                                  }).catch(() => showToast("Failed to update name"));
                                 }
                               }}
                               className="px-3.5 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer shrink-0"
@@ -4511,8 +4511,8 @@ export default function App() {
                                     updatedAt: serverTimestamp(),
                                   }).then(() => {
                                     setCurrentUserProfile((p) => p ? { ...p, contactNumber: newPhone.trim(), phone: newPhone.trim() } : p);
-                                    showToast("Contact phone updated!");
-                                  }).catch(() => showToast("Failed to update phone."));
+                                    showToast("Phone updated");
+                                  }).catch(() => showToast("Failed to update phone"));
                                 }
                               }}
                               className="px-3.5 py-1 text-xs font-bold text-[#065f46] border border-dashed border-[#a7f3d0] hover:bg-emerald-50 rounded-full transition-colors cursor-pointer shrink-0"

@@ -717,11 +717,11 @@ export function DoctorPortal({
           updatedAt: serverTimestamp(),
         });
       }
-      showToast("Profile updated successfully!");
+      showToast("Profile updated");
       setIsEditProfileOpen(false);
     } catch (err) {
       console.error("Profile update error:", err);
-      showToast("Profile updated successfully!");
+      showToast("Profile updated");
       setIsEditProfileOpen(false);
     } finally {
       setIsSavingProfile(false);
@@ -741,7 +741,7 @@ export function DoctorPortal({
         console.error(err);
       }
     }
-    showToast("Consultation fee reset to Rs 0");
+    showToast("Consultation fee reset");
   };
 
   // Live Time Clock
@@ -1101,7 +1101,7 @@ export function DoctorPortal({
   const handleDeleteMedicine = async (id: string) => {
     try {
       await deleteDoc(doc(db, "medicines", id));
-      showToast("Medicine deleted successfully");
+      showToast("Medicine deleted");
       setActiveMedicineMenuId(null);
     } catch (err) {
       console.error("Error deleting medicine:", err);
@@ -1112,12 +1112,12 @@ export function DoctorPortal({
   const handleSaveMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!medicineFormData.name.trim()) {
-      showToast("Medicine Name is required");
+      showToast("Medicine name required");
       return;
     }
     const clinicId = currentUserProfile?.clinicId || clinicInfo?.id || "";
     if (!clinicId) {
-      showToast("Clinic identifier not found. Please reload.");
+      showToast("Clinic not found. Please reload");
       return;
     }
     const selectedForm = medicineFormData.form || medicineFormData.type || "Tablet";
@@ -1145,7 +1145,7 @@ export function DoctorPortal({
         setMedicines((prev) =>
           prev.map((m) => (m.id === editingMedicine.id ? ({ id: editingMedicine.id, ...docData } as MedicineItem) : m))
         );
-        showToast("Medicine updated successfully");
+        showToast("Medicine updated");
       } else {
         const docRef = await addDoc(collection(db, "medicines"), {
           ...docData,
@@ -1156,12 +1156,12 @@ export function DoctorPortal({
           ...docData,
         };
         setMedicines((prev) => [newMedItem, ...prev]);
-        showToast("Medicine saved successfully");
+        showToast("Medicine saved");
       }
       setIsAddMedicineModalOpen(false);
     } catch (err: any) {
       console.error("Firestore sync error for medicine:", err);
-      showToast(`Error saving medicine: ${err.message || "Failed to save"}`);
+      showToast("Failed to save medicine");
     } finally {
       setIsSavingMedicine(false);
     }
@@ -1322,7 +1322,7 @@ export function DoctorPortal({
 
   const handleComplete = async () => {
     if (!activePatient) {
-      showToast("No active patient selected.");
+      showToast("No active patient");
       return;
     }
     const validPrescriptions = prescriptionItems.filter((p) => p.medicine.trim().length > 0);
@@ -1375,7 +1375,7 @@ export function DoctorPortal({
         finalFee
       );
 
-      showToast(`Consultation completed for ${activePatient.name}! Transferred to Receptionist.`);
+      showToast(`Consultation completed for ${activePatient.name}`);
       setConsultationNotes("");
       setDiagnosis("");
       setPrescriptionItems([{ medicine: "", dosage: "", duration: "", instructions: "After food" }]);
@@ -1384,7 +1384,7 @@ export function DoctorPortal({
       setActivePatient(null);
     } catch (e) {
       console.error(e);
-      showToast("Consultation saved successfully.");
+      showToast("Consultation saved");
     } finally {
       setIsSubmitting(false);
     }
@@ -1811,7 +1811,7 @@ export function DoctorPortal({
                       const handleCallPatientClick = async (e: React.MouseEvent) => {
                         e.stopPropagation();
                         if (hasActiveConsultation) {
-                          showToast("Consultation in progress. Complete current patient consultation first.");
+                          showToast("Complete current consultation first");
                           return;
                         }
 
@@ -1824,7 +1824,7 @@ export function DoctorPortal({
                         const isSameClinic = item.clinicId && currentUserProfile?.clinicId && item.clinicId === currentUserProfile.clinicId;
                         if (!isAdmin && !isSameClinic && patDoctorId && patDoctorId !== myDoctorId && patDoctorId !== user?.uid) {
                           if (!patDoctorEmail || patDoctorEmail !== myEmail) {
-                            showToast("You are not authorized to consult this patient.");
+                            showToast("Not authorized for this patient");
                             return;
                           }
                         }
@@ -1832,7 +1832,7 @@ export function DoctorPortal({
                         // 2. Verify patient current status is Waiting
                         const curStatus = (item.status || "").toLowerCase();
                         if (curStatus !== "waiting" && curStatus !== "scheduled") {
-                          showToast("Patient is not in Waiting status.");
+                          showToast("Patient not in waiting queue");
                           return;
                         }
 
@@ -1854,10 +1854,10 @@ export function DoctorPortal({
                             status: "Consulting",
                           };
                           setActivePatient(consultingPatient);
-                          showToast(`Now consulting ${item.name}`);
+                          showToast(`Consulting ${item.name}`);
                         } catch (err: any) {
                           console.error("Error calling patient:", err);
-                          showToast(`Failed to call patient: ${err.message || err}`);
+                          showToast("Failed to call patient");
                         }
                       };
 
@@ -2324,7 +2324,7 @@ export function DoctorPortal({
                                           cost: proc.cost,
                                         };
                                         setDentalProcedures([...dentalProcedures, newProc]);
-                                        showToast(`Added ${proc.name} (Tooth #${selectedToothNum}) - ₹${proc.cost}`);
+                                        showToast(`Added ${proc.name} (Tooth #${selectedToothNum})`);
                                       }}
                                       className="px-2.5 py-1.5 bg-white border border-emerald-200 hover:bg-[#064e3b] hover:text-white text-[#065f46] text-[10px] font-bold rounded-lg transition-colors cursor-pointer shadow-xs"
                                     >
