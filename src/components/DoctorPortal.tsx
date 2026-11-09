@@ -1610,29 +1610,29 @@ export function DoctorPortal({
 
       {/* 2. MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col min-w-0 bg-[#f8fafc] overflow-y-auto pb-28 md:pb-6 w-full max-w-full overflow-x-hidden">
-        {/* 1. MOBILE TOP HEADER (Strictly for mobile screens < 768px matching shared image: Hamburger + Centered MEDITRACK in Green Theme) */}
-        <header className="md:hidden h-14 bg-white border-b border-emerald-950/10 px-4 flex items-center justify-between sticky top-0 z-30 shrink-0 select-none shadow-[0_1px_3px_rgba(6,78,59,0.03)] pt-standalone">
+        {/* 1. MOBILE TOP HEADER (Black Header: Hamburger + Centered MEDITRACK + LanguageSelector) */}
+        <header className="md:hidden h-14 bg-black border-b border-neutral-900 px-4 flex items-center justify-between sticky top-0 z-30 shrink-0 select-none shadow-md pt-standalone">
           <button
             type="button"
             onClick={() => setIsMobileDrawerOpen(true)}
-            className="p-2 -ml-2 text-[#063328] hover:text-[#064e3b] active:bg-emerald-50 rounded-xl transition-colors cursor-pointer"
+            className="p-2 -ml-2 text-white hover:text-emerald-400 active:bg-white/10 rounded-xl transition-colors cursor-pointer"
             aria-label="Open side menu panel"
           >
             <Menu size={24} className="stroke-[2.3]" />
           </button>
 
           <div className="flex flex-col items-center justify-center">
-            <span className="text-[17px] font-black tracking-[0.16em] text-[#063328] uppercase font-display leading-tight">
+            <span className="text-[17px] font-black tracking-[0.16em] text-white uppercase font-display leading-tight">
               MEDITRACK
             </span>
-            <span className="text-[8px] font-black tracking-[0.2em] px-2.5 py-0.5 rounded-md bg-black text-[#00d26a] border border-[#064e3b]/60 uppercase leading-none mt-0.5 shadow-2xs">
+            <span className="text-[8px] font-black tracking-[0.2em] px-2.5 py-0.5 rounded-md bg-neutral-900 text-[#00d26a] border border-neutral-800 uppercase leading-none mt-0.5 shadow-2xs">
               CLINIC SYSTEM
             </span>
           </div>
 
           {/* LanguageSelector on Mobile Header */}
           <div className="shrink-0 flex items-center gap-2">
-            <LanguageSelector />
+            <LanguageSelector theme="dark" />
           </div>
         </header>
 

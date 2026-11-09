@@ -2,7 +2,11 @@ import React, { useState, useRef, useEffect } from "react";
 import { Globe, Check } from "lucide-react";
 import { useLanguage } from "../i18n/LanguageContext";
 
-export const LanguageSelector: React.FC = () => {
+interface LanguageSelectorProps {
+  theme?: "light" | "dark";
+}
+
+export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ theme = "light" }) => {
   const { language, setLanguage, isRTL } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,13 +47,17 @@ export const LanguageSelector: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="relative w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-all cursor-pointer shadow-2xs select-none active:scale-95"
+        className={`relative w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-2xs select-none active:scale-95 ${
+          theme === "dark"
+            ? "bg-neutral-900 hover:bg-neutral-800 border border-neutral-700/80 text-white"
+            : "bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-600 hover:text-slate-900"
+        }`}
         aria-label="Switch Language / تغيير اللغة"
         aria-haspopup="true"
         aria-expanded={isOpen}
         title={language === "ar" ? "اللغة: العربية (الكويت)" : "Language: English"}
       >
-        <Globe size={16} className="text-slate-600" />
+        <Globe size={16} className={theme === "dark" ? "text-white" : "text-slate-600"} />
       </button>
 
       {/* Compact Dropdown Menu */}

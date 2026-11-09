@@ -2140,29 +2140,29 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
 
       {/* 2. MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col min-w-0 bg-[#fafbfc] overflow-y-auto pb-28 md:pb-6 w-full max-w-full overflow-x-hidden">
-        {/* 1. MOBILE TOP HEADER (Strictly for mobile screens < 768px matching shared image: Hamburger + Centered MEDITRACK in Green Theme) */}
-        <header className="md:hidden h-14 bg-white border-b border-emerald-950/10 px-4 flex items-center justify-between sticky top-0 z-30 shrink-0 select-none shadow-[0_1px_3px_rgba(6,78,59,0.03)] pt-standalone">
+        {/* 1. MOBILE TOP HEADER (Black Header: Hamburger + Centered MEDITRACK + LanguageSelector) */}
+        <header className="md:hidden h-14 bg-black border-b border-neutral-900 px-4 flex items-center justify-between sticky top-0 z-30 shrink-0 select-none shadow-md pt-standalone">
           <button
             type="button"
             onClick={() => setIsMobileDrawerOpen(true)}
-            className="p-2 -ml-2 text-[#063328] hover:text-[#064e3b] active:bg-emerald-50 rounded-xl transition-colors cursor-pointer"
+            className="p-2 -ml-2 text-white hover:text-emerald-400 active:bg-white/10 rounded-xl transition-colors cursor-pointer"
             aria-label="Open side menu panel"
           >
             <Menu size={24} className="stroke-[2.3]" />
           </button>
 
           <div className="flex flex-col items-center justify-center">
-            <span className="text-[17px] font-black tracking-[0.16em] text-[#063328] uppercase font-display leading-tight">
+            <span className="text-[17px] font-black tracking-[0.16em] text-white uppercase font-display leading-tight">
               MEDITRACK
             </span>
-            <span className="text-[8px] font-black tracking-[0.2em] px-2.5 py-0.5 rounded-md bg-black text-[#00d26a] border border-[#064e3b]/60 uppercase leading-none mt-0.5 shadow-2xs">
+            <span className="text-[8px] font-black tracking-[0.2em] px-2.5 py-0.5 rounded-md bg-neutral-900 text-[#00d26a] border border-neutral-800 uppercase leading-none mt-0.5 shadow-2xs">
               CLINIC SYSTEM
             </span>
           </div>
 
           {/* LanguageSelector on Mobile Header */}
           <div className="shrink-0 flex items-center gap-2">
-            <LanguageSelector />
+            <LanguageSelector theme="dark" />
           </div>
         </header>
 
@@ -4009,26 +4009,24 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsNewAptModalOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              style={{ maxWidth: "520px" }}
-              className="bg-white rounded-3xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-3.5 relative max-h-[90vh] overflow-y-auto no-scrollbar mx-auto max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
+              className="bg-white rounded-2xl sm:rounded-3xl max-w-[390px] sm:max-w-[420px] w-full p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3 relative max-h-[90vh] overflow-y-auto no-scrollbar mx-auto"
             >
-              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               {/* Header */}
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold shrink-0">
                     <Calendar size={16} />
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-slate-900 font-display leading-tight">Schedule New Appointment</h3>
-                    <p className="text-[11px] text-slate-400 font-medium">Add a patient to the clinic schedule</p>
+                    <p className="text-[10px] text-slate-400 font-medium">Add a patient to the clinic schedule</p>
                   </div>
                 </div>
                 <button
@@ -4040,8 +4038,8 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               </div>
 
               {/* Form */}
-              <form onSubmit={handleScheduleAppointment} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <form onSubmit={handleScheduleAppointment} className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {/* Patient Name */}
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
@@ -4057,7 +4055,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         placeholder="e.g. Ramesh Kumar"
                         value={newAptName}
                         onChange={(e) => setNewAptName(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium transition-all"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium transition-all"
                       />
                     </div>
                   </div>
@@ -4077,7 +4075,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                         placeholder="+91 98765 43210"
                         value={newAptPhone}
                         onChange={(e) => setNewAptPhone(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium transition-all"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] font-medium transition-all"
                       />
                     </div>
                   </div>
@@ -4087,7 +4085,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                       Assigned Doctor
                     </label>
-                    <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
+                    <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
                       <Stethoscope size={14} className="text-slate-400 shrink-0" />
                       <span className="truncate">{formattedDoctorDisplayName}</span>
                     </div>
@@ -4098,7 +4096,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                       Appointment Date
                     </label>
-                    <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-500 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
+                    <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-500 font-semibold flex items-center gap-2 cursor-not-allowed select-none">
                       <Calendar size={14} className="text-slate-400 shrink-0" />
                       <span className="truncate">{dynamicTodayDateStr}</span>
                     </div>
@@ -4106,17 +4104,17 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                 </div>
 
                 {/* Submit Actions */}
-                <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100">
+                <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsNewAptModalOpen(false)}
-                    className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
+                    className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center justify-center transition-all cursor-pointer"
+                    className="px-4 py-1.5 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-950/20 flex items-center justify-center transition-all cursor-pointer"
                   >
                     Confirm
                   </button>
@@ -4139,17 +4137,15 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
               setEditingAppointment(null);
               setShowEditAptAnalogClock(false);
             }}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              style={{ maxWidth: "480px" }}
-              className="bg-white rounded-3xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-4 relative max-h-[90vh] overflow-y-auto no-scrollbar mx-auto max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
+              className="bg-white rounded-2xl sm:rounded-3xl max-w-[390px] sm:max-w-[420px] w-full p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3 relative max-h-[90vh] overflow-y-auto no-scrollbar mx-auto"
             >
-              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
@@ -4683,31 +4679,30 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsAddQueueModalOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 max-sm:p-0 max-sm:items-end"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 relative max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90dvh] max-sm:p-4 max-sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]"
+              className="bg-white rounded-2xl sm:rounded-3xl max-w-[390px] sm:max-w-[420px] w-full p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3.5 relative max-h-[90vh] overflow-y-auto no-scrollbar mx-auto"
             >
-              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                    <UserPlus size={20} />
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                    <UserPlus size={16} />
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-slate-900 font-display">Add to Live Queue</h3>
-                    <p className="text-xs text-slate-400 font-medium">Generate queue token for patient</p>
+                    <h3 className="text-sm font-black text-slate-900 font-display">Add to Live Queue</h3>
+                    <p className="text-[10px] text-slate-400 font-medium">Generate queue token for patient</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsAddQueueModalOpen(false)}
-                  className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
                 >
-                  <X size={16} />
+                  <X size={14} />
                 </button>
               </div>
 

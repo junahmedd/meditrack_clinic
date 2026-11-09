@@ -13,15 +13,12 @@ import {
   Stethoscope,
   Activity,
   Users,
-  Zap,
-  Sparkles,
-  ChevronRight,
-  ChevronDown,
   Clock,
+  ChevronDown,
   ArrowRight,
+  CreditCard,
+  Layers,
 } from "lucide-react";
-import { db } from "../firebase";
-import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 
 interface LoginPageProps {
   authMode: "login" | "signup";
@@ -65,19 +62,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   setEmail,
   password,
   setPassword,
-  loginRole = "doctor",
-  setLoginRole,
   authLoading,
   error,
   setError,
   onLoginSubmit,
-  onGoogleSignIn,
   onForgotPasswordClick,
   signupData,
   setSignupData,
   onSignupSubmit,
   signupSuccess = false,
-  onDismissSignupSuccess,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -116,13 +109,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       ? "Clinic Admin"
       : "Doctor";
 
-
   const formatErrorMessage = (err: string | null) => {
     if (!err) return "";
     if (err.includes("auth/email-already-in-use") || err.includes("email-already-in-use")) {
       return "This email is already registered. Please sign in instead.";
     }
-    if (err.includes("auth/invalid-credential") || err.includes("wrong-password") || err.includes("user-not-found")) {
+    if (
+      err.includes("auth/invalid-credential") ||
+      err.includes("wrong-password") ||
+      err.includes("user-not-found")
+    ) {
       return "Invalid email or password. Please verify your credentials and try again.";
     }
     if (err.startsWith("{") && err.includes('"error"')) {
@@ -135,14 +131,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   const inputCls =
-    "w-full pl-9 pr-3 py-3 min-h-[48px] bg-slate-50 border border-slate-200 rounded-xl text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/15 focus:border-emerald-600 transition-all font-medium";
+    "w-full pl-9 pr-3 py-2.5 min-h-[42px] bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all font-medium";
 
   return (
-    <div className="min-h-screen w-full flex bg-[#031d16] font-sans antialiased text-slate-900 selection:bg-emerald-500 selection:text-white relative overflow-x-hidden">
+    <div className="min-h-screen w-full bg-[#031d16] font-sans antialiased text-slate-900 selection:bg-emerald-500 selection:text-white relative overflow-x-hidden flex flex-col justify-start items-center px-4 py-8 sm:py-12">
       {/* Ambient background glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[140px]" />
-        <div className="absolute -bottom-40 -right-40 w-[700px] h-[700px] bg-teal-400/10 rounded-full blur-[160px]" />
+        <div className="absolute top-1/2 -right-40 w-[600px] h-[600px] bg-teal-400/10 rounded-full blur-[160px]" />
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -153,126 +149,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         />
       </div>
 
-      <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row min-h-screen relative z-10">
-        {/* ── LEFT SHOWCASE PANEL (Enterprise Clinic Platform) ── */}
-        <div className="hidden lg:flex lg:w-7/12 p-8 lg:p-14 flex-col justify-between text-white relative">
-          {/* Top Logo & Live Pulse */}
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 bg-white/10 border border-white/20 rounded-xl flex items-center justify-center backdrop-blur-md shadow-inner">
-                <svg viewBox="0 0 36 36" className="w-6 h-6" fill="none">
-                  <rect x="14" y="4" width="8" height="28" rx="2" fill="#00d26a" />
-                  <rect x="4" y="14" width="28" height="8" rx="2" fill="#00d26a" />
-                </svg>
-              </div>
-              <div>
-                <span className="text-xl font-black tracking-[0.16em] leading-none text-white block">
-                  MEDITRACK
-                </span>
-                <span className="text-[10px] font-bold tracking-[0.18em] text-emerald-400 uppercase">
-                  CLINICAL OPERATING SYSTEM
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-bold text-emerald-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>LIVE CLINIC PLATFORM • REAL-TIME FIREBASE SYNC</span>
-            </div>
-
-            {/* Hero Title */}
-            <div className="mt-10 lg:mt-14 max-w-xl">
-              <h1 className="text-3xl lg:text-4xl xl:text-5xl font-black text-white tracking-tight leading-[1.15]">
-                The Modern Operating System for Healthcare Clinics.
-              </h1>
-              <p className="mt-4 text-emerald-100/75 text-sm lg:text-base font-normal leading-relaxed">
-                Connect Doctor Consultations, Front-Desk Live Queue, Instant ICD-10
-                Prescriptions, and Automated Invoicing in one unified, real-time command center.
-              </p>
-            </div>
-
-            {/* Feature Cards Showcase */}
-            <div className="mt-8 lg:mt-10 grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-w-xl">
-              <div className="bg-white/[0.06] border border-white/10 backdrop-blur-md p-4 rounded-2xl hover:bg-white/[0.09] transition-all">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2.5">
-                  <Stethoscope size={18} />
-                </div>
-                <h4 className="text-sm font-bold text-white">Doctor Consultation (OPD)</h4>
-                <p className="text-xs text-white/60 mt-1 leading-relaxed">
-                  Digital Rx with dosage calculators, clinical diagnosis & instant patient timeline.
-                </p>
-              </div>
-
-              <div className="bg-white/[0.06] border border-white/10 backdrop-blur-md p-4 rounded-2xl hover:bg-white/[0.09] transition-all">
-                <div className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-300 flex items-center justify-center mb-2.5">
-                  <Clock size={18} />
-                </div>
-                <h4 className="text-sm font-bold text-white">Live Front-Desk Queue</h4>
-                <p className="text-xs text-white/60 mt-1 leading-relaxed">
-                  Real-time token management and 1-click patient calling synced to consulting rooms.
-                </p>
-              </div>
-
-              <div className="bg-white/[0.06] border border-white/10 backdrop-blur-md p-4 rounded-2xl hover:bg-white/[0.09] transition-all">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2.5">
-                  <Zap size={18} />
-                </div>
-                <h4 className="text-sm font-bold text-white">Smart Billing & Invoices</h4>
-                <p className="text-xs text-white/60 mt-1 leading-relaxed">
-                  Automated receipts, UPI payment tracking & instant WhatsApp prescription delivery.
-                </p>
-              </div>
-
-              <div className="bg-white/[0.06] border border-white/10 backdrop-blur-md p-4 rounded-2xl hover:bg-white/[0.09] transition-all">
-                <div className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-300 flex items-center justify-center mb-2.5">
-                  <ShieldCheck size={18} />
-                </div>
-                <h4 className="text-sm font-bold text-white">Strict Role Isolation</h4>
-                <p className="text-xs text-white/60 mt-1 leading-relaxed">
-                  Doctor & Receptionist linking with deny-by-default Firestore Security Rules.
-                </p>
-              </div>
-            </div>
+      <div className="w-full max-w-xl mx-auto flex flex-col items-center relative z-10">
+        {/* ── TOP BRANDING (OrderPoint Pro Layout Style) ── */}
+        <div className="flex flex-col items-center text-center mb-6 select-none">
+          {/* Glowing App Icon Badge */}
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00d26a] to-[#047857] flex items-center justify-center shadow-xl shadow-emerald-500/20 mb-3 border border-emerald-400/30">
+            <svg viewBox="0 0 36 36" className="w-8 h-8" fill="none">
+              <rect x="14" y="5" width="8" height="26" rx="2" fill="#ffffff" />
+              <rect x="5" y="14" width="26" height="8" rx="2" fill="#ffffff" />
+            </svg>
           </div>
 
-          {/* Bottom Security Badges */}
-          <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center gap-5 text-xs text-emerald-200/70 font-semibold">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck size={15} className="text-emerald-400" />
-              <span>HIPAA & NABH Ready</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Lock size={14} className="text-emerald-400" />
-              <span>256-Bit TLS Encryption</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Activity size={14} className="text-emerald-400" />
-              <span>99.9% Cloud Uptime</span>
-            </div>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-[0.16em] leading-none text-white uppercase font-display">
+            MEDITRACK
+          </h1>
+          <span className="text-[10px] font-bold tracking-[0.2em] text-emerald-400 uppercase mt-1">
+            CLINICAL OPERATING SYSTEM
+          </span>
+
+          {/* Pill Badge */}
+          <div className="mt-3.5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#053b2f]/90 border border-emerald-500/30 text-[10.5px] font-extrabold text-emerald-300 tracking-wider shadow-sm uppercase">
+            <span className="w-2 h-2 rounded-full bg-[#00d26a] animate-pulse" />
+            <span>LIVE CLINIC POS • FIREBASE REALTIME SYNC</span>
           </div>
         </div>
 
-        {/* ── RIGHT AUTHENTICATION PANEL ── */}
-        <div className="w-full lg:w-5/12 p-4 sm:p-8 lg:p-12 flex items-center justify-center min-h-screen lg:min-h-0">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl shadow-black/40 border border-slate-100/80 p-6 sm:p-8 transition-all">
-
-            {/* Mobile Branding (visible only on mobile) */}
-            <div className="lg:hidden flex flex-col items-center mb-5">
-              <div className="flex items-center gap-2.5 mb-1">
-                <div className="w-9 h-9 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-center">
-                  <svg viewBox="0 0 36 36" className="w-5 h-5" fill="none">
-                    <rect x="14" y="4" width="8" height="28" rx="2" fill="#059669" />
-                    <rect x="4" y="14" width="28" height="8" rx="2" fill="#059669" />
-                  </svg>
-                </div>
-                <span className="text-lg font-black tracking-[0.14em] text-slate-900 uppercase">MEDITRACK</span>
-              </div>
-              <span className="text-[10px] font-bold tracking-[0.15em] text-emerald-700 uppercase">Clinical Operating System</span>
-            </div>
-
-            {/* Error Message */}
+        {/* ── AUTH POP-UP CARD (Reduced Size / OrderPoint Pro Card Layout) ── */}
+        <div className="w-full max-w-[390px] sm:max-w-[420px]">
+          <div className="bg-white rounded-[26px] sm:rounded-3xl shadow-2xl shadow-black/50 border border-slate-100/90 p-5 sm:p-7 relative transition-all">
+            {/* Error Banner */}
             {error && (
-              <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-xs flex items-start gap-2.5 mb-4 animate-in fade-in duration-150">
+              <div className="bg-rose-50 border border-rose-200 text-rose-700 p-2.5 rounded-xl text-xs flex items-start gap-2 mb-3.5 animate-in fade-in duration-150">
                 <AlertCircle size={15} className="shrink-0 mt-0.5 text-rose-600" />
                 <div className="leading-relaxed font-semibold">{formatErrorMessage(error)}</div>
               </div>
@@ -280,30 +187,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
             {authMode === "login" ? (
               /* ── SIGN IN FORM ── */
-              <div className="space-y-4">
+              <div className="space-y-3.5">
                 {signupSuccess && (
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs space-y-1.5 animate-in fade-in slide-in-from-top-2">
-                    <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-sm">
-                      <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs space-y-1 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-1.5 text-emerald-800 font-extrabold text-xs">
+                      <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
                       <span>Clinic Account Registered!</span>
                     </div>
-                    <p className="text-emerald-700 font-medium leading-relaxed">
+                    <p className="text-emerald-700 font-medium leading-relaxed text-[11px]">
                       Your {signupRoleTitle} account is ready.{" "}
                       {redirectCountdown !== null && redirectCountdown > 0 ? (
                         <span>
                           Entering your <strong>{signupRoleTitle} Portal</strong> in{" "}
                           <span className="font-bold underline">{redirectCountdown}s</span>... Or click{" "}
-                          <strong>Sign In</strong> below now.
+                          <strong>Log In</strong> below.
                         </span>
                       ) : (
-                        <span>Click <strong>Sign In</strong> below to enter your portal.</span>
+                        <span>Click <strong>Log In</strong> below to enter.</span>
                       )}
                     </p>
                   </div>
                 )}
 
                 <div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight leading-tight">
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
                     Welcome back
                   </h2>
                   <p className="text-slate-500 text-xs font-medium mt-0.5">
@@ -311,15 +218,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   </p>
                 </div>
 
-                <form onSubmit={onLoginSubmit} className="space-y-3.5">
+                <form onSubmit={onLoginSubmit} className="space-y-3">
                   {/* Email */}
                   <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                    <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider">
                       Email
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <Mail size={16} />
+                        <Mail size={15} />
                       </div>
                       <input
                         type="email"
@@ -335,20 +242,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   {/* Password */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                      <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider">
                         Password
                       </label>
                       <button
                         type="button"
                         onClick={onForgotPasswordClick}
-                        className="text-[11px] font-semibold text-emerald-700 hover:underline cursor-pointer"
+                        className="text-[10px] font-bold text-emerald-700 hover:underline cursor-pointer"
                       >
                         Forgot?
                       </button>
                     </div>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <Lock size={16} />
+                        <Lock size={15} />
                       </div>
                       <input
                         type={showPassword ? "text" : "password"}
@@ -363,38 +270,41 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                       >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                       </button>
                     </div>
                   </div>
 
                   {/* Remember Me */}
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <label className="flex items-center gap-2 cursor-pointer select-none pt-0.5">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-3.5 h-3.5 rounded border-slate-300 cursor-pointer accent-emerald-700"
+                      className="w-3.5 h-3.5 rounded border-slate-300 cursor-pointer accent-[#064e3b]"
                     />
-                    <span className="text-[11px] font-semibold text-slate-500">Remember me</span>
+                    <span className="text-[11px] font-semibold text-slate-600">Remember me</span>
                   </label>
 
-                  {/* Submit */}
+                  {/* Submit Button */}
                   <button
                     type="submit"
                     disabled={authLoading}
-                    className="w-full py-3 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white font-extrabold rounded-xl shadow-lg shadow-emerald-950/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-[13px]"
+                    className="w-full py-2.5 sm:py-3 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white font-extrabold rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-xs sm:text-sm"
                   >
                     {authLoading ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                      <span>Log In &rarr;</span>
+                      <>
+                        <span>Log In</span>
+                        <ArrowRight size={14} />
+                      </>
                     )}
                   </button>
                 </form>
 
                 {/* Footer Switcher */}
-                <div className="text-center pt-2">
+                <div className="text-center pt-2 border-t border-slate-100">
                   <p className="text-xs text-slate-500 font-medium">
                     Need an account?{" "}
                     <button
@@ -403,18 +313,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         setError(null);
                         setAuthMode("signup");
                       }}
-                      className="text-emerald-700 font-extrabold hover:underline cursor-pointer ml-1 inline-flex items-center"
+                      className="text-emerald-700 font-black hover:underline cursor-pointer ml-1 inline-flex items-center gap-0.5"
                     >
-                      Create an account &rarr;
+                      <span>Create an account</span>
+                      <ArrowRight size={12} />
                     </button>
                   </p>
                 </div>
               </div>
             ) : (
-              /* ── CREATE AN ACCOUNT FORM ── */
-              <div className="space-y-4">
+              /* ── CREATE AN ACCOUNT FORM (Reduced Size Popup Card) ── */
+              <div className="space-y-3">
                 <div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight leading-tight">
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
                     Create an account
                   </h2>
                   <p className="text-slate-500 text-xs font-medium mt-0.5">
@@ -422,44 +333,44 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   </p>
                 </div>
 
-                <form onSubmit={onSignupSubmit} className="space-y-3.5">
+                <form onSubmit={onSignupSubmit} className="space-y-2.5">
                   {/* Select Role Dropdown */}
                   <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                    <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider">
                       Select Your Role *
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                         {signupData.role === "receptionist" ? (
-                          <Users size={16} />
+                          <Users size={15} />
                         ) : (
-                          <Stethoscope size={16} />
+                          <Stethoscope size={15} />
                         )}
                       </div>
                       <select
                         value={signupData.role || "doctor"}
                         onChange={(e) => setSignupData((prev: any) => ({ ...prev, role: e.target.value }))}
-                        className={`${inputCls} pr-9 cursor-pointer appearance-none font-semibold text-slate-800`}
+                        className={`${inputCls} pr-8 cursor-pointer appearance-none font-semibold text-slate-800`}
                       >
                         <option value="doctor">Doctor</option>
                         <option value="receptionist">Receptionist</option>
                       </select>
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                        <ChevronDown size={16} />
+                        <ChevronDown size={14} />
                       </div>
                     </div>
                   </div>
 
                   {/* Clinic Name & Clinic ID Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-2 gap-2">
                     {/* Clinic Name */}
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                      <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider">
                         Clinic Name *
                       </label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                          <Building2 size={16} />
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                          <Building2 size={14} />
                         </div>
                         <input
                           type="text"
@@ -472,19 +383,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             }))
                           }
                           placeholder="e.g. Al Sabah Clinic"
-                          className={inputCls}
+                          className={inputCls + " pl-8"}
                         />
                       </div>
                     </div>
 
                     {/* Clinic ID */}
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                      <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider">
                         Clinic ID *
                       </label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                          <Building2 size={16} />
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                          <Building2 size={14} />
                         </div>
                         <input
                           type="text"
@@ -498,7 +409,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             }));
                           }}
                           placeholder="e.g. MT001"
-                          className={`${inputCls} font-mono uppercase font-bold`}
+                          className={`${inputCls} pl-8 font-mono uppercase font-bold`}
                         />
                       </div>
                     </div>
@@ -506,12 +417,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
                   {/* Full Name */}
                   <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                    <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider">
                       Full Name *
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <UserIcon size={16} />
+                        <UserIcon size={15} />
                       </div>
                       <input
                         type="text"
@@ -525,14 +436,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   </div>
 
                   {/* Email & Phone Grid */}
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                      <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider">
                         Work Email *
                       </label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                          <Mail size={16} />
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                          <Mail size={14} />
                         </div>
                         <input
                           type="email"
@@ -540,13 +451,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           value={signupData.email}
                           onChange={(e) => setSignupData((prev: any) => ({ ...prev, email: e.target.value }))}
                           placeholder="user@clinic.com"
-                          className={inputCls}
+                          className={inputCls + " pl-8"}
                         />
                       </div>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                      <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider">
                         Mobile *
                       </label>
                       <div className="relative">
@@ -558,7 +469,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           required
                           value={signupData.phone || ""}
                           onChange={(e) => setSignupData((prev: any) => ({ ...prev, phone: e.target.value }))}
-                          placeholder="e.g. 9876543210"
+                          placeholder="9876543210"
                           className={inputCls + " pl-8 text-xs font-mono"}
                         />
                       </div>
@@ -567,12 +478,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
                   {/* Password */}
                   <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                      Password (min 6 characters)
+                    <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider">
+                      Password (min 6 chars) *
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <Lock size={16} />
+                        <Lock size={15} />
                       </div>
                       <input
                         type={showSignupPassword ? "text" : "password"}
@@ -588,27 +499,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         onClick={() => setShowSignupPassword(!showSignupPassword)}
                         className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                       >
-                        {showSignupPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showSignupPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                       </button>
                     </div>
                   </div>
 
-                  {/* Submit */}
+                  {/* Submit Button: Explicitly 'Register Clinic' as requested */}
                   <button
                     type="submit"
                     disabled={authLoading}
-                    className="w-full py-3 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white font-extrabold rounded-xl shadow-lg shadow-emerald-950/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 text-[13px]"
+                    className="w-full mt-1 py-2.5 sm:py-3 bg-[#064e3b] hover:bg-[#043d2e] active:scale-[0.99] text-white font-extrabold rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 text-xs sm:text-sm"
                   >
                     {authLoading ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                      <span>Register Clinic &amp; Start &rarr;</span>
+                      <span>Register Clinic</span>
                     )}
                   </button>
                 </form>
 
                 {/* Footer Switcher */}
-                <div className="text-center pt-2">
+                <div className="text-center pt-2 border-t border-slate-100">
                   <p className="text-xs text-slate-500 font-medium">
                     Already have an account?{" "}
                     <button
@@ -617,19 +528,95 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         setError(null);
                         setAuthMode("login");
                       }}
-                      className="text-emerald-700 font-extrabold hover:underline cursor-pointer ml-1 inline-flex items-center"
+                      className="text-emerald-700 font-black hover:underline cursor-pointer ml-1 inline-flex items-center gap-0.5"
                     >
-                      Sign in &rarr;
+                      <span>Sign in</span>
+                      <ArrowRight size={12} />
                     </button>
                   </p>
                 </div>
               </div>
             )}
+          </div>
 
-            {/* Micro-footer */}
-            <p className="text-center text-[10px] text-slate-400 font-medium mt-6 pt-3 border-t border-slate-100">
-              © 2026 MediTrack • Enterprise Clinic &amp; Hospital Operating System
-            </p>
+          {/* Micro-footer right below card */}
+          <p className="text-center text-[10.5px] text-emerald-100/50 font-medium mt-4 select-none">
+            © 2026 MediTrack • Enterprise Clinic &amp; Hospital Operating System
+          </p>
+        </div>
+
+        {/* ── SHOWCASE SECTION BELOW CARD (Matching OrderPoint Pro Images 3 & 4) ── */}
+        <div className="w-full mt-10 sm:mt-14 text-center">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+            The Modern Operating System for Healthcare Clinics.
+          </h2>
+          <p className="mt-2 text-xs sm:text-sm text-emerald-100/70 max-w-lg mx-auto leading-relaxed">
+            Connect POS Billing, Live OPD Patient Queue, Clinic Pharmacy &amp; Automated WhatsApp Invoicing in one unified, real-time command center.
+          </p>
+
+          {/* 4 Feature Cards */}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto text-left">
+            {/* Card 1 */}
+            <div className="bg-[#052b22]/90 border border-emerald-900/50 backdrop-blur-md p-4 rounded-2xl hover:border-emerald-700/60 transition-all shadow-lg shadow-black/20">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2.5">
+                <CreditCard size={17} />
+              </div>
+              <h4 className="text-xs sm:text-sm font-black text-white">Smart OPD &amp; Invoicing</h4>
+              <p className="text-[11px] text-emerald-100/60 mt-1 leading-relaxed">
+                Fast checkout with instant UPI QR, billing records, and automated WhatsApp receipts.
+              </p>
+            </div>
+
+            {/* Card 2 */}
+            <div className="bg-[#052b22]/90 border border-emerald-900/50 backdrop-blur-md p-4 rounded-2xl hover:border-emerald-700/60 transition-all shadow-lg shadow-black/20">
+              <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center mb-2.5">
+                <Clock size={17} />
+              </div>
+              <h4 className="text-xs sm:text-sm font-black text-white">Live Patient Queue (OPD)</h4>
+              <p className="text-[11px] text-emerald-100/60 mt-1 leading-relaxed">
+                Real-time queue tracking with doctor call alerts and 1-click consultation dispatch.
+              </p>
+            </div>
+
+            {/* Card 3 */}
+            <div className="bg-[#052b22]/90 border border-emerald-900/50 backdrop-blur-md p-4 rounded-2xl hover:border-emerald-700/60 transition-all shadow-lg shadow-black/20">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2.5">
+                <Activity size={17} />
+              </div>
+              <h4 className="text-xs sm:text-sm font-black text-white">Prescription &amp; Pharmacy</h4>
+              <p className="text-[11px] text-emerald-100/60 mt-1 leading-relaxed">
+                Clinic medicine database, real-time dosage instructions, and structured e-prescriptions.
+              </p>
+            </div>
+
+            {/* Card 4 */}
+            <div className="bg-[#052b22]/90 border border-emerald-900/50 backdrop-blur-md p-4 rounded-2xl hover:border-emerald-700/60 transition-all shadow-lg shadow-black/20">
+              <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center mb-2.5">
+                <ShieldCheck size={17} />
+              </div>
+              <h4 className="text-xs sm:text-sm font-black text-white">Strict Tenant Isolation</h4>
+              <p className="text-[11px] text-emerald-100/60 mt-1 leading-relaxed">
+                Multi-clinic role-based access with deny-by-default Firestore Security Rules.
+              </p>
+            </div>
+          </div>
+
+          {/* Security & Uptime Row */}
+          <div className="mt-8 pt-5 border-t border-emerald-900/40 flex flex-wrap items-center justify-center gap-4 text-[11px] text-emerald-200/60 font-semibold select-none">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck size={14} className="text-emerald-400" />
+              <span>HIPAA &amp; NABH Ready</span>
+            </div>
+            <span className="text-emerald-900">•</span>
+            <div className="flex items-center gap-1.5">
+              <Lock size={13} className="text-emerald-400" />
+              <span>256-Bit TLS Encryption</span>
+            </div>
+            <span className="text-emerald-900">•</span>
+            <div className="flex items-center gap-1.5">
+              <Activity size={13} className="text-emerald-400" />
+              <span>99.9% Cloud Uptime</span>
+            </div>
           </div>
         </div>
       </div>
