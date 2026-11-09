@@ -1192,18 +1192,49 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         notes: newAptNotes.trim() || "Appointment added by front desk",
       };
 
-      await addDoc(collection(db, "patients"), patientData);
+      const docRef = await addDoc(collection(db, "patients"), patientData);
+
+      // Instantly inject optimistic appointment so the booked appointment is immediately visible
+      const optimisticApt: AppointmentItem = {
+        id: `pat-${docRef.id}`,
+        appointmentId: `APT-${permanentMrn}`,
+        mrn: permanentMrn,
+        queueNo: Number(finalQueueNumber),
+        time: liveCurrentTime,
+        patientName: cleanName,
+        phone: cleanPhone,
+        doctor: docName,
+        type: newAptType as any,
+        status: "Waiting",
+        age: newAptAge.trim() || pastVisit?.age || "",
+        gender: (newAptGender || detectGenderFromName(cleanName) || pastVisit?.gender || "Male") as any,
+        notes: newAptNotes.trim() || "Appointment added by front desk",
+        date: todayDateStr,
+      };
+      setCustomAppointments((prev) => [optimisticApt, ...prev.filter((p) => p.id !== optimisticApt.id)]);
+
       setIsNewAptModalOpen(false);
       setNewAptName("");
       setNewAptPhone("");
       setNewAptAge("");
       setNewAptNotes("");
       setShowNewAptAnalogClock(false);
+
+      // Immediately navigate to show booked appointment in Appointments Booking list
+      setActiveTab("appointments");
+      setAptStatusFilter("All Status");
+      setAptSearch("");
+      setAptPage(1);
+
       showToast(`Appointment booked for ${cleanName} (#${finalSequenceNumber})`);
     } catch (err: any) {
       console.error("Schedule error:", err);
       showToast("Appointment created");
       setIsNewAptModalOpen(false);
+      setActiveTab("appointments");
+      setAptStatusFilter("All Status");
+      setAptSearch("");
+      setAptPage(1);
     } finally {
       setIsSubmittingApt(false);
     }
@@ -4769,12 +4800,19 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
                     setNewQueuePhone("");
                     setNewQueueAge("");
                     setNewQueueGender("Male");
+                    // Immediately show queue waiting list
+                    setActiveTab("queue");
+                    setQueueStatusFilter("All");
+                    setSearchQuery("");
+                    setQueuePage(1);
                     showToast(`Token #${finalSequenceNumber} generated for ${cleanName}`);
                   } catch (err: any) {
                     console.error("Error adding patient to queue:", err);
                     setIsAddQueueModalOpen(false);
                     setNewQueueName("");
                     setNewQueuePhone("");
+                    setActiveTab("queue");
+                    setQueueStatusFilter("All");
                     showToast(`${newQueueName.trim()} added to queue`);
                   }
                 }}

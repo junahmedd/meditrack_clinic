@@ -2625,58 +2625,66 @@ export function DoctorPortal({
                               )}
                             </div>
 
-                            {/* 3-Column Inputs on Mobile */}
-                            <div className="grid grid-cols-3 gap-2">
-                              <div>
-                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Dosage</label>
-                                <input
-                                  type="text"
-                                  value={item.dosage}
-                                  onChange={(e) => handleUpdateMedicine(idx, "dosage", e.target.value)}
-                                  placeholder="1-0-1"
-                                  className="w-full px-2 py-2 bg-white border border-slate-200/80 rounded-xl text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
-                                />
+                            {/* Clean, Non-Truncated Responsive Inputs on Mobile */}
+                            <div className="space-y-2.5 pt-1">
+                              {/* Row 1: Dosage & Duration */}
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                                    {t("dosage")}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={item.dosage}
+                                    onChange={(e) => handleUpdateMedicine(idx, "dosage", e.target.value)}
+                                    placeholder="1-0-1"
+                                    className="w-full px-3 py-2 bg-white border border-slate-200/90 rounded-xl text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                                    {t("duration")}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={item.duration}
+                                    onChange={(e) => handleUpdateMedicine(idx, "duration", e.target.value)}
+                                    placeholder="5 Days"
+                                    className="w-full px-3 py-2 bg-white border border-slate-200/90 rounded-xl text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
+                                  />
+                                </div>
                               </div>
-                              <div>
-                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Duration</label>
-                                <input
-                                  type="text"
-                                  value={item.duration}
-                                  onChange={(e) => handleUpdateMedicine(idx, "duration", e.target.value)}
-                                  placeholder="5 Days"
-                                  className="w-full px-2 py-2 bg-white border border-slate-200/80 rounded-xl text-xs font-bold text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">When</label>
-                                <select
-                                  value={item.instructions || "After food"}
-                                  onChange={(e) => handleUpdateMedicine(idx, "instructions", e.target.value)}
-                                  className="w-full px-1.5 py-2 bg-white border border-slate-200/80 rounded-xl text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b]"
-                                >
-                                  <option value="After food">After food</option>
-                                  <option value="Before food">Before food</option>
-                                </select>
-                              </div>
-                            </div>
 
-                            {/* Mobile Quick-Tap Frequency Pills */}
-                            <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto no-scrollbar">
-                              <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider shrink-0">Quick:</span>
-                              {["1-0-1", "1-0-0", "0-0-1", "1-1-1", "SOS"].map((quickDose) => (
-                                <button
-                                  key={quickDose}
-                                  type="button"
-                                  onClick={() => handleUpdateMedicine(idx, "dosage", quickDose)}
-                                  className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer shrink-0 active:scale-90 select-none ${
-                                    item.dosage === quickDose
-                                      ? "bg-[#064e3b] text-white shadow-xs"
-                                      : "bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-800"
-                                  }`}
-                                >
-                                  {quickDose}
-                                </button>
-                              ))}
+                              {/* Row 2: Instructions (When: After food / Before food) */}
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                                  {t("when")} / {t("instructions")}
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateMedicine(idx, "instructions", "After food")}
+                                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+                                      (item.instructions || "After food") === "After food"
+                                        ? "bg-[#064e3b] text-white border-[#064e3b] shadow-xs"
+                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    After food
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateMedicine(idx, "instructions", "Before food")}
+                                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+                                      item.instructions === "Before food"
+                                        ? "bg-[#064e3b] text-white border-[#064e3b] shadow-xs"
+                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    Before food
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         ))}
