@@ -3557,33 +3557,9 @@ export default function App() {
         let linkedClinicData: any = clinicExists ? clinicSnap.data() : null;
         let linkedDoctor: any = null;
 
-        // Section 2: Doctor/Admin Registration Validation
-        if (selectedRole === "doctor" || selectedRole === "admin") {
-          if (clinicExists) {
-            // Clinic already exists — verify authorization to prevent unauthorized takeover
-            const adminEmail = (linkedClinicData?.adminEmail || "").toLowerCase().trim();
-            const isOwner = adminEmail === emailVal.toLowerCase().trim();
-            const isDocMember =
-              Array.isArray(linkedClinicData?.doctors) &&
-              linkedClinicData.doctors.some(
-                (d: any) => (d.email || "").toLowerCase().trim() === emailVal.toLowerCase().trim()
-              );
-
-            if (!isOwner && !isDocMember) {
-              throw new Error(
-                `Clinic ID "${finalClinicId}" is already registered by another clinic owner. If this is your clinic, please sign in with your registered credentials, or choose a unique Clinic ID.`
-              );
-            }
-          }
-        } else if (selectedRole === "receptionist") {
-          // Section 3: Receptionist Registration Validation
-          if (!clinicExists) {
-            throw new Error(
-              `Clinic ID "${finalClinicId}" not found in MediTrack. Please verify the Clinic ID provided by your Doctor before registering.`
-            );
-          }
-
-          // Section 4: Resolve assigned doctor from the verified clinic record
+        // Section 2: Both Doctor and Receptionist can register a new Clinic ID or join an existing Clinic!
+        if (clinicExists) {
+          // Clinic already exists — resolve linked doctor for receptionist / existing doctors team
           if (Array.isArray(linkedClinicData?.doctors) && linkedClinicData.doctors.length > 0) {
             const targetDocUid = (signupData as any).assignedDoctorUid || "";
             const targetDocEmail = ((signupData as any).assignedDoctorEmail || "").trim().toLowerCase();
@@ -3607,6 +3583,18 @@ export default function App() {
               name: linkedClinicData.primaryDoctorName,
               email: linkedClinicData.primaryDoctorEmail || linkedClinicData.adminEmail || "",
               doctorId: linkedClinicData.primaryDoctorId || `DOC-${finalClinicId}-001`,
+              category: "GP",
+            };
+          }
+        } else {
+          // Clinic does not exist yet: BOTH Doctor and Receptionist can register and create the clinic ID
+          if (selectedRole === "receptionist") {
+            linkedDoctor = {
+              uid: "",
+              displayName: "Clinic Doctor",
+              name: "Clinic Doctor",
+              email: "",
+              doctorId: `DOC-${finalClinicId}-001`,
               category: "GP",
             };
           }
@@ -3640,15 +3628,18 @@ export default function App() {
         const newRecId = `REC-${finalClinicId}-${userUid.slice(0, 4).toUpperCase()}`;
 
         if (!clinicExists) {
-          // Brand new clinic created with manually entered Clinic ID
+          // Brand new clinic created with manually entered Clinic ID by Doctor OR Receptionist
           await setDoc(clinicRef, {
             clinicId: finalClinicId,
             name: clinicName,
             adminId: userUid,
             adminEmail: emailVal.toLowerCase().trim(),
             primaryDoctorId: selectedRole === "doctor" ? newDocId : `DOC-${finalClinicId}-001`,
-            primaryDoctorName: selectedRole === "doctor" ? fullName : "",
+            primaryDoctorName: selectedRole === "doctor" ? fullName : "Clinic Doctor",
             primaryDoctorEmail: selectedRole === "doctor" ? emailVal.toLowerCase().trim() : "",
+            primaryReceptionistId: selectedRole === "receptionist" ? newRecId : "",
+            primaryReceptionistEmail: selectedRole === "receptionist" ? emailVal.toLowerCase().trim() : "",
+            primaryReceptionistName: selectedRole === "receptionist" ? fullName : "",
             doctors: selectedRole === "doctor"
               ? [
                   {
@@ -3658,6 +3649,17 @@ export default function App() {
                     email: emailVal.toLowerCase().trim(),
                     doctorId: newDocId,
                     category: "GP",
+                  },
+                ]
+              : [],
+            receptionists: selectedRole === "receptionist"
+              ? [
+                  {
+                    uid: userUid,
+                    name: fullName,
+                    displayName: fullName,
+                    email: emailVal.toLowerCase().trim(),
+                    receptionistId: newRecId,
                   },
                 ]
               : [],
@@ -3679,16 +3681,35 @@ export default function App() {
             ...existingDocs.filter((d: any) => (d.email || "").toLowerCase() !== emailVal.toLowerCase().trim()),
             docEntry,
           ];
-          await updateDoc(clinicRef, {
+          const updatePayload: any = {
             doctors: updatedDocs,
             updatedAt: serverTimestamp(),
-          }).catch(console.error);
+          };
+          if (!linkedClinicData?.primaryDoctorEmail) {
+            updatePayload.primaryDoctorId = newDocId;
+            updatePayload.primaryDoctorName = fullName;
+            updatePayload.primaryDoctorEmail = emailVal.toLowerCase().trim();
+          }
+          await updateDoc(clinicRef, updatePayload).catch(console.error);
         } else if (selectedRole === "receptionist") {
           // Receptionist registered into existing clinic
+          const existingRecs = Array.isArray(linkedClinicData?.receptionists) ? linkedClinicData.receptionists : [];
+          const recEntry = {
+            uid: userUid,
+            name: fullName,
+            displayName: fullName,
+            email: emailVal.toLowerCase().trim(),
+            receptionistId: newRecId,
+          };
+          const updatedRecs = [
+            ...existingRecs.filter((r: any) => (r.email || "").toLowerCase() !== emailVal.toLowerCase().trim()),
+            recEntry,
+          ];
           await updateDoc(clinicRef, {
             primaryReceptionistId: newRecId,
             primaryReceptionistEmail: emailVal.toLowerCase().trim(),
             primaryReceptionistName: fullName,
+            receptionists: updatedRecs,
             updatedAt: serverTimestamp(),
           }).catch(console.error);
         }
