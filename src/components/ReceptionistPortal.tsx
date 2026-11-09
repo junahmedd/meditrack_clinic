@@ -875,7 +875,38 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         date: pDate,
       };
     });
-    return [...fromPatients, ...customAppointments];
+
+    // Deduplicate appointments strictly to ensure 1 registered patient = exactly 1 appointment item
+    const seenIds = new Set<string>();
+    const uniqueAppointments: AppointmentItem[] = [];
+
+    // 1. Prioritize real Firestore scoped patients
+    for (const apt of fromPatients) {
+      const rawId = apt.id.replace("pat-", "");
+      if (seenIds.has(apt.id) || seenIds.has(rawId)) continue;
+      seenIds.add(apt.id);
+      seenIds.add(rawId);
+      if (apt.appointmentId) seenIds.add(apt.appointmentId);
+      if (apt.mrn) seenIds.add(apt.mrn);
+      uniqueAppointments.push(apt);
+    }
+
+    // 2. Only add customAppointments if they don't already exist in fromPatients
+    for (const ca of customAppointments) {
+      const rawId = ca.id.replace("pat-", "");
+      if (
+        seenIds.has(ca.id) ||
+        seenIds.has(rawId) ||
+        (ca.appointmentId && seenIds.has(ca.appointmentId)) ||
+        (ca.mrn && seenIds.has(ca.mrn))
+      ) {
+        continue;
+      }
+      seenIds.add(ca.id);
+      uniqueAppointments.push(ca);
+    }
+
+    return uniqueAppointments;
   }, [scopedPatients, customAppointments, assignedDoctorName, currentLocalDate]);
 
   const [aptDoctorFilter, setAptDoctorFilter] = useState<string>("All Doctors");
@@ -1192,27 +1223,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
         notes: newAptNotes.trim() || "Appointment added by front desk",
       };
 
-      const docRef = await addDoc(collection(db, "patients"), patientData);
-
-      // Instantly inject optimistic appointment so the booked appointment is immediately visible
-      const optimisticApt: AppointmentItem = {
-        id: `pat-${docRef.id}`,
-        appointmentId: `APT-${permanentMrn}`,
-        mrn: permanentMrn,
-        queueNo: Number(finalQueueNumber),
-        time: liveCurrentTime,
-        patientName: cleanName,
-        phone: cleanPhone,
-        doctor: docName,
-        type: newAptType as any,
-        status: "Waiting",
-        age: newAptAge.trim() || pastVisit?.age || "",
-        gender: (newAptGender || detectGenderFromName(cleanName) || pastVisit?.gender || "Male") as any,
-        notes: newAptNotes.trim() || "Appointment added by front desk",
-        date: todayDateStr,
-      };
-      setCustomAppointments((prev) => [optimisticApt, ...prev.filter((p) => p.id !== optimisticApt.id)]);
-
+      // Close popup modal immediately so it disappears with zero delay
       setIsNewAptModalOpen(false);
       setNewAptName("");
       setNewAptPhone("");
@@ -1220,9 +1231,12 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       setNewAptNotes("");
       setShowNewAptAnalogClock(false);
 
-      // Immediately navigate to show booked appointment in Appointments Booking list
+      // Save to Firestore patients collection (updates real-time listener without duplicates)
+      await addDoc(collection(db, "patients"), patientData);
+
+      // Immediately navigate to waiting queue view (1 appointment = 1 in waiting queue)
       setActiveTab("appointments");
-      setAptStatusFilter("All Status");
+      setAptStatusFilter("Waiting");
       setAptSearch("");
       setAptPage(1);
 
@@ -1232,7 +1246,7 @@ export const ReceptionistPortal: React.FC<ReceptionistPortalProps> = ({
       showToast("Appointment created");
       setIsNewAptModalOpen(false);
       setActiveTab("appointments");
-      setAptStatusFilter("All Status");
+      setAptStatusFilter("Waiting");
       setAptSearch("");
       setAptPage(1);
     } finally {

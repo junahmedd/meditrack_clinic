@@ -105,7 +105,7 @@ export const translations: Record<Language, TranslationDictionary> = {
     cancelled: "Cancelled",
     scheduled: "Scheduled",
     waiting: "Waiting",
-    newAppointment: "+ New Appointment",
+    newAppointment: "New Appointment",
     bookAppointment: "Book Appointment",
     scheduleAppointment: "Schedule Appointment",
     patientName: "Patient Name",
@@ -179,7 +179,7 @@ export const translations: Record<Language, TranslationDictionary> = {
 
     // Medicine Page
     medicineCatalog: "Medicine Catalog",
-    addMedicine: "+ Add Medicine",
+    addMedicine: "Add Medicine",
     medicineName: "Medicine Name",
     category: "Category",
     allCategories: "All Categories",
@@ -374,7 +374,7 @@ export const translations: Record<Language, TranslationDictionary> = {
     cancelled: "ملغي",
     scheduled: "مجدول",
     waiting: "في الانتظار",
-    newAppointment: "+ حجز موعد جديد",
+    newAppointment: "حجز موعد جديد",
     bookAppointment: "حجز موعد",
     scheduleAppointment: "جدولة موعد",
     patientName: "اسم المريض",
@@ -448,7 +448,7 @@ export const translations: Record<Language, TranslationDictionary> = {
 
     // Medicine Page
     medicineCatalog: "كتالوج الأدوية",
-    addMedicine: "+ إضافة دواء",
+    addMedicine: "إضافة دواء",
     medicineName: "اسم الدواء",
     category: "التصنيف",
     allCategories: "جميع الفئات",
