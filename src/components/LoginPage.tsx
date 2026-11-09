@@ -9,15 +9,10 @@ import {
   Building2,
   User as UserIcon,
   Phone,
-  ShieldCheck,
-  Stethoscope,
-  Activity,
-  Users,
-  Clock,
   ChevronDown,
   ArrowRight,
-  CreditCard,
-  Layers,
+  Users,
+  Stethoscope,
 } from "lucide-react";
 
 interface LoginPageProps {
@@ -134,7 +129,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     "w-full pl-9 pr-3 py-2.5 min-h-[42px] bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all font-medium";
 
   return (
-    <div className="min-h-screen w-full bg-[#031d16] font-sans antialiased text-slate-900 selection:bg-emerald-500 selection:text-white relative overflow-x-hidden flex flex-col justify-start items-center px-4 py-8 sm:py-12">
+    <div className="min-h-[100dvh] w-full bg-[#031d16] font-sans antialiased text-slate-900 selection:bg-emerald-500 selection:text-white relative overflow-y-auto sm:overflow-hidden flex flex-col justify-center items-center px-4 py-3 sm:py-5">
       {/* Ambient background glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[140px]" />
@@ -149,29 +144,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         />
       </div>
 
-      <div className="w-full max-w-xl mx-auto flex flex-col items-center relative z-10">
-        {/* ── TOP BRANDING (OrderPoint Pro Layout Style) ── */}
-        <div className="flex flex-col items-center text-center mb-6 select-none">
+      <div className="w-full max-w-xl mx-auto flex flex-col items-center relative z-10 my-auto">
+        {/* ── TOP BRANDING ── */}
+        <div className="flex flex-col items-center text-center mb-3 sm:mb-4 select-none">
           {/* Glowing App Icon Badge */}
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00d26a] to-[#047857] flex items-center justify-center shadow-xl shadow-emerald-500/20 mb-3 border border-emerald-400/30">
-            <svg viewBox="0 0 36 36" className="w-8 h-8" fill="none">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#00d26a] to-[#047857] flex items-center justify-center shadow-xl shadow-emerald-500/20 mb-2 border border-emerald-400/30">
+            <svg viewBox="0 0 36 36" className="w-7 h-7 sm:w-8 sm:h-8" fill="none">
               <rect x="14" y="5" width="8" height="26" rx="2" fill="#ffffff" />
               <rect x="5" y="14" width="26" height="8" rx="2" fill="#ffffff" />
             </svg>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black tracking-[0.16em] leading-none text-white uppercase font-display">
+          <h1 className="text-xl sm:text-2xl font-black tracking-[0.16em] leading-none text-white uppercase font-display">
             MEDITRACK
           </h1>
-          <span className="text-[10px] font-bold tracking-[0.2em] text-emerald-400 uppercase mt-1">
+          <span className="text-[9.5px] sm:text-[10px] font-bold tracking-[0.2em] text-emerald-400 uppercase mt-1">
             CLINICAL OPERATING SYSTEM
           </span>
-
-          {/* Pill Badge */}
-          <div className="mt-3.5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#053b2f]/90 border border-emerald-500/30 text-[10.5px] font-extrabold text-emerald-300 tracking-wider shadow-sm uppercase">
-            <span className="w-2 h-2 rounded-full bg-[#00d26a] animate-pulse" />
-            <span>LIVE CLINIC POS • FIREBASE REALTIME SYNC</span>
-          </div>
         </div>
 
         {/* ── AUTH POP-UP CARD (Reduced Size / OrderPoint Pro Card Layout) ── */}
@@ -540,84 +529,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </div>
 
           {/* Micro-footer right below card */}
-          <p className="text-center text-[10.5px] text-emerald-100/50 font-medium mt-4 select-none">
+          <p className="text-center text-[10.5px] text-emerald-100/50 font-medium mt-3.5 select-none">
             © 2026 MediTrack • Enterprise Clinic &amp; Hospital Operating System
           </p>
-        </div>
-
-        {/* ── SHOWCASE SECTION BELOW CARD (Matching OrderPoint Pro Images 3 & 4) ── */}
-        <div className="w-full mt-10 sm:mt-14 text-center">
-          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
-            The Modern Operating System for Healthcare Clinics.
-          </h2>
-          <p className="mt-2 text-xs sm:text-sm text-emerald-100/70 max-w-lg mx-auto leading-relaxed">
-            Connect POS Billing, Live OPD Patient Queue, Clinic Pharmacy &amp; Automated WhatsApp Invoicing in one unified, real-time command center.
-          </p>
-
-          {/* 4 Feature Cards */}
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto text-left">
-            {/* Card 1 */}
-            <div className="bg-[#052b22]/90 border border-emerald-900/50 backdrop-blur-md p-4 rounded-2xl hover:border-emerald-700/60 transition-all shadow-lg shadow-black/20">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2.5">
-                <CreditCard size={17} />
-              </div>
-              <h4 className="text-xs sm:text-sm font-black text-white">Smart OPD &amp; Invoicing</h4>
-              <p className="text-[11px] text-emerald-100/60 mt-1 leading-relaxed">
-                Fast checkout with instant UPI QR, billing records, and automated WhatsApp receipts.
-              </p>
-            </div>
-
-            {/* Card 2 */}
-            <div className="bg-[#052b22]/90 border border-emerald-900/50 backdrop-blur-md p-4 rounded-2xl hover:border-emerald-700/60 transition-all shadow-lg shadow-black/20">
-              <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center mb-2.5">
-                <Clock size={17} />
-              </div>
-              <h4 className="text-xs sm:text-sm font-black text-white">Live Patient Queue (OPD)</h4>
-              <p className="text-[11px] text-emerald-100/60 mt-1 leading-relaxed">
-                Real-time queue tracking with doctor call alerts and 1-click consultation dispatch.
-              </p>
-            </div>
-
-            {/* Card 3 */}
-            <div className="bg-[#052b22]/90 border border-emerald-900/50 backdrop-blur-md p-4 rounded-2xl hover:border-emerald-700/60 transition-all shadow-lg shadow-black/20">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2.5">
-                <Activity size={17} />
-              </div>
-              <h4 className="text-xs sm:text-sm font-black text-white">Prescription &amp; Pharmacy</h4>
-              <p className="text-[11px] text-emerald-100/60 mt-1 leading-relaxed">
-                Clinic medicine database, real-time dosage instructions, and structured e-prescriptions.
-              </p>
-            </div>
-
-            {/* Card 4 */}
-            <div className="bg-[#052b22]/90 border border-emerald-900/50 backdrop-blur-md p-4 rounded-2xl hover:border-emerald-700/60 transition-all shadow-lg shadow-black/20">
-              <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center mb-2.5">
-                <ShieldCheck size={17} />
-              </div>
-              <h4 className="text-xs sm:text-sm font-black text-white">Strict Tenant Isolation</h4>
-              <p className="text-[11px] text-emerald-100/60 mt-1 leading-relaxed">
-                Multi-clinic role-based access with deny-by-default Firestore Security Rules.
-              </p>
-            </div>
-          </div>
-
-          {/* Security & Uptime Row */}
-          <div className="mt-8 pt-5 border-t border-emerald-900/40 flex flex-wrap items-center justify-center gap-4 text-[11px] text-emerald-200/60 font-semibold select-none">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck size={14} className="text-emerald-400" />
-              <span>HIPAA &amp; NABH Ready</span>
-            </div>
-            <span className="text-emerald-900">•</span>
-            <div className="flex items-center gap-1.5">
-              <Lock size={13} className="text-emerald-400" />
-              <span>256-Bit TLS Encryption</span>
-            </div>
-            <span className="text-emerald-900">•</span>
-            <div className="flex items-center gap-1.5">
-              <Activity size={13} className="text-emerald-400" />
-              <span>99.9% Cloud Uptime</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
